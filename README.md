@@ -1,229 +1,113 @@
-# HackNation AI - Chat Agent API
+# 🤖 AI Agent Chat with RAG
 
-A FastAPI-based chat agent API with support for both streaming and non-streaming responses.
+FastAPI-based AI chat application with document upload, RAG search, and custom tools.
 
-## Features
+## 📋 Requirements
 
-- **Non-streaming chat endpoint**: Get complete responses in a single request
-- **Streaming chat endpoint**: Receive responses in real-time chunks using Server-Sent Events (SSE)
-- **Simple and extensible**: Easy to integrate with any LLM or chat agent backend
-- **Type-safe**: Built with Pydantic models for request/response validation
-- **Auto-documented**: Interactive API documentation via FastAPI's built-in Swagger UI
+- **Python 3.9+** (uv will auto-install if missing)
+- **OpenAI API Key** - Get one at [platform.openai.com/api-keys](https://platform.openai.com/api-keys)
 
-## Installation
+## 🚀 Installation
 
-1. Install dependencies:
+### 1. Install uv
+
+**macOS/Linux:**
+```bash
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**Windows (PowerShell as Admin):**
+```powershell
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+```
+
+Close and reopen your terminal after installation.
+
+### 2. Setup & Run
 
 ```bash
-pip install -r requirements.txt
+# Navigate to project
+cd hacknation-ai
+
+# Copy example environment file
+cp .env.example .env
+
+# Edit .env and add your OpenAI API key
+# (Open .env in any text editor and replace 'your-key-here')
+
+# Setup environment and install everything
+uv venv
+uv pip install -e .
+
+# Start the server
+python -m app.main
 ```
 
-Or using the pyproject.toml:
+### 3. Open the UI
 
+**macOS:**
 ```bash
-pip install -e .
+open index.html
 ```
 
-## Running the Server
-
-Start the server with:
-
+**Windows:**
 ```bash
-python main.py
+start index.html
 ```
 
-Or using uvicorn directly:
-
+**Linux:**
 ```bash
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
+xdg-open index.html
 ```
 
-The API will be available at `http://localhost:8000`
+That's it! Upload documents and start chatting.
 
-## API Documentation
+## 💡 Usage
 
-Once the server is running, you can access:
+- **Upload documents:** Click "📤 Upload Document" (supports .txt and .pdf)
+- **Ask questions:** "What does the document say about X?"
+- **Use tools:** "What's the weather in Berlin?" or "Calculate 42 * 137"
 
-- **Interactive API docs (Swagger UI)**: http://localhost:8000/docs
-- **Alternative API docs (ReDoc)**: http://localhost:8000/redoc
-- **OpenAPI schema**: http://localhost:8000/openapi.json
+## 🔧 Common Issues
 
-## API Endpoints
+**"uv: command not found"**  
+→ Close and reopen your terminal
 
-### 1. Non-streaming Chat: `POST /chat`
+**Port 8000 already in use**  
+→ Edit `index.html`, change `API_URL` to `http://localhost:8001`  
+→ Run: `python -m app.main --port 8001`
 
-Get a complete chat response in a single request.
+**ChromaDB errors**  
+→ Run: `uv pip install pysqlite3-binary`
 
-**Request:**
-```json
-{
-  "messages": [
-    {"role": "user", "content": "Hello, how are you?"}
-  ],
-  "agent_id": "default",
-  "max_tokens": 1000,
-  "temperature": 0.7
-}
+**View logs**  
+→ Check `logs/app.log` for errors
+
+## 📂 Project Structure
+
+```
+hacknation-ai/
+├── app/                    # Backend code
+│   ├── main.py            # API server
+│   ├── agent_manager.py   # AI logic
+│   ├── rag_pipeline.py    # Document search
+│   └── tools.py           # Custom tools
+├── index.html          # Web interface
+├── pyproject.toml        # Dependencies
+├── .env.example          # Example environment file
+├── .env                  # Your API key (create from .env.example)
+└── chroma_db/            # Document storage (auto-created)
 ```
 
-**Response:**
-```json
-{
-  "message": {
-    "role": "assistant",
-    "content": "I'm doing well, thank you for asking!"
-  },
-  "agent_id": "default",
-  "timestamp": "2024-01-01T12:00:00.000000",
-  "tokens_used": 8
-}
-```
+## 📝 Features
 
-### 2. Streaming Chat: `POST /chat/stream`
+- ✅ Upload & search documents (PDF/TXT)
+- ✅ RAG-powered AI responses
+- ✅ Real-time streaming
+- ✅ Tool usage visualization
+- ✅ Conversation history
+- ✅ Full logging
 
-Get a streaming chat response using Server-Sent Events (SSE).
+**Note:** First run takes ~2 minutes (downloads 80MB embedding model), then it's fast!
 
-**Request:** (same as non-streaming)
-```json
-{
-  "messages": [
-    {"role": "user", "content": "Tell me a story"}
-  ],
-  "agent_id": "storyteller",
-  "max_tokens": 1000,
-  "temperature": 0.7
-}
-```
-
-**Response:** (Server-Sent Events stream)
-```
-data: {"content": "Once ", "done": false, "agent_id": "storyteller", "timestamp": "..."}
-
-data: {"content": "upon ", "done": false, "agent_id": "storyteller", "timestamp": "..."}
-
-data: {"content": "a time", "done": false, "agent_id": "storyteller", "timestamp": "..."}
-
-data: {"content": "", "done": true, "agent_id": "storyteller", "timestamp": "..."}
-```
-
-### 3. Health Check: `GET /health`
-
-Check if the API is running.
-
-**Response:**
-```json
-{
-  "status": "healthy",
-  "timestamp": "2024-01-01T12:00:00.000000"
-}
-```
-
-## Example Usage
-
-### Using Python requests library:
-
-```python
-import requests
-import json
-
-# Non-streaming
-response = requests.post(
-    "http://localhost:8000/chat",
-    json={
-        "messages": [{"role": "user", "content": "Hello!"}],
-        "agent_id": "default"
-    }
-)
-print(response.json())
-
-# Streaming
-response = requests.post(
-    "http://localhost:8000/chat/stream",
-    json={
-        "messages": [{"role": "user", "content": "Hello!"}],
-        "agent_id": "default"
-    },
-    stream=True
-)
-
-for line in response.iter_lines():
-    if line:
-        line_str = line.decode('utf-8')
-        if line_str.startswith("data: "):
-            chunk = json.loads(line_str[6:])
-            if not chunk['done']:
-                print(chunk['content'], end='', flush=True)
-```
-
-### Using curl:
-
-**Non-streaming:**
-```bash
-curl -X POST "http://localhost:8000/chat" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [{"role": "user", "content": "Hello!"}],
-    "agent_id": "default"
-  }'
-```
-
-**Streaming:**
-```bash
-curl -X POST "http://localhost:8000/chat/stream" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "messages": [{"role": "user", "content": "Hello!"}],
-    "agent_id": "default"
-  }'
-```
-
-### Using the example script:
-
-Run the provided example script to test both endpoints:
-
-```bash
-python example_usage.py
-```
-
-## Request Parameters
-
-| Parameter | Type | Required | Default | Description |
-|-----------|------|----------|---------|-------------|
-| messages | List[ChatMessage] | Yes | - | List of conversation messages |
-| agent_id | string | No | "default" | ID of the agent to use |
-| max_tokens | integer | No | 1000 | Maximum tokens to generate |
-| temperature | float | No | 0.7 | Temperature for response generation (0.0-1.0) |
-
-## ChatMessage Schema
-
-| Field | Type | Description |
-|-------|------|-------------|
-| role | string | Role of message sender (user, assistant, system) |
-| content | string | Content of the message |
-
-## Extending the Agent Logic
-
-The current implementation uses simple placeholder logic. To integrate with a real LLM or chat service:
-
-1. Update the `generate_chat_response()` function in `main.py`
-2. Update the `generate_chat_response_stream()` function for streaming responses
-3. Add any necessary API keys or configuration as environment variables
-
-Example integration points:
-- OpenAI GPT
-- Anthropic Claude
-- Local LLM models (Ollama, LLaMA, etc.)
-- Custom chat agents
-
-## Development
-
-The code is structured for easy extension:
-
-- `main.py`: Main application with endpoints and agent logic
-- `example_usage.py`: Example client code
-- `requirements.txt`: Python dependencies
-- `pyproject.toml`: Project metadata
-
-## License
-
-[Add your license information here]
+---
