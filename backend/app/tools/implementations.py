@@ -5,6 +5,7 @@ Add new tools here and register them with the @tools.register decorator.
 """
 
 import json
+import re
 from datetime import datetime
 from app.tools.registry import ToolRegistry
 from app.logger import get_logger
@@ -87,3 +88,90 @@ def search_database(query: str, filters: str = "{}") -> str:
             {"id": 2, "title": "Result 2", "relevance": 0.87}
         ]
     })
+
+
+@tools.register
+def get_price_range(item: str, similarity_threshold: float = 0.5, registry: ToolRegistry = None) -> str:
+    """
+    Search for similar items in the vector DB and calculate price range.
+    Returns min/max/avg price from top 5 items with similarity > threshold (default 0.5).
+    """
+    logger.info(f"get_price_range called: item='{item}', threshold={similarity_threshold}")
+
+    if not registry or not registry.rag_pipeline:
+        logger.error("RAG pipeline not initialized")
+        return json.dumps({
+            "success": False,
+            "error": "RAG pipeline not initialized"
+        })
+
+    try:
+        # Search for similar items (get more results to ensure we have enough above threshold)
+        results = registry.rag_pipeline.search(item, n_results=20)
+        logger.info(f"Found {len(results)} results from vector DB")
+
+        # Filter by similarity threshold
+        similar_items = [r for r in results if r.get("score", 0) > similarity_threshold]
+        logger.info(f"Filtered to {len(similar_items)} items above threshold {similarity_threshold}")
+
+        if not similar_items:
+            return json.dumps({
+                "success": False,
+                "error": f"No items found with similarity > {similarity_threshold}",
+                "searched_for": item,
+                "total_results": len(results),
+                "best_match_score": results[0].get("score", 0) if results else 0
+            })
+
+        # Take only top 5 most similar items
+        top_items = similar_items[:5]
+        logger.info(f"Using top {len(top_items)} most similar items for price calculation")
+
+        # Extract prices from content
+        prices = []
+        for result in top_items:
+            content = result.get("content", "")
+            # Parse "Price: X.XX" from the formatted text
+            price_match = re.search(r"Price:\s*([0-9]+\.?[0-9]*)", content)
+            if price_match:
+                try:
+                    price = float(price_match.group(1))
+                    prices.append(price)
+                    logger.debug(f"Extracted price: {price} (score: {result['score']:.3f})")
+                except ValueError:
+                    logger.warning(f"Could not parse price: {price_match.group(1)}")
+
+        if not prices:
+            return json.dumps({
+                "success": False,
+                "error": "No valid prices found in similar items",
+                "searched_for": item,
+                "similar_items_count": len(similar_items)
+            })
+
+        # Calculate price range
+        min_price = min(prices)
+        max_price = max(prices)
+        avg_price = sum(prices) / len(prices)
+
+        logger.info(f"Price range calculated: {min_price} - {max_price} (avg: {avg_price:.2f})")
+
+        return json.dumps({
+            "success": True,
+            "item": item,
+            "price_range": {
+                "min": min_price,
+                "max": max_price,
+                "average": round(avg_price, 2)
+            },
+            "similar_items_count": len(top_items),
+            "prices_found": len(prices),
+            "similarity_threshold": similarity_threshold
+        }, indent=2)
+
+    except Exception as e:
+        logger.error(f"get_price_range failed: {e}", exc_info=True)
+        return json.dumps({
+            "success": False,
+            "error": str(e)
+        })
