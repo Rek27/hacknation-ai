@@ -3,7 +3,7 @@ import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/home_controller.dart';
-import 'package:frontend/view/home/widgets/chat_panel.dart';
+import 'package:frontend/view/home/widgets/chat/chat_panel.dart';
 import 'package:frontend/view/home/widgets/cart/cart_panel.dart';
 
 /// Desktop/web layout: chat area and cart view in a Row.

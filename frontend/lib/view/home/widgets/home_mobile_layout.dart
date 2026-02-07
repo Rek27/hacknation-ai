@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/home_controller.dart';
-import 'package:frontend/view/home/widgets/chat_panel.dart';
+import 'package:frontend/view/home/widgets/chat/chat_panel.dart';
 
 /// Mobile layout: full-width chat (documents are in a drawer provided by the parent Scaffold).
 class HomeMobileLayout extends StatelessWidget {

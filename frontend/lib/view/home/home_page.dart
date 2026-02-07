@@ -5,7 +5,6 @@ import 'package:frontend/model/api_models.dart';
 import 'package:frontend/service/agent_api.dart';
 import 'package:frontend/service/api_client.dart';
 import 'package:frontend/view/home/home_controller.dart';
-import 'package:frontend/view/home/widgets/documents_sidebar_content.dart';
 import 'package:frontend/view/home/widgets/home_desktop_layout.dart';
 import 'package:frontend/view/home/widgets/home_mobile_layout.dart';
 
@@ -87,8 +86,6 @@ class _HomeViewState extends State<_HomeView> {
                         ),
                       ),
                     ),
-                    const Divider(height: 1),
-                    const Expanded(child: DocumentsSidebarContent()),
                   ],
                 ),
               ),
