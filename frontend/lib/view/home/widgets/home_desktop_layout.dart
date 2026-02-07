@@ -20,8 +20,7 @@ class HomeDesktopLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final HomeController controller = context.watch<HomeController>();
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       children: [
@@ -38,7 +37,6 @@ class HomeDesktopLayout extends StatelessWidget {
                   inputController: inputController,
                 ),
               ),
-              const SizedBox(width: AppConstants.spacingMd),
               // Cart view takes 2/3 of the remaining width.
               Expanded(
                 flex: 2,
