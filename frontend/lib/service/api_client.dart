@@ -45,8 +45,9 @@ class ApiClient {
     final uri = _uri(path, query);
     _log('GET $uri');
     try {
-      final res =
-          await _client.get(uri, headers: _defaultHeaders).timeout(_timeout);
+      final res = await _client
+          .get(uri, headers: _defaultHeaders)
+          .timeout(_timeout);
       _log('GET $uri -> ${res.statusCode}');
       return res;
     } catch (e) {
@@ -63,18 +64,17 @@ class ApiClient {
     final uri = _uri(path);
     _log('POST $uri (json)');
     try {
-      final res =
-          await _client
-              .post(
-                uri,
-                headers: {
-                  HttpHeaders.contentTypeHeader: 'application/json',
-                  ..._defaultHeaders,
-                  ...?headers,
-                },
-                body: jsonEncode(body),
-              )
-              .timeout(_timeout);
+      final res = await _client
+          .post(
+            uri,
+            headers: {
+              HttpHeaders.contentTypeHeader: 'application/json',
+              ..._defaultHeaders,
+              ...?headers,
+            },
+            body: jsonEncode(body),
+          )
+          .timeout(_timeout);
       _log('POST $uri -> ${res.statusCode}');
       return res;
     } catch (e) {
@@ -132,8 +132,9 @@ class ApiClient {
     final uri = _uri(path);
     _log('DELETE $uri');
     try {
-      final res =
-          await _client.delete(uri, headers: _defaultHeaders).timeout(_timeout);
+      final res = await _client
+          .delete(uri, headers: _defaultHeaders)
+          .timeout(_timeout);
       _log('DELETE $uri -> ${res.statusCode}');
       return res;
     } catch (e) {

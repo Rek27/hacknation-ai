@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/home_controller.dart';
 
@@ -77,21 +76,14 @@ class ChatArea extends StatelessWidget {
     );
   }
 
-  Widget _buildChatItem(
-    BuildContext context,
-    ChatItem item,
-    ThemeData theme,
-  ) {
+  Widget _buildChatItem(BuildContext context, ChatItem item, ThemeData theme) {
     switch (item.type) {
       case ChatItemType.user:
         return _ChatBubble(isUser: true, child: Text(item.text));
       case ChatItemType.assistant:
         return _ChatBubble(isUser: false, child: Text(item.text));
       case ChatItemType.tool:
-        return _ChatBubble(
-          isUser: false,
-          child: _ToolIndicator(item: item),
-        );
+        return _ChatBubble(isUser: false, child: _ToolIndicator(item: item));
       case ChatItemType.thinking:
         return _ChatBubble(
           isUser: false,
@@ -134,10 +126,12 @@ class _ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final Color backgroundColor =
-        isUser ? colorScheme.primary : colorScheme.surfaceContainerHighest;
-    final Color foregroundColor =
-        isUser ? colorScheme.onPrimary : colorScheme.onSurface;
+    final Color backgroundColor = isUser
+        ? colorScheme.primary
+        : colorScheme.surfaceContainerHighest;
+    final Color foregroundColor = isUser
+        ? colorScheme.onPrimary
+        : colorScheme.onSurface;
     return Align(
       alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
