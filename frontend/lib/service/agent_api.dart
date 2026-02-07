@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 
 import '../model/api_models.dart';
@@ -13,7 +14,15 @@ class AgentApi {
 
   AgentApi(this._client);
 
+  void _log(String message) {
+    if (kDebugMode) {
+      // ignore: avoid_print
+      print('[AgentApi] $message');
+    }
+  }
+
   Future<HealthStatus> getHealth() async {
+    _log('getHealth()');
     final res = await _client.get('/health');
     if (res.statusCode != 200) {
       throw HttpException('Health failed: ${res.statusCode}');
@@ -22,6 +31,7 @@ class AgentApi {
   }
 
   Future<List<RagDocument>> listDocuments() async {
+    _log('listDocuments()');
     final res = await _client.get('/documents');
     if (res.statusCode != 200) {
       throw HttpException('Documents failed: ${res.statusCode}');
@@ -33,6 +43,7 @@ class AgentApi {
   }
 
   Future<UploadResponse> uploadDocument(File file) async {
+    _log('uploadDocument(file=${file.path})');
     final streamed = await _client.postMultipart('/upload', file, 'file');
     final res = await http.Response.fromStream(streamed);
     if (res.statusCode != 200) {
@@ -42,6 +53,7 @@ class AgentApi {
   }
 
   Future<void> deleteDocument(String filename) async {
+    _log('deleteDocument(filename=$filename)');
     final res = await _client.delete('/documents/$filename');
     if (res.statusCode != 200 && res.statusCode != 404) {
       throw HttpException('Delete failed: ${res.statusCode}');
@@ -50,16 +62,19 @@ class AgentApi {
 
   /// Stream OutputItemBase from POST /chat (SSE-esque text/event-stream).
   Stream<OutputItemBase> streamChat(ChatRequestBody body) async* {
+    _log('streamChat(sessionId=${body.sessionId})');
     final response = await _client.postStreamJson('/chat', body.toJson());
     if (response.statusCode != 200) {
       throw HttpException('Chat failed: ${response.statusCode}');
     }
+    _log('streamChat() connected: ${response.statusCode}');
 
     // Read the byte stream and parse lines starting with "data: "
     final stream = response.stream.transform(utf8.decoder);
     final buffer = StringBuffer();
 
     await for (final chunk in stream) {
+      _log('streamChat() chunk bytes=${chunk.length}');
       buffer.write(chunk);
       var text = buffer.toString();
 
@@ -77,9 +92,11 @@ class AgentApi {
         if (data.isEmpty) continue;
         try {
           final json = jsonDecode(data) as Map<String, dynamic>;
-          yield parseOutputItem(json);
-        } catch (_) {
-          // ignore malformed
+          final item = parseOutputItem(json);
+          _log('streamChat() item type=${item.type}');
+          yield item;
+        } catch (e) {
+          _log('streamChat() parse failed: $e; data="$data"');
         }
       }
     }

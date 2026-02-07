@@ -4,7 +4,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../model/api_models.dart';
 import '../../service/agent_api.dart';
 import '../../service/api_client.dart';
 import 'home_controller.dart';
@@ -14,18 +13,35 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // NOTE:
+    // - On Android emulator, "localhost" points to the emulator itself, not your PC.
+    //   Use 10.0.2.2 to reach the host machine's localhost.
+    // - You can override via: flutter run --dart-define=API_BASE_URL=http://<host>:8000
+    const configuredBaseUrl = String.fromEnvironment(
+      'API_BASE_URL',
+      defaultValue: '',
+    );
+    final baseUrl =
+        configuredBaseUrl.isNotEmpty
+            ? configuredBaseUrl
+            : (Platform.isAndroid
+                ? 'http://10.0.2.2:8000'
+                : 'http://localhost:8000');
+
     return ChangeNotifierProvider<HomeController>(
       create: (_) => HomeController(
-        api: AgentApi(ApiClient(baseUrl: 'http://localhost:8000')),
+        api: AgentApi(ApiClient(baseUrl: baseUrl)),
         sessionId: 'session-${DateTime.now().millisecondsSinceEpoch}',
       )..loadInitial(),
-      child: const _HomeView(),
+      child: _HomeView(baseUrl: baseUrl),
     );
   }
 }
 
 class _HomeView extends StatefulWidget {
-  const _HomeView();
+  final String baseUrl;
+
+  const _HomeView({required this.baseUrl});
 
   @override
   State<_HomeView> createState() => _HomeViewState();
@@ -51,6 +67,18 @@ class _HomeViewState extends State<_HomeView> {
         title: const Text('AI Agent Chat'),
         backgroundColor: Colors.deepPurple,
         actions: [
+          Tooltip(
+            message: 'API: ${widget.baseUrl}',
+            child: Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: Center(
+                child: Text(
+                  'API',
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+            ),
+          ),
           Icon(
             health?.status == 'healthy' ? Icons.check_circle : Icons.error,
             color: Colors.white,
@@ -68,10 +96,26 @@ class _HomeViewState extends State<_HomeView> {
             ),
         ],
       ),
-      body: Row(
+      body: Column(
         children: [
-          _buildSidebar(context, controller),
-          Expanded(child: _buildChatArea(context, controller)),
+          if (controller.errorMessage != null)
+            Container(
+              width: double.infinity,
+              color: Colors.red.shade700,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Text(
+                controller.errorMessage!,
+                style: const TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            ),
+          Expanded(
+            child: Row(
+              children: [
+                _buildSidebar(context, controller),
+                Expanded(child: _buildChatArea(context, controller)),
+              ],
+            ),
+          ),
         ],
       ),
     );
