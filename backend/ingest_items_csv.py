@@ -23,6 +23,9 @@ logger = get_logger(__name__)
 
 def header_to_label(header: str) -> str:
     """Turn CSV header into a readable label (e.g. delivery_estimate -> Delivery Estimate)."""
+    # Special case: image_id -> Image
+    if header == "image_id":
+        return "Image"
     return header.replace("_", " ").strip().title()
 
 
