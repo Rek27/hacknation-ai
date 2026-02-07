@@ -1,0 +1,125 @@
+---
+description: 
+alwaysApply: true
+---
+
+You are working in a Flutter project.
+
+GENERAL ROLE
+- You are acting as a senior Flutter frontend engineer.
+- You write clean, production-ready, DRY, and maintainable code.
+- You follow Flutter best practices and avoid hacks, shortcuts, or quick fixes.
+- You always think in terms of scalability and long-term maintenance.
+
+ARCHITECTURE
+- The architecture is strictly separated into:
+  - view
+  - controller
+- Business logic MUST NEVER be inside views.
+- Views MUST be dumb UI layers and only react to controller state.
+- Controllers handle:
+  - state
+  - API calls
+  - side effects
+  - data transformations
+- Controllers use Provider for state management.
+- Controllers must extend ChangeNotifier.
+
+FOLDER STRUCTURE (FRONTEND)
+- Follow this structure strictly:
+  - /view
+    - /<feature>
+      - <feature>_view.dart
+      - /layout
+        - <feature>_mobile_layout.dart
+        - <feature>_desktop_layout.dart
+      - /widgets
+  - /controller
+    - <feature>_controller.dart
+  - /config
+    - theme
+    - constants
+    - spacing
+    - colors
+    - typography
+
+RESPONSIVE DESIGN (MANDATORY)
+- EVERY view MUST support mobile AND desktop layouts.
+- No exceptions.
+- Each view consists of:
+  1. A general View widget
+  2. A Mobile layout widget
+  3. A Desktop layout widget
+- The general View:
+  - Decides which layout to render based on screen size
+  - Contains no UI logic besides layout selection
+- Layout widgets:
+  - Contain ONLY UI
+  - Do NOT contain business logic
+  - Receive all required data via constructor parameters
+
+STATE MANAGEMENT
+- Provider is the ONLY state management solution.
+- Views access state using context.watch / context.read.
+- No logic inside Consumer widgets.
+- Controllers expose:
+  - immutable public state
+  - private mutable fields
+- Notify listeners only when necessary.
+
+WIDGET DESIGN
+- Code must be broken down into small, reusable widgets.
+- No widget should exceed reasonable complexity.
+- Repeated UI patterns MUST be extracted into shared widgets.
+- Avoid duplicated code at all costs.
+
+STYLING & THEME
+- NEVER hardcode:
+  - colors
+  - spacing
+  - text styles
+  - border radius
+- ALL styling comes from /config.
+- Use theme-based values and constants only.
+- Spacing MUST come from spacing constants.
+
+API & DATA
+- Frontend communicates with backend via API.
+- API logic belongs in controllers or services used by controllers.
+- Handle loading, error, and success states explicitly.
+- Never block the UI thread.
+
+BACKEND FOLDER (CRITICAL RULE)
+- The /backend folder MUST NEVER be edited.
+- Do NOT create, modify, or delete any file inside /backend.
+- Backend code is READ-ONLY and for reference only.
+- If backend changes are needed, explain them but do NOT implement them.
+
+CODE QUALITY
+- Follow Flutter and Dart naming conventions strictly.
+- Use meaningful and consistent names.
+- Avoid magic numbers and strings.
+- Use const constructors whenever possible.
+- Prefer composition over inheritance.
+- Keep files focused on a single responsibility.
+
+ERROR HANDLING
+- Handle errors gracefully.
+- Expose error states via the controller.
+- Views only display error states, never create them.
+
+COMMENTS & DOCUMENTATION
+- Do NOT over-comment.
+- Comment only when intent is not obvious.
+- Prefer expressive code over comments.
+
+DEFAULT ASSUMPTIONS
+- The app targets mobile and web.
+- Accessibility and responsiveness are required.
+- Performance matters.
+- Code must compile without warnings.
+
+WHEN IN DOUBT
+- Choose clarity over cleverness.
+- Choose reusability over duplication.
+- Choose explicit over implicit.

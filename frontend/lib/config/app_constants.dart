@@ -24,10 +24,4 @@ abstract final class AppConstants {
   // Layout
   /// Width of the documents sidebar on desktop.
   static const double sidebarWidthDesktop = 280.0;
-
-  // Convenience EdgeInsets
-  static const EdgeInsets paddingXs = EdgeInsets.all(spacingXs);
-  static const EdgeInsets paddingSm = EdgeInsets.all(spacingSm);
-  static const EdgeInsets paddingMd = EdgeInsets.all(spacingMd);
-  static const EdgeInsets paddingLg = EdgeInsets.all(spacingLg);
 }
