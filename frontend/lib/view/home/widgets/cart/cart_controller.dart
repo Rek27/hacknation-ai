@@ -1,19 +1,27 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/model/cart_models.dart';
+import 'package:frontend/model/chat_models.dart';
 
+/// Manages cart state built from `CartChunk` and provides UI helpers.
 class CartController extends ChangeNotifier {
   bool isLoading = false;
-  final List<CartEntry> entries = [];
+  CartChunk? _cart;
   final Set<String> _expandedIds = <String>{};
 
-  bool get isEmpty => entries.isEmpty;
+  bool get isEmpty => (_cart?.items.isEmpty ?? true);
+  List<CartItem> get items => _cart?.items ?? const [];
+  double get totalPrice => _cart?.price ?? 0.0;
+  int get itemCount => items.length;
+  int get retailerCount => items.map((e) => e.retailer).toSet().length;
 
+  /// Whether a specific item (by id) is expanded in the UI.
   bool isExpanded(String id) => _expandedIds.contains(id);
 
+  /// Creates a controller and seeds it with development dummy data.
   CartController() {
     loadDummyData();
   }
 
+  /// Toggles the expansion state for a cart item in the UI.
   void toggleExpanded(String id) {
     if (_expandedIds.contains(id)) {
       _expandedIds.remove(id);
@@ -23,71 +31,89 @@ class CartController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Loads a dummy list of items and computes the total price.
   void loadDummyData() {
     isLoading = true;
     notifyListeners();
-    // Dummy data
-    entries.clear();
-    entries.addAll([
-      CartEntry(
+    final items = <CartItem>[
+      CartItem(
         id: '1',
-        title: 'Bulk Energy Drink Pack (48ct)',
-        merchant: 'Amazon',
-        priceText: '\$42.99',
-        quantity: 2,
-        dateText: 'Feb 10',
-        categoryText: 'Drinks',
-        imageUrl: null,
-        alternatives: const [
-          CartAlternativeEntry(
-            id: '1a',
-            title: 'Monster Energy 24-Pack',
-            merchant: 'Walmart',
-            priceText: '\$38.99',
-            dateText: 'Feb 11',
-            categoryText: 'Drinks',
-            imageUrl: null,
-          ),
-          CartAlternativeEntry(
-            id: '1b',
-            title: 'Red Bull 48-Pack',
-            merchant: 'Costco',
-            priceText: '\$56.99',
-            dateText: 'Feb 9',
-            categoryText: 'Drinks',
-            imageUrl: null,
-          ),
-        ],
+        name: 'Bulk Energy Drink Pack (48ct)',
+        price: 42.99,
+        amount: 2,
+        retailer: 'Amazon',
+        deliveryTime: const Duration(days: 3),
       ),
-      const CartEntry(
+      CartItem(
         id: '2',
-        title: 'Noise-Cancelling Headphones',
-        merchant: 'BestBuy',
-        priceText: '\$199.00',
-        quantity: 1,
-        dateText: 'Feb 12',
-        categoryText: 'Electronics',
-        imageUrl: null,
-        alternatives: [
-          CartAlternativeEntry(
-            id: '2a',
-            title: 'Sony WH-1000XM5',
-            merchant: 'Amazon',
-            priceText: '\$329.00',
-            dateText: 'Feb 13',
-            categoryText: 'Electronics',
-          ),
-          CartAlternativeEntry(
-            id: '2b',
-            title: 'Bose QC45',
-            merchant: 'Bose',
-            priceText: '\$299.00',
-            dateText: 'Feb 11',
-            categoryText: 'Electronics',
-          ),
-        ],
+        name: 'Noise-Cancelling Headphones',
+        price: 199.00,
+        amount: 1,
+        retailer: 'BestBuy',
+        deliveryTime: const Duration(days: 5),
       ),
-    ]);
+      CartItem(
+        id: '3',
+        name: 'Smart Watch',
+        price: 199.99,
+        amount: 1,
+        retailer: 'Amazon',
+        deliveryTime: const Duration(days: 7),
+      ),
+      CartItem(
+        id: '4',
+        name: 'Laptop',
+        price: 1999.99,
+        amount: 1,
+        retailer: 'Walmart',
+        deliveryTime: const Duration(days: 10),
+      ),
+      CartItem(
+        id: '5',
+        name: 'Phone',
+        price: 999.99,
+        amount: 1,
+        retailer: 'Amazon',
+        deliveryTime: const Duration(days: 14),
+      ),
+      CartItem(
+        id: '6',
+        name: 'Tablet',
+        price: 1499.99,
+        amount: 1,
+        retailer: 'BestBuy',
+        deliveryTime: const Duration(days: 18),
+      ),
+      CartItem(
+        id: '7',
+        name: 'Smart Home Hub',
+        price: 299.99,
+        amount: 1,
+        retailer: 'Amazon',
+        deliveryTime: const Duration(days: 21),
+      ),
+      CartItem(
+        id: '8',
+        name: 'Smart TV',
+        price: 1499.99,
+        amount: 1,
+        retailer: 'BestBuy',
+        deliveryTime: const Duration(days: 24),
+      ),
+      CartItem(
+        id: '9',
+        name: 'Smart Speaker',
+        price: 199.99,
+        amount: 1,
+        retailer: 'Amazon',
+        deliveryTime: const Duration(days: 27),
+      ),
+    ];
+    final total = items.fold<double>(
+      0,
+      (sum, it) => sum + it.price * it.amount,
+    );
+    _cart = CartChunk(items: items, price: total);
     isLoading = false;
     notifyListeners();
   }

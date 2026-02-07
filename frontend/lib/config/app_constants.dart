@@ -19,6 +19,13 @@ abstract final class AppConstants {
   static const double radiusMd = 12.0;
   static const double radiusLg = 16.0;
 
+  // Icon sizes
+  static const double iconSizeXxs = 8.0;
+  static const double iconSizeXs = 16.0;
+  static const double iconSizeSm = 24.0;
+  static const double iconSizeMd = 48.0;
+  static const double iconSizeLg = 64.0;
+
   // Layout
   /// Width of the documents sidebar on desktop.
   static const double sidebarWidthDesktop = 280.0;
