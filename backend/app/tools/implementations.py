@@ -90,14 +90,79 @@ def search_database(query: str, filters: str = "{}") -> str:
     })
 
 
-@tools.register
-def get_price_range(item: str, similarity_threshold: float = 0.5, registry: ToolRegistry = None) -> str:
-    """
-    Search for similar items in the vector DB and calculate price range.
-    Returns min/max/avg price from top 5 items with similarity > threshold (default 0.5).
-    """
-    logger.info(f"get_price_range called: item='{item}', threshold={similarity_threshold}")
+def _calculate_price_range_for_item(item: str, similarity_threshold: float, rag_pipeline) -> dict:
+    """Helper function to calculate price range for a single item."""
+    # Search for similar items (get more results to ensure we have enough above threshold)
+    results = rag_pipeline.search(item, n_results=20)
+    logger.debug(f"Found {len(results)} results from vector DB for '{item}'")
 
+    # Filter by similarity threshold
+    similar_items = [r for r in results if r.get("score", 0) > similarity_threshold]
+    
+    if not similar_items:
+        return {
+            "success": False,
+            "item": item,
+            "error": f"No items found with similarity > {similarity_threshold}",
+            "total_results": len(results),
+            "best_match_score": results[0].get("score", 0) if results else 0
+        }
+
+    # Take only top 5 most similar items
+    top_items = similar_items[:5]
+    logger.debug(f"Using top {len(top_items)} most similar items for '{item}'")
+
+    # Extract prices from content
+    prices = []
+    for result in top_items:
+        content = result.get("content", "")
+        # Parse "Price: X.XX" from the formatted text
+        price_match = re.search(r"Price:\s*([0-9]+\.?[0-9]*)", content)
+        if price_match:
+            try:
+                price = float(price_match.group(1))
+                prices.append(price)
+            except ValueError:
+                logger.warning(f"Could not parse price: {price_match.group(1)}")
+
+    if not prices:
+        return {
+            "success": False,
+            "item": item,
+            "error": "No valid prices found in similar items",
+            "similar_items_count": len(similar_items)
+        }
+
+    # Calculate price range
+    min_price = min(prices)
+    max_price = max(prices)
+    avg_price = sum(prices) / len(prices)
+
+    return {
+        "success": True,
+        "item": item,
+        "price_range": {
+            "min": min_price,
+            "max": max_price,
+            "average": round(avg_price, 2)
+        },
+        "similar_items_count": len(top_items),
+        "prices_found": len(prices),
+        "similarity_threshold": similarity_threshold
+    }
+
+
+@tools.register
+def get_price_range(items: str, similarity_threshold: float = 0.5, registry: ToolRegistry = None) -> str:
+    """
+    Search for similar items in the vector DB and calculate price ranges.
+    
+    Args:
+        items: JSON array of item names, e.g. '["Banana Smoothie", "Water"]' or single item string
+        similarity_threshold: Minimum similarity score (default 0.5)
+    
+    Returns min/max/avg price from top 5 similar items for each queried item.
+    """
     if not registry or not registry.rag_pipeline:
         logger.error("RAG pipeline not initialized")
         return json.dumps({
@@ -106,67 +171,40 @@ def get_price_range(item: str, similarity_threshold: float = 0.5, registry: Tool
         })
 
     try:
-        # Search for similar items (get more results to ensure we have enough above threshold)
-        results = registry.rag_pipeline.search(item, n_results=20)
-        logger.info(f"Found {len(results)} results from vector DB")
-
-        # Filter by similarity threshold
-        similar_items = [r for r in results if r.get("score", 0) > similarity_threshold]
-        logger.info(f"Filtered to {len(similar_items)} items above threshold {similarity_threshold}")
-
-        if not similar_items:
-            return json.dumps({
-                "success": False,
-                "error": f"No items found with similarity > {similarity_threshold}",
-                "searched_for": item,
-                "total_results": len(results),
-                "best_match_score": results[0].get("score", 0) if results else 0
-            })
-
-        # Take only top 5 most similar items
-        top_items = similar_items[:5]
-        logger.info(f"Using top {len(top_items)} most similar items for price calculation")
-
-        # Extract prices from content
-        prices = []
-        for result in top_items:
-            content = result.get("content", "")
-            # Parse "Price: X.XX" from the formatted text
-            price_match = re.search(r"Price:\s*([0-9]+\.?[0-9]*)", content)
-            if price_match:
-                try:
-                    price = float(price_match.group(1))
-                    prices.append(price)
-                    logger.debug(f"Extracted price: {price} (score: {result['score']:.3f})")
-                except ValueError:
-                    logger.warning(f"Could not parse price: {price_match.group(1)}")
-
-        if not prices:
-            return json.dumps({
-                "success": False,
-                "error": "No valid prices found in similar items",
-                "searched_for": item,
-                "similar_items_count": len(similar_items)
-            })
-
-        # Calculate price range
-        min_price = min(prices)
-        max_price = max(prices)
-        avg_price = sum(prices) / len(prices)
-
-        logger.info(f"Price range calculated: {min_price} - {max_price} (avg: {avg_price:.2f})")
-
+        # Parse items - could be JSON array or single string
+        try:
+            items_list = json.loads(items)
+            if not isinstance(items_list, list):
+                items_list = [items]
+        except (json.JSONDecodeError, TypeError):
+            # If not valid JSON, treat as single item
+            items_list = [items]
+        
+        logger.info(f"get_price_range called for {len(items_list)} items, threshold={similarity_threshold}")
+        
+        # Calculate price range for each item
+        results = []
+        for item in items_list:
+            item_result = _calculate_price_range_for_item(
+                item, 
+                similarity_threshold, 
+                registry.rag_pipeline
+            )
+            results.append(item_result)
+            
+            if item_result["success"]:
+                pr = item_result["price_range"]
+                logger.info(f"✓ {item}: €{pr['min']:.2f} - €{pr['max']:.2f} (avg: €{pr['average']:.2f})")
+            else:
+                logger.warning(f"✗ {item}: {item_result.get('error', 'Unknown error')}")
+        
+        # Return results
+        successful = sum(1 for r in results if r["success"])
         return json.dumps({
-            "success": True,
-            "item": item,
-            "price_range": {
-                "min": min_price,
-                "max": max_price,
-                "average": round(avg_price, 2)
-            },
-            "similar_items_count": len(top_items),
-            "prices_found": len(prices),
-            "similarity_threshold": similarity_threshold
+            "success": successful > 0,
+            "items_processed": len(results),
+            "items_successful": successful,
+            "results": results
         }, indent=2)
 
     except Exception as e:
