@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/chat_area.dart';
@@ -21,7 +20,8 @@ class HomeMobileLayout extends StatelessWidget {
     final HomeController controller = context.watch<HomeController>();
     return Column(
       children: [
-        if (controller.errorMessage != null) _ErrorBanner(message: controller.errorMessage!),
+        if (controller.errorMessage != null)
+          _ErrorBanner(message: controller.errorMessage!),
         Expanded(
           child: ChatArea(
             scrollController: scrollController,

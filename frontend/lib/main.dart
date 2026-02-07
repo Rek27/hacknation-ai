@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:frontend/config/app_theme.dart';
 import 'package:frontend/view/home/home_page.dart';
 

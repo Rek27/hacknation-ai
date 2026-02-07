@@ -34,7 +34,9 @@ class DocumentsSidebarContent extends StatelessWidget {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingMd),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppConstants.spacingMd,
+          ),
           child: ElevatedButton.icon(
             icon: const Icon(Icons.upload_file),
             label: const Text('Upload'),
@@ -45,9 +47,7 @@ class DocumentsSidebarContent extends StatelessWidget {
         Expanded(
           child: controller.loadingDocs
               ? Center(
-                  child: CircularProgressIndicator(
-                    color: colorScheme.primary,
-                  ),
+                  child: CircularProgressIndicator(color: colorScheme.primary),
                 )
               : ListView.builder(
                   itemCount: controller.documents.length,
@@ -83,9 +83,7 @@ class DocumentsSidebarContent extends StatelessWidget {
       type: FileType.custom,
       allowedExtensions: ['txt', 'pdf'],
     );
-    if (result != null &&
-        result.files.single.path != null &&
-        context.mounted) {
+    if (result != null && result.files.single.path != null && context.mounted) {
       final controller = context.read<HomeController>();
       await controller.upload(File(result.files.single.path!));
     }

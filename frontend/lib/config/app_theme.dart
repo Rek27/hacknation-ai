@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:frontend/config/app_constants.dart';
 
 /// Application theme. Use [AppTheme.theme] in MaterialApp for consistent styling.
@@ -37,28 +36,22 @@ abstract final class AppTheme {
     );
 
     final TextTheme textTheme = ThemeData.light().textTheme.copyWith(
-          titleLarge: const TextStyle(
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0,
-          ),
-          titleMedium: const TextStyle(
-            fontWeight: FontWeight.w600,
-            letterSpacing: 0.15,
-          ),
-          bodyLarge: const TextStyle(
-            letterSpacing: 0.5,
-          ),
-          bodyMedium: const TextStyle(
-            letterSpacing: 0.25,
-          ),
-          bodySmall: const TextStyle(
-            letterSpacing: 0.4,
-          ),
-          labelSmall: const TextStyle(
-            fontWeight: FontWeight.w500,
-            letterSpacing: 0.5,
-          ),
-        );
+      titleLarge: const TextStyle(
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0,
+      ),
+      titleMedium: const TextStyle(
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.15,
+      ),
+      bodyLarge: const TextStyle(letterSpacing: 0.5),
+      bodyMedium: const TextStyle(letterSpacing: 0.25),
+      bodySmall: const TextStyle(letterSpacing: 0.4),
+      labelSmall: const TextStyle(
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.5,
+      ),
+    );
 
     return ThemeData(
       useMaterial3: true,
@@ -99,7 +92,9 @@ abstract final class AppTheme {
           borderRadius: BorderRadius.circular(AppConstants.radiusMd),
           borderSide: BorderSide(color: colorScheme.error),
         ),
-        hintStyle: textTheme.bodyLarge!.copyWith(color: colorScheme.onSurfaceVariant),
+        hintStyle: textTheme.bodyLarge!.copyWith(
+          color: colorScheme.onSurfaceVariant,
+        ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(

@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 /// Application-wide layout and styling constants.
 /// Use these instead of magic numbers for consistent design.
 abstract final class AppConstants {

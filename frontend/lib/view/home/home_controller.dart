@@ -188,14 +188,13 @@ class ChatItem {
     required String name,
     required String status,
     String? reason,
-  }) =>
-      ChatItem._(
-        type: ChatItemType.tool,
-        text: '',
-        toolName: name,
-        toolStatus: status,
-        toolReason: reason,
-      );
+  }) => ChatItem._(
+    type: ChatItemType.tool,
+    text: '',
+    toolName: name,
+    toolStatus: status,
+    toolReason: reason,
+  );
 
   factory ChatItem.thinking(String text) =>
       ChatItem._(type: ChatItemType.thinking, text: text);
