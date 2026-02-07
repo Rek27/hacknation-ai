@@ -74,6 +74,28 @@ class RAGPipeline:
         logger.debug(f"Text chunked into {len(chunks)} chunks")
         return chunks
     
+    def ingest_text(self, text: str, doc_id: str = None, metadata: Dict = None) -> int:
+        """Ingest a single text string into the vector store (one chunk, no file)."""
+        if not (text and text.strip()):
+            logger.warning("Skipping empty text")
+            return 0
+        logger.debug("Generating embedding for text...")
+        embeddings = self.embedding_model.encode([text]).tolist()
+        if metadata is None:
+            metadata = {}
+        if doc_id is None:
+            import time
+            doc_id = f"text_{int(time.time() * 1000)}"
+        self.collection.add(
+            embeddings=embeddings,
+            documents=[text],
+            metadatas=[metadata],
+            ids=[doc_id]
+        )
+        total = self.collection.count()
+        logger.debug(f"Added 1 chunk (id={doc_id}). Total in DB: {total}")
+        return 1
+
     def ingest_document(self, filepath: str, metadata: Dict = None):
         """Ingest a document into the vector store"""
         logger.info(f"Ingesting document: {filepath}")
