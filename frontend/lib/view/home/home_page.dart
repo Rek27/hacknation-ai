@@ -1,12 +1,14 @@
-import 'dart:io';
-
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../service/agent_api.dart';
-import '../../service/api_client.dart';
-import 'home_controller.dart';
+import 'package:frontend/config/app_constants.dart';
+import 'package:frontend/model/api_models.dart';
+import 'package:frontend/service/agent_api.dart';
+import 'package:frontend/service/api_client.dart';
+import 'package:frontend/view/home/home_controller.dart';
+import 'package:frontend/view/home/widgets/documents_sidebar_content.dart';
+import 'package:frontend/view/home/widgets/home_desktop_layout.dart';
+import 'package:frontend/view/home/widgets/home_mobile_layout.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -50,265 +52,112 @@ class _HomeViewState extends State<_HomeView> {
   final ScrollController _scrollController = ScrollController();
 
   @override
+  void dispose() {
+    _inputController.dispose();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final controller = context.watch<HomeController>();
-    final health = controller.health;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (_scrollController.hasClients) {
-        _scrollController.jumpTo(_scrollController.position.maxScrollExtent);
-      }
-    });
-
+    final double width = MediaQuery.sizeOf(context).width;
+    final bool isMobile = width < AppConstants.kMobileBreakpoint;
+    final ThemeData theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
         title: const Text('AI Agent Chat'),
-        backgroundColor: Colors.deepPurple,
+        leading: isMobile
+            ? IconButton(
+                icon: const Icon(Icons.menu),
+                onPressed: () => Scaffold.of(context).openDrawer(),
+              )
+            : null,
         actions: [
-          Tooltip(
-            message: 'API: ${widget.baseUrl}',
-            child: Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: Center(
-                child: Text(
-                  'API',
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
+          _AppBarActions(baseUrl: widget.baseUrl),
+        ],
+      ),
+      drawer: isMobile
+          ? Drawer(
+              child: SafeArea(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(AppConstants.spacingMd),
+                      child: Text(
+                        'Documents',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    const Divider(height: 1),
+                    const Expanded(child: DocumentsSidebarContent()),
+                  ],
                 ),
               ),
+            )
+          : null,
+      body: isMobile
+          ? HomeMobileLayout(
+              scrollController: _scrollController,
+              inputController: _inputController,
+            )
+          : HomeDesktopLayout(
+              scrollController: _scrollController,
+              inputController: _inputController,
             ),
-          ),
-          Icon(
-            health?.status == 'healthy' ? Icons.check_circle : Icons.error,
-            color: Colors.white,
-          ),
-          const SizedBox(width: 8),
-          if (health != null)
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Center(
-                child: Text(
-                  'Chunks: ${health.documentsCount}',
-                  style: const TextStyle(color: Colors.white, fontSize: 12),
-                ),
-              ),
-            ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (controller.errorMessage != null)
-            Container(
-              width: double.infinity,
-              color: Colors.red.shade700,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              child: Text(
-                controller.errorMessage!,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
-              ),
-            ),
-          Expanded(
-            child: Row(
-              children: [
-                _buildSidebar(context, controller),
-                Expanded(child: _buildChatArea(context, controller)),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
+}
 
-  Widget _buildSidebar(BuildContext context, HomeController c) {
-    return Container(
-      width: 260,
-      color: Colors.grey.shade100,
-      child: Column(
-        children: [
-          ListTile(
-            title: const Text(
-              'Documents',
-              style: TextStyle(fontWeight: FontWeight.bold),
-            ),
-            trailing: IconButton(
-              icon: const Icon(Icons.refresh),
-              onPressed: c.refreshDocuments,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.upload_file),
-              label: const Text('Upload'),
-              onPressed: () async {
-                final result = await FilePicker.platform.pickFiles(
-                  type: FileType.custom,
-                  allowedExtensions: ['txt', 'pdf'],
-                );
-                if (result != null && result.files.single.path != null) {
-                  await c.upload(File(result.files.single.path!));
-                }
-              },
-            ),
-          ),
-          const SizedBox(height: 8),
-          Expanded(
-            child: c.loadingDocs
-                ? const Center(child: CircularProgressIndicator())
-                : ListView.builder(
-                    itemCount: c.documents.length,
-                    itemBuilder: (context, index) {
-                      final doc = c.documents[index];
-                      return ListTile(
-                        dense: true,
-                        title: Text(
-                          doc.filename,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        subtitle: Text('${doc.chunks} chunks'),
-                        trailing: IconButton(
-                          icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => c.deleteDoc(doc.filename),
-                        ),
-                      );
-                    },
-                  ),
-          ),
-        ],
-      ),
-    );
-  }
+class _AppBarActions extends StatelessWidget {
+  const _AppBarActions({required this.baseUrl});
 
-  Widget _buildChatArea(BuildContext context, HomeController c) {
-    return Column(
+  final String baseUrl;
+
+  @override
+  Widget build(BuildContext context) {
+    final HomeController controller = context.watch<HomeController>();
+    final HealthStatus? health = controller.health;
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: Container(
-            color: Colors.grey.shade200,
-            child: ListView.builder(
-              controller: _scrollController,
-              itemCount: c.chatItems.length,
-              itemBuilder: (context, index) {
-                final item = c.chatItems[index];
-                switch (item.type) {
-                  case ChatItemType.user:
-                    return _chatBubble(isUser: true, child: Text(item.text));
-                  case ChatItemType.assistant:
-                    return _chatBubble(isUser: false, child: Text(item.text));
-                  case ChatItemType.tool:
-                    return _chatBubble(
-                      isUser: false,
-                      child: _toolIndicator(item),
-                    );
-                  case ChatItemType.thinking:
-                    return _chatBubble(
-                      isUser: false,
-                      child: Text(
-                        '💭 ${item.text}',
-                        style: const TextStyle(
-                          fontStyle: FontStyle.italic,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    );
-                  case ChatItemType.error:
-                    return _chatBubble(
-                      isUser: false,
-                      child: Text(
-                        '⚠️ ${item.text}',
-                        style: const TextStyle(color: Colors.red),
-                      ),
-                    );
-                }
-              },
+        Tooltip(
+          message: 'API: $baseUrl',
+          child: Padding(
+            padding: const EdgeInsets.only(right: AppConstants.spacingSm),
+            child: Center(
+              child: Text(
+                'API',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onPrimary,
+                ),
+              ),
             ),
           ),
         ),
-        if (c.sending) const LinearProgressIndicator(minHeight: 2),
-        Padding(
-          padding: const EdgeInsets.all(8.0),
-          child: Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _inputController,
-                  minLines: 1,
-                  maxLines: 5,
-                  decoration: const InputDecoration(
-                    hintText: 'Ask me anything...',
-                    border: OutlineInputBorder(),
-                  ),
-                  onSubmitted: (_) => _send(context),
+        Icon(
+          health?.status == 'healthy' ? Icons.check_circle : Icons.error,
+          color: colorScheme.onPrimary,
+        ),
+        const SizedBox(width: AppConstants.spacingSm),
+        if (health != null)
+          Padding(
+            padding: const EdgeInsets.only(right: AppConstants.spacingMd),
+            child: Center(
+              child: Text(
+                'Chunks: ${health.documentsCount}',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onPrimary,
                 ),
               ),
-              const SizedBox(width: 8),
-              ElevatedButton(
-                onPressed: c.sending ? null : () => _send(context),
-                child: const Text('Send'),
-              ),
-            ],
+            ),
           ),
-        ),
       ],
     );
-  }
-
-  Widget _chatBubble({required bool isUser, required Widget child}) {
-    return Align(
-      alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isUser ? Colors.deepPurple : Colors.white,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: DefaultTextStyle(
-          style: TextStyle(color: isUser ? Colors.white : Colors.black87),
-          child: child,
-        ),
-      ),
-    );
-  }
-
-  Widget _toolIndicator(ChatItem item) {
-    Color color;
-    IconData icon;
-    switch (item.toolStatus) {
-      case 'executing':
-        color = Colors.blue.shade100;
-        icon = Icons.play_arrow;
-        break;
-      case 'completed':
-        color = Colors.green.shade100;
-        icon = Icons.check;
-        break;
-      default:
-        color = Colors.red.shade100;
-        icon = Icons.close;
-    }
-    return Container(
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      padding: const EdgeInsets.all(8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 16),
-          const SizedBox(width: 4),
-          Text('Tool ${item.toolStatus}: ${item.toolName}'),
-        ],
-      ),
-    );
-  }
-
-  void _send(BuildContext context) {
-    final text = _inputController.text.trim();
-    if (text.isEmpty) return;
-    _inputController.clear();
-    final controller = context.read<HomeController>();
-    controller.sendMessage(text, 'flutter://home');
   }
 }
