@@ -123,6 +123,7 @@ class _AppBarActions extends StatelessWidget {
     final HealthStatus? health = controller.health;
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
