@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'view/home/home_page.dart';
+import 'package:frontend/config/app_theme.dart';
+import 'package:frontend/view/home/home_page.dart';
 
 void main() {
   runApp(const AgentApp());
@@ -13,9 +14,7 @@ class AgentApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'AI Agent Chat',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
+      theme: AppTheme.theme,
       home: const HomePage(),
     );
   }
