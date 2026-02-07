@@ -6,7 +6,10 @@ enum OutputItemType {
   text('text'),
   thinking('thinking'),
   answer('answer'),
-  error('error');
+  error('error'),
+  textForm('text_form'),
+  tree('tree'),
+  cart('cart');
 
   const OutputItemType(this.jsonValue);
   final String jsonValue;
@@ -78,10 +81,8 @@ class TextChunk implements OutputItemBase {
 
   TextChunk({required this.type, required this.content});
 
-  factory TextChunk.fromJson(Map<String, dynamic> json) => TextChunk(
-    type: OutputItemType.text,
-    content: json['content'] as String,
-  );
+  factory TextChunk.fromJson(Map<String, dynamic> json) =>
+      TextChunk(type: OutputItemType.text, content: json['content'] as String);
 }
 
 /// type: "thinking"
@@ -131,10 +132,209 @@ class ErrorOutput implements OutputItemBase {
   );
 }
 
+/// Each field of a form. Has a label and optional content.
+/// Content may be prefilled by the AI when the user provided that information previously.
+class TextFieldChunk {
+  final String label;
+  final String? content;
+
+  TextFieldChunk({required this.label, this.content});
+
+  factory TextFieldChunk.fromJson(Map<String, dynamic> json) => TextFieldChunk(
+    label: json['label'] as String,
+    content: json['content'] as String?,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'label': label,
+    if (content != null) 'content': content,
+  };
+}
+
+/// Form chunk containing tech/event information fields.
+class TextFormChunk implements OutputItemBase {
+  @override
+  final OutputItemType type;
+  final TextFieldChunk address;
+  final TextFieldChunk budget;
+  final TextFieldChunk date;
+  final TextFieldChunk duration;
+  final TextFieldChunk numberOfAttendees;
+
+  TextFormChunk({
+    OutputItemType? type,
+    required this.address,
+    required this.budget,
+    required this.date,
+    required this.duration,
+    required this.numberOfAttendees,
+  }) : type = type ?? OutputItemType.textForm;
+
+  factory TextFormChunk.fromJson(Map<String, dynamic> json) => TextFormChunk(
+    type: OutputItemType.textForm,
+    address: TextFieldChunk.fromJson(json['address'] as Map<String, dynamic>),
+    budget: TextFieldChunk.fromJson(json['budget'] as Map<String, dynamic>),
+    date: TextFieldChunk.fromJson(json['date'] as Map<String, dynamic>),
+    duration: TextFieldChunk.fromJson(json['duration'] as Map<String, dynamic>),
+    numberOfAttendees: TextFieldChunk.fromJson(
+      json['numberOfAttendees'] as Map<String, dynamic>,
+    ),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'address': address.toJson(),
+    'budget': budget.toJson(),
+    'date': date.toJson(),
+    'duration': duration.toJson(),
+    'numberOfAttendees': numberOfAttendees.toJson(),
+  };
+}
+
+/// Root type for the category tree: people or equipment.
+enum TreeType { people, equipment }
+
+/// Selectable category in the tree. Expandable and may have subcategories.
+/// User can select which subcategories are interesting for them.
+class Category {
+  final String emoji;
+  final String label;
+  final bool selected;
+  final List<Category> subcategories;
+
+  Category({
+    required this.emoji,
+    required this.label,
+    required this.selected,
+    required this.subcategories,
+  });
+
+  factory Category.fromJson(Map<String, dynamic> json) => Category(
+    emoji: json['emoji'] as String,
+    label: json['label'] as String,
+    selected: (json['selected'] as bool?) ?? false,
+    subcategories:
+        (json['subcategories'] as List<dynamic>?)
+            ?.map((e) => Category.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        const [],
+  );
+
+  Map<String, dynamic> toJson() => {
+    'emoji': emoji,
+    'label': label,
+    'selected': selected,
+    'subcategories': subcategories.map((e) => e.toJson()).toList(),
+  };
+}
+
+/// Chunk representing a category tree for people or equipment.
+/// Categories can have nested subcategories built by the AI.
+class TreeChunk implements OutputItemBase {
+  @override
+  final OutputItemType type;
+  final TreeType treeType;
+  final Category category;
+
+  TreeChunk({
+    OutputItemType? type,
+    required this.treeType,
+    required this.category,
+  }) : type = type ?? OutputItemType.tree;
+
+  factory TreeChunk.fromJson(Map<String, dynamic> json) => TreeChunk(
+    type: OutputItemType.tree,
+    treeType: TreeType.values.firstWhere(
+      (TreeType e) => e.name == json['treeType'],
+      orElse: () => TreeType.people,
+    ),
+    category: Category.fromJson(json['category'] as Map<String, dynamic>),
+  );
+
+  Map<String, dynamic> toJson() => {
+    'treeType': treeType.name,
+    'category': category.toJson(),
+  };
+}
+
+Duration _parseDeliveryTime(Map<String, dynamic> json) {
+  final ms = json['deliveryTimeMs'] as int?;
+  if (ms != null) return Duration(milliseconds: ms);
+  final inner = json['deliveryTime'] as Map<String, dynamic>?;
+  final innerMs = inner?['milliseconds'] as int?;
+  return Duration(milliseconds: innerMs ?? 0);
+}
+
+/// Single item in the cart.
+class CartItem {
+  final String? id;
+  final String name;
+  final double price;
+  final int amount;
+  final String retailer;
+  final Duration deliveryTime;
+
+  CartItem({
+    this.id,
+    required this.name,
+    required this.price,
+    required this.amount,
+    required this.retailer,
+    required this.deliveryTime,
+  });
+
+  factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
+    id: json['id'] as String?,
+    name: json['name'] as String,
+    price: (json['price'] as num).toDouble(),
+    amount: json['amount'] as int,
+    retailer: json['retailer'] as String,
+    deliveryTime: _parseDeliveryTime(json),
+  );
+
+  Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
+    'name': name,
+    'price': price,
+    'amount': amount,
+    'retailer': retailer,
+    'deliveryTimeMs': deliveryTime.inMilliseconds,
+  };
+}
+
+/// Chunk containing cart items and total price.
+class CartChunk implements OutputItemBase {
+  @override
+  final OutputItemType type;
+  final List<CartItem> items;
+  final double price;
+
+  CartChunk({OutputItemType? type, required this.items, required this.price})
+    : type = type ?? OutputItemType.cart;
+
+  int get itemAmount => items.length;
+
+  factory CartChunk.fromJson(Map<String, dynamic> json) => CartChunk(
+    type: OutputItemType.cart,
+    items:
+        (json['items'] as List<dynamic>?)
+            ?.map((e) => CartItem.fromJson(e as Map<String, dynamic>))
+            .toList() ??
+        const [],
+    price: (json['price'] as num?)?.toDouble() ?? 0,
+  );
+
+  Map<String, dynamic> toJson() => {
+    'items': items.map((e) => e.toJson()).toList(),
+    'price': price,
+  };
+}
+
 /// Factory
 OutputItemBase parseOutputItem(Map<String, dynamic> json) {
   final rawType = json['type'] as String? ?? '';
-  final knownValues = OutputItemType.values.map((OutputItemType e) => e.jsonValue).toSet();
+  final knownValues = OutputItemType.values
+      .map((OutputItemType e) => e.jsonValue)
+      .toSet();
   if (!knownValues.contains(rawType)) {
     return ErrorOutput(
       type: OutputItemType.error,
@@ -156,5 +356,11 @@ OutputItemBase parseOutputItem(Map<String, dynamic> json) {
       return ApiAnswerOutput.fromJson(json);
     case OutputItemType.error:
       return ErrorOutput.fromJson(json);
+    case OutputItemType.textForm:
+      return TextFormChunk.fromJson(json);
+    case OutputItemType.tree:
+      return TreeChunk.fromJson(json);
+    case OutputItemType.cart:
+      return CartChunk.fromJson(json);
   }
 }
