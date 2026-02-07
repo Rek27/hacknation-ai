@@ -30,33 +30,14 @@ FOLDER STRUCTURE (FRONTEND)
   - /view
     - /<feature>
       - <feature>_view.dart
-      - /layout
-        - <feature>_mobile_layout.dart
-        - <feature>_desktop_layout.dart
       - /widgets
-  - /controller
-    - <feature>_controller.dart
+      - <feature>_controller.dart
   - /config
     - theme
     - constants
     - spacing
     - colors
     - typography
-
-RESPONSIVE DESIGN (MANDATORY)
-- EVERY view MUST support mobile AND desktop layouts.
-- No exceptions.
-- Each view consists of:
-  1. A general View widget
-  2. A Mobile layout widget
-  3. A Desktop layout widget
-- The general View:
-  - Decides which layout to render based on screen size
-  - Contains no UI logic besides layout selection
-- Layout widgets:
-  - Contain ONLY UI
-  - Do NOT contain business logic
-  - Receive all required data via constructor parameters
 
 STATE MANAGEMENT
 - Provider is the ONLY state management solution.
