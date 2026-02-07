@@ -9,8 +9,19 @@ class ApiClient {
   final String baseUrl;
   final http.Client _client;
 
-  ApiClient({required this.baseUrl, http.Client? client})
-    : _client = client ?? http.Client();
+  ApiClient({required String baseUrl, http.Client? client})
+    : baseUrl = baseUrl.endsWith('/')
+          ? baseUrl.substring(0, baseUrl.length - 1)
+          : baseUrl,
+      _client = client ?? http.Client();
+
+  Map<String, String> get _defaultHeaders {
+    // ngrok free URLs may serve an interstitial warning page unless this header is set.
+    if (baseUrl.contains('ngrok-free.app')) {
+      return const {'ngrok-skip-browser-warning': 'true'};
+    }
+    return const {};
+  }
 
   Uri _uri(String path, [Map<String, dynamic>? query]) {
     final uri = Uri.parse('$baseUrl$path');
@@ -34,7 +45,8 @@ class ApiClient {
     final uri = _uri(path, query);
     _log('GET $uri');
     try {
-      final res = await _client.get(uri).timeout(_timeout);
+      final res =
+          await _client.get(uri, headers: _defaultHeaders).timeout(_timeout);
       _log('GET $uri -> ${res.statusCode}');
       return res;
     } catch (e) {
@@ -57,6 +69,7 @@ class ApiClient {
                 uri,
                 headers: {
                   HttpHeaders.contentTypeHeader: 'application/json',
+                  ..._defaultHeaders,
                   ...?headers,
                 },
                 body: jsonEncode(body),
@@ -82,6 +95,7 @@ class ApiClient {
     final request = http.Request('POST', uri);
     request.headers[HttpHeaders.contentTypeHeader] = 'application/json';
     request.headers[HttpHeaders.acceptHeader] = 'text/event-stream';
+    request.headers.addAll(_defaultHeaders);
     if (headers != null) request.headers.addAll(headers);
     request.body = jsonEncode(body);
     try {
@@ -102,6 +116,7 @@ class ApiClient {
     final uri = _uri(path);
     _log('POST $uri (multipart file=${file.path})');
     final request = http.MultipartRequest('POST', uri);
+    request.headers.addAll(_defaultHeaders);
     request.files.add(await http.MultipartFile.fromPath(fieldName, file.path));
     try {
       final res = await request.send().timeout(_timeout);
@@ -117,7 +132,8 @@ class ApiClient {
     final uri = _uri(path);
     _log('DELETE $uri');
     try {
-      final res = await _client.delete(uri).timeout(_timeout);
+      final res =
+          await _client.delete(uri, headers: _defaultHeaders).timeout(_timeout);
       _log('DELETE $uri -> ${res.statusCode}');
       return res;
     } catch (e) {
