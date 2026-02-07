@@ -1,235 +1,233 @@
-from openai import OpenAI
-from typing import AsyncGenerator
+"""
+Agent manager with structured streaming outputs.
+"""
+
 import json
-from datetime import datetime
-import time
-from app.context import Context
-from pathlib import Path
+from typing import AsyncGenerator
+from openai import AsyncOpenAI
+from app.models import (
+    ToolOutput,
+    ToolResultOutput,
+    TextChunk,
+    ApiAnswerOutput,
+    ErrorOutput
+)
 from app.tools import tools
+from app.models.context import Context
 from app.logger import get_logger
 
 logger = get_logger(__name__)
 
 
 class AgentManager:
-    """Manages OpenAI Agent SDK interactions"""
-    
-    def __init__(self, api_key: str):
-        self.client = OpenAI(api_key=api_key)
-        self.model = "gpt-4o-mini"
-        logger.info(f"AgentManager initialized with model: {self.model}")
-        
-    def load_instructions(self, context: Context) -> str:
-        """Load and format instructions with dynamic context"""
-        instructions_path = Path(__file__).parent / "instructions.md"
-        
-        logger.debug("Loading agent instructions")
-        
-        with open(instructions_path, 'r') as f:
-            template = f.read()
-        
-        conversation_history = "\n".join([
-            f"- {msg.role}: {msg.content}" 
-            for msg in context.conversation[-5:]
-        ])
-        
-        available_tools = ", ".join(tools.get_tool_names())
-        
-        instructions = template.format(
-            current_date=context.current_date.strftime("%Y-%m-%d"),
-            current_time=context.current_date.strftime("%H:%M:%S"),
-            user_name=context.user_name,
-            page_context=context.current_page_context or "N/A",
-            rag_context=context.get_rag_context() or "No RAG context available",
-            conversation_history=conversation_history or "No previous messages",
-            available_tools=available_tools
-        )
-        
-        return instructions
-    
+    """Manages agent interactions with structured streaming."""
+
+    def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
+        self.client = AsyncOpenAI(api_key=api_key)
+        self.model = model
+        logger.info(f"AgentManager initialized with model: {model}")
+
     async def stream_response(
         self, 
         context: Context, 
         user_message: str
     ) -> AsyncGenerator[str, None]:
-        """Stream agent response with tool calls"""
-        start_time = time.time()
-        
-        logger.info(
-            f"Starting agent response stream",
-            extra={
-                "user_name": context.user_name,
-                "message_preview": user_message[:50] + "..." if len(user_message) > 50 else user_message
-            }
-        )
-        
+        """
+        Stream structured responses from the agent.
+
+        Yields JSON strings of OutputItem objects.
+        """
+        logger.info(f"Starting stream for message: {user_message[:50]}...")
+
+        # Add user message to context
         context.add_message("user", user_message)
-        
-        instructions = self.load_instructions(context)
-        
-        messages = [
-            {"role": "system", "content": instructions},
-            *context.get_conversation_history()
-        ]
-        
+
+        # Prepare messages for API
+        messages = self._prepare_messages(context)
+
+        # Get tools schema
         tools_schema = tools.get_openai_schema()
-        logger.debug(f"Using {len(tools_schema)} tools")
-        
-        max_iterations = 5
-        iteration = 0
-        total_tokens = 0
-        
-        while iteration < max_iterations:
-            iteration += 1
-            logger.debug(f"Agent iteration {iteration}/{max_iterations}")
-            
-            try:
-                stream = self.client.chat.completions.create(
-                    model=self.model,
-                    messages=messages,
-                    tools=tools_schema,
-                    stream=True,
-                    temperature=0.7
-                )
-            except Exception as e:
-                logger.error(f"Failed to create completion stream: {e}", exc_info=True)
-                yield json.dumps({
-                    "type": "error",
-                    "message": f"API error: {str(e)}"
-                }) + "\n"
-                break
-            
-            full_response = ""
-            tool_calls = []
+
+        try:
+            # Stream from OpenAI
+            stream = await self.client.chat.completions.create(
+                model=self.model,
+                messages=messages,
+                tools=tools_schema if tools_schema else None,
+                stream=True,
+                temperature=0.7,
+            )
+
             current_tool_call = None
-            finish_reason = None
-            
-            for chunk in stream:
+            collected_content = []
+            tool_calls_made = []
+
+            async for chunk in stream:
                 delta = chunk.choices[0].delta
-                finish_reason = chunk.choices[0].finish_reason
-                
+
+                # Handle tool calls
                 if delta.tool_calls:
-                    for tool_call_delta in delta.tool_calls:
-                        if tool_call_delta.index is not None:
-                            if current_tool_call is None or tool_call_delta.index != current_tool_call.get('index'):
+                    for tool_call in delta.tool_calls:
+                        if tool_call.function:
+                            # Start of a new tool call
+                            if tool_call.function.name:
                                 current_tool_call = {
-                                    'index': tool_call_delta.index,
-                                    'id': tool_call_delta.id or '',
-                                    'name': '',
-                                    'arguments': ''
+                                    "id": f"call_{len(tool_calls_made)}",
+                                    "name": tool_call.function.name,
+                                    "arguments": ""
                                 }
-                                tool_calls.append(current_tool_call)
-                        
-                        if tool_call_delta.function:
-                            if tool_call_delta.function.name:
-                                current_tool_call['name'] = tool_call_delta.function.name
-                                logger.info(
-                                    f"Tool call initiated: {current_tool_call['name']}",
-                                    extra={"tool_name": current_tool_call['name']}
+                                tool_calls_made.append(current_tool_call)
+
+                                # Yield tool output signal
+                                output = ToolOutput(
+                                    name=tool_call.function.name,
+                                    reason=f"Using {tool_call.function.name} to process request"
                                 )
-                                yield json.dumps({
-                                    "type": "tool_call_start",
-                                    "tool_name": current_tool_call['name'],
-                                    "tool_id": current_tool_call['id']
-                                }) + "\n"
-                            
-                            if tool_call_delta.function.arguments:
-                                current_tool_call['arguments'] += tool_call_delta.function.arguments
-                
+                                yield output.model_dump_json()
+                                logger.info(f"Tool called: {tool_call.function.name}")
+
+                            # Accumulate arguments
+                            if tool_call.function.arguments and current_tool_call:
+                                current_tool_call["arguments"] += tool_call.function.arguments
+
+                # Handle text content
                 if delta.content:
-                    content = delta.content
-                    full_response += content
-                    yield json.dumps({
-                        "type": "content",
-                        "data": content
-                    }) + "\n"
-            
-            if finish_reason != "tool_calls":
-                logger.debug(f"Stream finished with reason: {finish_reason}")
-                break
-            
-            if tool_calls:
-                logger.info(f"Executing {len(tool_calls)} tool calls")
-                tool_messages = []
-                
-                for tool_call in tool_calls:
-                    tool_start = time.time()
-                    
-                    try:
-                        args = json.loads(tool_call['arguments'])
-                    except Exception as e:
-                        logger.error(f"Failed to parse tool arguments: {e}")
-                        args = {}
-                    
-                    logger.info(
-                        f"Executing tool: {tool_call['name']}",
-                        extra={
-                            "tool_name": tool_call['name'],
-                            "arguments": args
-                        }
-                    )
-                    
-                    yield json.dumps({
-                        "type": "tool_executing",
-                        "tool_name": tool_call['name'],
-                        "arguments": args
-                    }) + "\n"
-                    
-                    try:
-                        result = await tools.execute(tool_call['name'], args)
-                        tool_duration = (time.time() - tool_start) * 1000
-                        
-                        logger.info(
-                            f"Tool execution completed: {tool_call['name']}",
-                            extra={
-                                "tool_name": tool_call['name'],
-                                "duration": round(tool_duration, 2)
-                            }
-                        )
-                        
-                        yield json.dumps({
-                            "type": "tool_result",
-                            "tool_name": tool_call['name'],
-                            "result": result
-                        }) + "\n"
-                    except Exception as e:
-                        logger.error(
-                            f"Tool execution failed: {tool_call['name']} - {e}",
-                            exc_info=True,
-                            extra={"tool_name": tool_call['name']}
-                        )
-                        result = json.dumps({"error": str(e)})
-                    
-                    tool_messages.append({
-                        "role": "assistant",
-                        "tool_calls": [{
-                            "id": tool_call['id'],
-                            "type": "function",
-                            "function": {
-                                "name": tool_call['name'],
-                                "arguments": tool_call['arguments']
-                            }
-                        }]
-                    })
-                    tool_messages.append({
-                        "role": "tool",
-                        "tool_call_id": tool_call['id'],
-                        "content": result
-                    })
-                
-                messages.extend(tool_messages)
-            else:
-                break
-        
-        if full_response:
-            context.add_message("assistant", full_response)
-        
-        total_duration = (time.time() - start_time) * 1000
-        logger.info(
-            f"Agent response completed",
-            extra={
-                "duration": round(total_duration, 2),
-                "iterations": iteration,
-                "response_length": len(full_response)
-            }
+                    collected_content.append(delta.content)
+
+                    # Yield text chunk
+                    output = TextChunk(content=delta.content)
+                    yield output.model_dump_json()
+
+                # Check if streaming is done
+                if chunk.choices[0].finish_reason:
+                    finish_reason = chunk.choices[0].finish_reason
+                    logger.info(f"Stream finished: {finish_reason}")
+
+                    # Execute tools if needed
+                    if finish_reason == "tool_calls" and tool_calls_made:
+                        # Execute all tool calls
+                        for tc in tool_calls_made:
+                            tool_name = tc["name"]
+                            arguments = json.loads(tc["arguments"])
+
+                            logger.info(f"Executing tool: {tool_name} with args: {arguments}")
+                            tool_result = await tools.execute(tool_name, arguments)
+
+                            # Yield tool result
+                            result_output = ToolResultOutput(
+                                name=tool_name,
+                                result=tool_result,
+                                success=True
+                            )
+                            yield result_output.model_dump_json()
+
+                        # Add to messages and continue
+                        messages.append({
+                            "role": "assistant",
+                            "tool_calls": [{
+                                "id": tc["id"],
+                                "type": "function",
+                                "function": {
+                                    "name": tc["name"],
+                                    "arguments": tc["arguments"]
+                                }
+                            } for tc in tool_calls_made]
+                        })
+
+                        for tc in tool_calls_made:
+                            tool_result = await tools.execute(
+                                tc["name"], 
+                                json.loads(tc["arguments"])
+                            )
+                            messages.append({
+                                "role": "tool",
+                                "tool_call_id": tc["id"],
+                                "content": tool_result
+                            })
+
+                        # Continue streaming
+                        async for follow_up_chunk in self._continue_stream(messages, tools_schema):
+                            yield follow_up_chunk
+
+                    # Normal completion
+                    elif finish_reason == "stop":
+                        full_content = "".join(collected_content)
+                        if full_content:
+                            context.add_message("assistant", full_content)
+
+                            # Yield final answer
+                            answer = ApiAnswerOutput(
+                                content=full_content,
+                                metadata={"finish_reason": finish_reason}
+                            )
+                            yield answer.model_dump_json()
+
+        except Exception as e:
+            logger.error(f"Error in stream_response: {e}", exc_info=True)
+            error = ErrorOutput(
+                message=str(e),
+                code="STREAM_ERROR"
+            )
+            yield error.model_dump_json()
+
+    async def _continue_stream(
+        self, 
+        messages: list, 
+        tools_schema: list
+    ) -> AsyncGenerator[str, None]:
+        """Continue streaming after tool execution."""
+        stream = await self.client.chat.completions.create(
+            model=self.model,
+            messages=messages,
+            tools=tools_schema if tools_schema else None,
+            stream=True,
+            temperature=0.7,
         )
+
+        collected_content = []
+
+        async for chunk in stream:
+            delta = chunk.choices[0].delta
+
+            if delta.content:
+                collected_content.append(delta.content)
+                output = TextChunk(content=delta.content)
+                yield output.model_dump_json()
+
+            if chunk.choices[0].finish_reason == "stop":
+                full_content = "".join(collected_content)
+                if full_content:
+                    answer = ApiAnswerOutput(
+                        content=full_content,
+                        metadata={"finish_reason": "stop"}
+                    )
+                    yield answer.model_dump_json()
+
+    def _prepare_messages(self, context: Context) -> list:
+        """Prepare messages for OpenAI API."""
+        messages = []
+
+        # System message
+        system_parts = [
+            f"You are a helpful AI assistant for {context.user_name}.",
+            f"Current date: {context.current_date.strftime('%Y-%m-%d %H:%M:%S')}"
+        ]
+
+        # Add RAG context if available
+        rag_context = context.get_rag_context()
+        if rag_context:
+            system_parts.append(f"\n\nRelevant context:\n{rag_context}")
+
+        # Add page context if available
+        if context.current_page_context:
+            system_parts.append(f"\n\nCurrent page context: {context.current_page_context}")
+
+        messages.append({
+            "role": "system",
+            "content": "\n".join(system_parts)
+        })
+
+        # Add conversation history
+        messages.extend(context.get_conversation_history())
+
+        return messages
