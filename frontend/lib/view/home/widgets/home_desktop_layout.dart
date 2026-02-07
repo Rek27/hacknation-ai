@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
 import 'package:provider/provider.dart';
-
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/home_controller.dart';
-import 'package:frontend/view/home/widgets/chat_area.dart';
-import 'package:frontend/view/home/widgets/documents_sidebar_content.dart';
+import 'package:frontend/view/home/widgets/chat/chat_panel.dart';
+import 'package:frontend/view/home/widgets/cart/cart_panel.dart';
 
-/// Desktop/web layout: persistent sidebar + chat area in a Row.
+/// Desktop/web layout: chat area and cart view in a Row.
 class HomeDesktopLayout extends StatelessWidget {
   const HomeDesktopLayout({
     super.key,
@@ -20,23 +20,26 @@ class HomeDesktopLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final HomeController controller = context.watch<HomeController>();
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
+
     return Column(
       children: [
-        if (controller.errorMessage != null) _ErrorBanner(message: controller.errorMessage!),
+        if (controller.errorMessage != null)
+          _ErrorBanner(message: controller.errorMessage!),
         Expanded(
           child: Row(
             children: [
-              Container(
-                width: AppConstants.sidebarWidthDesktop,
-                color: colorScheme.surfaceContainerHighest,
-                child: const DocumentsSidebarContent(),
-              ),
               Expanded(
-                child: ChatArea(
+                flex: 1,
+                child: ChatPanel(
                   scrollController: scrollController,
                   inputController: inputController,
+                ),
+              ),
+              Expanded(
+                flex: 2,
+                child: ChangeNotifierProvider<CartController>(
+                  create: (_) => CartController(),
+                  child: CartPanel(),
                 ),
               ),
             ],

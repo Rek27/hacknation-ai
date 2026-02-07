@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/model/api_models.dart';
 import 'package:frontend/service/agent_api.dart';
 import 'package:frontend/service/api_client.dart';
 import 'package:frontend/view/home/home_controller.dart';
-import 'package:frontend/view/home/widgets/documents_sidebar_content.dart';
 import 'package:frontend/view/home/widgets/home_desktop_layout.dart';
 import 'package:frontend/view/home/widgets/home_mobile_layout.dart';
 
@@ -24,9 +22,7 @@ class HomePage extends StatelessWidget {
     const hostedBaseUrl =
         'https://0166-2001-4ca0-0-f237-1562-d89a-324c-8866.ngrok-free.app';
 
-    final baseUrl = envBaseUrl.isNotEmpty
-        ? envBaseUrl
-        : hostedBaseUrl;
+    final baseUrl = envBaseUrl.isNotEmpty ? envBaseUrl : hostedBaseUrl;
 
     return ChangeNotifierProvider<HomeController>(
       create: (_) => HomeController(
@@ -72,9 +68,7 @@ class _HomeViewState extends State<_HomeView> {
                 onPressed: () => Scaffold.of(context).openDrawer(),
               )
             : null,
-        actions: [
-          _AppBarActions(baseUrl: widget.baseUrl),
-        ],
+        actions: [_AppBarActions(baseUrl: widget.baseUrl)],
       ),
       drawer: isMobile
           ? Drawer(
@@ -92,8 +86,6 @@ class _HomeViewState extends State<_HomeView> {
                         ),
                       ),
                     ),
-                    const Divider(height: 1),
-                    const Expanded(child: DocumentsSidebarContent()),
                   ],
                 ),
               ),
