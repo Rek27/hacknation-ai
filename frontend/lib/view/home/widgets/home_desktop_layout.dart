@@ -3,8 +3,8 @@ import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/home_controller.dart';
-import 'package:frontend/view/home/widgets/chat_area.dart';
-import 'package:frontend/view/home/widgets/cart/cart_view.dart';
+import 'package:frontend/view/home/widgets/chat_panel.dart';
+import 'package:frontend/view/home/widgets/cart/cart_panel.dart';
 
 /// Desktop/web layout: chat area and cart view in a Row.
 class HomeDesktopLayout extends StatelessWidget {
@@ -20,7 +20,6 @@ class HomeDesktopLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final HomeController controller = context.watch<HomeController>();
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     return Column(
       children: [
@@ -29,20 +28,18 @@ class HomeDesktopLayout extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              // Chat area takes 1/3 of the remaining width.
               Expanded(
                 flex: 1,
-                child: ChatArea(
+                child: ChatPanel(
                   scrollController: scrollController,
                   inputController: inputController,
                 ),
               ),
-              // Cart view takes 2/3 of the remaining width.
               Expanded(
                 flex: 2,
                 child: ChangeNotifierProvider<CartController>(
                   create: (_) => CartController(),
-                  child: CartView(),
+                  child: CartPanel(),
                 ),
               ),
             ],

@@ -4,8 +4,8 @@ import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/home_controller.dart';
 
 /// Reusable chat message list and input. Used in both mobile and desktop layouts.
-class ChatArea extends StatelessWidget {
-  const ChatArea({
+class ChatPanel extends StatelessWidget {
+  const ChatPanel({
     super.key,
     required this.scrollController,
     required this.inputController,

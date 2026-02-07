@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
-import 'package:frontend/view/home/widgets/selectable_widget.dart';
+import 'package:frontend/view/home/widgets/cart_item/cart_item.dart';
+import 'package:frontend/view/home/widgets/cart_item/cart_item_controller.dart';
 import 'package:provider/provider.dart';
 
-class CartView extends StatelessWidget {
-  const CartView({super.key});
+class CartPanel extends StatelessWidget {
+  const CartPanel({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -56,20 +57,19 @@ class CartView extends StatelessWidget {
                     padding: const EdgeInsets.symmetric(
                       vertical: AppConstants.spacingMd,
                     ),
-                    itemCount: 10,
-                    separatorBuilder: (context, index) {
-                      return SizedBox(height: AppConstants.spacingMd);
-                    },
+                    itemCount: controller.entries.length,
+                    separatorBuilder: (context, index) =>
+                        const SizedBox(height: AppConstants.spacingMd),
                     itemBuilder: (context, index) {
-                      return Container(
-                        padding: const EdgeInsets.all(AppConstants.spacingMd),
-                        decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(
-                            AppConstants.radiusMd,
-                          ),
+                      final entry = controller.entries[index];
+                      final expanded = controller.isExpanded(entry.id);
+                      return ChangeNotifierProvider<CartItemController>(
+                        create: (_) => CartItemController(entry: entry),
+                        child: CartItem(
+                          entry: entry,
+                          isExpanded: expanded,
+                          onToggle: () => controller.toggleExpanded(entry.id),
                         ),
-                        child: Text('Item $index'),
                       );
                     },
                   ),
