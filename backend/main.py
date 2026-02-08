@@ -14,6 +14,7 @@ from app.models import (
     ItemsChunk,
     TextChunk,
     RetailerOffersChunk,
+    CartItem,
 )
 from app.models.context import Context
 from app.tree_agent import TreeAgent
@@ -224,6 +225,14 @@ class RootResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     active_sessions: int
+
+
+class RecommendationReasonRequest(BaseModel):
+    cart_item: CartItem = Field(..., alias="cartItem")
+
+
+class RecommendationReasonResponse(BaseModel):
+    reasoning: str
 
 
 # ── Endpoints ──────────────────────────────────────────────────────────────
@@ -476,6 +485,49 @@ async def submit_form(request: SubmitFormRequest):
 )
 async def health():
     return {"status": "healthy", "active_sessions": len(sessions)}
+
+
+@app.post(
+    "/recommendation-reason",
+    tags=["Form"],
+    summary="Explain why the recommended item was chosen",
+    description=(
+        "Returns a concise, user-friendly explanation for why the recommended "
+        "item was selected over the alternatives."
+    ),
+    response_model=RecommendationReasonResponse,
+)
+async def recommendation_reason(request: RecommendationReasonRequest):
+    cart_item = request.cart_item
+    payload = cart_item.model_dump(by_alias=True)
+    prompt = (
+        "You are a helpful shopping assistant. Explain in 2-4 sentences why "
+        "the recommended item was chosen over the cheapest, fastest delivery, "
+        "and best rating options. Mention price, delivery time, and rating "
+        "tradeoffs when relevant, and keep it factual.\n\n"
+        f"Cart item data: {json.dumps(payload, ensure_ascii=False)}"
+    )
+    try:
+        response = await shopping_list_agent.client.chat.completions.create(
+            model=shopping_list_agent.model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You explain recommendation decisions.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+        )
+        reasoning = response.choices[0].message.content.strip()
+    except Exception as e:
+        logger.error(f"Recommendation summary failed: {e}", exc_info=True)
+        reasoning = (
+            "The recommended item balances price, delivery time, and overall "
+            "quality better than the alternatives."
+        )
+
+    return RecommendationReasonResponse(reasoning=reasoning)
 
 
 if __name__ == "__main__":
