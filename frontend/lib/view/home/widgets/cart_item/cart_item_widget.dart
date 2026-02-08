@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/model/chat_models.dart';
+import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_utils.dart';
 import 'package:frontend/view/home/widgets/cart/cart_shared_widgets.dart';
@@ -96,7 +97,10 @@ class _HeaderRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const CartImagePlaceholder(size: AppConstants.cartImageSize),
+        CartImagePlaceholder(
+          size: AppConstants.cartImageSize,
+          imageUrl: item.imageUrl,
+        ),
         const SizedBox(width: AppConstants.spacingMd),
         Expanded(
           child: Column(
@@ -250,6 +254,8 @@ class _ExpandedDetails extends StatelessWidget {
             ],
           ),
         ),
+        // AI Recommendation Reasoning button + display
+        _AiReasoningSection(groupIndex: groupIndex),
         if (group != null) ...[
           const SizedBox(height: AppConstants.spacingMd),
           Row(
@@ -308,6 +314,119 @@ class _ExpandedDetails extends StatelessWidget {
   }
 }
 
+/// Section that shows a button to ask AI why the recommended item was chosen,
+/// and displays the reasoning text once fetched.
+class _AiReasoningSection extends StatelessWidget {
+  const _AiReasoningSection({required this.groupIndex});
+  final int groupIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final controller = context.watch<CartController>();
+    final isLoading = controller.isReasoningLoading(groupIndex);
+    final reasoning = controller.getAiReasoning(groupIndex);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppConstants.spacingSm),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+              onTap: isLoading
+                  ? null
+                  : () {
+                      final api = context.read<HomeController>().api;
+                      controller.fetchRecommendationReason(groupIndex, api);
+                    },
+              child: AnimatedContainer(
+                duration: AppConstants.durationFast,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.spacingSm + 2,
+                  vertical: AppConstants.spacingXs + 2,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (isLoading)
+                      SizedBox(
+                        width: AppConstants.iconSizeXs,
+                        height: AppConstants.iconSizeXs,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colorScheme.primary,
+                        ),
+                      )
+                    else
+                      Icon(
+                        Icons.auto_awesome,
+                        size: AppConstants.iconSizeXs,
+                        color: colorScheme.primary,
+                      ),
+                    const SizedBox(width: AppConstants.spacingXs),
+                    Text(
+                      reasoning != null ? 'Ask AI again' : 'Why this item?',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+        if (reasoning != null) ...[
+          const SizedBox(height: AppConstants.spacingSm),
+          Container(
+            padding: const EdgeInsets.all(AppConstants.spacingSm + 2),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.auto_awesome,
+                  size: AppConstants.metaIconSize,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: AppConstants.spacingSm),
+                Expanded(
+                  child: Text(
+                    reasoning,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
 /// Row of 3 alternative recommendation tiles: Cheapest, Best reviewed, Fastest.
 /// Each tile uses a category-specific accent colour and icon for visual clarity.
 class _RecommendationsRow extends StatelessWidget {
@@ -346,10 +465,8 @@ class _RecommendationsRow extends StatelessWidget {
             label: 'Best reviewed',
             item: group.bestReviewed,
             isSelected: selectBest,
-            onTap: () => controller.selectRecommendation(
-              groupIndex,
-              group.bestReviewed,
-            ),
+            onTap: () =>
+                controller.selectRecommendation(groupIndex, group.bestReviewed),
           ),
         ),
         const SizedBox(width: AppConstants.spacingSm),
@@ -407,8 +524,8 @@ class _RecommendationTileState extends State<_RecommendationTile> {
     final Color borderColor = widget.isSelected
         ? accent
         : (_hovered
-            ? accent.withValues(alpha: 0.5)
-            : colorScheme.outlineVariant.withValues(alpha: 0.3));
+              ? accent.withValues(alpha: 0.5)
+              : colorScheme.outlineVariant.withValues(alpha: 0.3));
     final double borderWidth = widget.isSelected ? 1.5 : 1;
 
     return MouseRegion(

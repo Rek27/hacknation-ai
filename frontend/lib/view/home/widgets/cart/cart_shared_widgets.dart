@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/app_constants.dart';
+import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_utils.dart';
+import 'package:provider/provider.dart';
 
 /// Displays a 5-star rating with optional numeric label.
 /// Stars fill proportionally based on [rating] (0.0–5.0).
@@ -127,27 +129,69 @@ class CartRetailerChip extends StatelessWidget {
 }
 
 /// Square image placeholder used for product thumbnails and summary cards.
+/// When [imageUrl] (a relative path like "/images/42") is provided the widget
+/// loads the image from the backend. Otherwise it shows a grey placeholder icon.
 class CartImagePlaceholder extends StatelessWidget {
-  const CartImagePlaceholder({super.key, required this.size, this.color});
+  const CartImagePlaceholder({
+    super.key,
+    required this.size,
+    this.color,
+    this.imageUrl,
+  });
 
   final double size;
   final Color? color;
 
+  /// Relative URL such as "/images/42".  Resolved against the API base URL.
+  final String? imageUrl;
+
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
+    final bgColor = color ?? colorScheme.surfaceContainerHighest;
+
+    // Resolve full URL from relative path.
+    String? fullUrl;
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      final baseUrl =
+          context.read<HomeController>().api.baseUrl;
+      fullUrl = '$baseUrl$imageUrl';
+    }
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppConstants.radiusMd),
       child: Container(
         width: size,
         height: size,
-        color: color ?? colorScheme.surfaceContainerHighest,
-        child: Icon(
-          Icons.image_outlined,
-          size: size * 0.4,
-          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-        ),
+        color: bgColor,
+        child: fullUrl != null
+            ? Image.network(
+                fullUrl,
+                width: size,
+                height: size,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _PlaceholderIcon(
+                  size: size,
+                  colorScheme: colorScheme,
+                ),
+              )
+            : _PlaceholderIcon(size: size, colorScheme: colorScheme),
       ),
+    );
+  }
+}
+
+class _PlaceholderIcon extends StatelessWidget {
+  const _PlaceholderIcon({required this.size, required this.colorScheme});
+  final double size;
+  final ColorScheme colorScheme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(
+      Icons.image_outlined,
+      size: size * 0.4,
+      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:frontend/model/chat_models.dart';
+import 'package:frontend/service/agent_api.dart';
 
 /// Phases of the checkout flow.
 enum CheckoutPhase { cart, summary, ordering, complete }
@@ -32,6 +33,17 @@ class CartController extends ChangeNotifier {
   /// Unique retailers derived from current items.
   List<String> get uniqueRetailers =>
       items.map((e) => e.retailer).toSet().toList();
+
+  /// Representative image per retailer (first available item image).
+  Map<String, String?> get retailerImageUrls {
+    final Map<String, String?> out = {};
+    for (final item in items) {
+      if (!out.containsKey(item.retailer) || out[item.retailer] == null) {
+        out[item.retailer] = item.imageUrl;
+      }
+    }
+    return out;
+  }
 
   /// Which retailers have finished the mock ordering process.
   final Set<String> _confirmedRetailers = <String>{};
@@ -112,6 +124,8 @@ class CartController extends ChangeNotifier {
     _expandedIds.clear();
     _expandedGroups.clear();
     _reasonsByIndex.clear();
+    _aiReasoning.clear();
+    _aiReasoningLoading.clear();
     notifyListeners();
   }
 
@@ -278,6 +292,45 @@ class CartController extends ChangeNotifier {
     if (same(displayed, group.bestReviewed)) return 'best';
     if (same(displayed, group.fastest)) return 'fastest';
     return 'main';
+  }
+
+  // ---------------------------------------------------------------------------
+  // AI recommendation reasoning
+  // ---------------------------------------------------------------------------
+
+  final Map<int, String> _aiReasoning = <int, String>{};
+  final Set<int> _aiReasoningLoading = <int>{};
+
+  /// Whether the AI reasoning is currently being fetched for [groupIndex].
+  bool isReasoningLoading(int groupIndex) =>
+      _aiReasoningLoading.contains(groupIndex);
+
+  /// Returns the AI reasoning for [groupIndex], or null if not yet fetched.
+  String? getAiReasoning(int groupIndex) => _aiReasoning[groupIndex];
+
+  /// Fetches the AI recommendation reasoning for the given [groupIndex].
+  Future<void> fetchRecommendationReason(
+    int groupIndex,
+    AgentApi api,
+  ) async {
+    final group = getGroup(groupIndex);
+    if (group == null) return;
+    if (_aiReasoningLoading.contains(groupIndex)) return; // already loading
+
+    _aiReasoningLoading.add(groupIndex);
+    _aiReasoning.remove(groupIndex);
+    notifyListeners();
+
+    try {
+      final reasoning = await api.getRecommendationReason(group);
+      _aiReasoning[groupIndex] = reasoning;
+    } catch (e) {
+      _aiReasoning[groupIndex] =
+          'Could not fetch explanation. Please try again.';
+    } finally {
+      _aiReasoningLoading.remove(groupIndex);
+      notifyListeners();
+    }
   }
 
   /// Background alpha used for category chips, mirroring recommendation tiles.

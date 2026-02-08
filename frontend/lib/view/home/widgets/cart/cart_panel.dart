@@ -307,6 +307,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                   CartImagePlaceholder(
                     size: AppConstants.cartSummaryImageSize,
                     color: cs.surfaceContainerHighest,
+                    imageUrl: item.imageUrl,
                   ),
                   const SizedBox(width: AppConstants.spacingMd),
                   Expanded(
@@ -608,6 +609,7 @@ class _RetailerOrderingScreen extends StatelessWidget {
     final cs = theme.colorScheme;
     final controller = context.watch<CartController>();
     final retailers = controller.uniqueRetailers;
+    final retailerImages = controller.retailerImageUrls;
     final confirmed = controller.confirmedRetailers;
     final allDone = confirmed.length == retailers.length;
 
@@ -656,7 +658,11 @@ class _RetailerOrderingScreen extends StatelessWidget {
               itemBuilder: (context, index) {
                 final name = retailers[index];
                 final done = confirmed.contains(name);
-                return _RetailerCard(name: name, confirmed: done);
+                return _RetailerCard(
+                  name: name,
+                  confirmed: done,
+                  imageUrl: retailerImages[name],
+                );
               },
             ),
           ),
@@ -667,9 +673,14 @@ class _RetailerOrderingScreen extends StatelessWidget {
 }
 
 class _RetailerCard extends StatelessWidget {
-  const _RetailerCard({required this.name, required this.confirmed});
+  const _RetailerCard({
+    required this.name,
+    required this.confirmed,
+    this.imageUrl,
+  });
   final String name;
   final bool confirmed;
+  final String? imageUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -695,23 +706,29 @@ class _RetailerCard extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Mock logo
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
+                if (imageUrl != null)
+                  CartImagePlaceholder(
+                    size: 64,
                     color: color.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    _retailerInitials(name),
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      color: color,
-                      fontWeight: FontWeight.w800,
+                    imageUrl: imageUrl,
+                  )
+                else
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _retailerInitials(name),
+                      style: theme.textTheme.headlineSmall?.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
                   ),
-                ),
                 const SizedBox(height: AppConstants.spacingSm),
                 Text(
                   name,

@@ -15,6 +15,9 @@ class AgentApi {
 
   AgentApi(this._client);
 
+  /// The base URL of the API server, used for resolving relative image URLs.
+  String get baseUrl => _client.baseUrl;
+
   void _log(String message) {
     if (kDebugMode) {
       // ignore: avoid_print
@@ -126,6 +129,28 @@ class AgentApi {
   /// Get TTS audio URL for the given audio_id
   String getTtsAudioUrl(String audioId) {
     return '${_client.baseUrl}/tts-audio/$audioId';
+  }
+
+  /// Fetch an AI-generated explanation for why the recommended item was chosen.
+  /// [cartItem] is the full recommendation group (main + cheapest + best + fastest).
+  Future<String> getRecommendationReason(RecommendedItem cartItem) async {
+    _log('getRecommendationReason()');
+    final body = <String, dynamic>{
+      'cartItem': {
+        'recommendedItem': cartItem.main.toJson(),
+        'cheapestItem': cartItem.cheapest.toJson(),
+        'bestRatingItem': cartItem.bestReviewed.toJson(),
+        'fastestDeliveryItem': cartItem.fastest.toJson(),
+      },
+    };
+    final res = await _client.postJson('/recommendation-reason', body);
+    if (res.statusCode != 200) {
+      throw HttpException(
+        'Recommendation reason failed: ${res.statusCode}',
+      );
+    }
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    return json['reasoning'] as String;
   }
 
   /// Shared SSE stream parser for streaming endpoints.
