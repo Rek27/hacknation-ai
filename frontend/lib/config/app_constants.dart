@@ -57,4 +57,14 @@ abstract final class AppConstants {
 
   /// Width of sample prompt cards.
   static const double samplePromptWidth = 260.0;
+
+  // Call-style UI (mobile)
+  /// Size of the assistant avatar on the call screen.
+  static const double callUiAvatarSize = 120.0;
+
+  /// Size of the end-call button on the call screen.
+  static const double callUiEndButtonSize = 72.0;
+
+  /// Display name for the assistant on the call screen.
+  static const String callUiAssistantName = 'Assistant';
 }

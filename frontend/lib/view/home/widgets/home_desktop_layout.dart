@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
 import 'package:provider/provider.dart';
-import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/chat/chat_panel.dart';
 import 'package:frontend/view/home/widgets/chat/chat_controller.dart';
@@ -16,36 +15,28 @@ class HomeDesktopLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final HomeController controller = context.watch<HomeController>();
 
-    return Column(
+    return Row(
       children: [
-        if (controller.errorMessage != null)
-          _ErrorBanner(message: controller.errorMessage!),
         Expanded(
-          child: Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: ChangeNotifierProvider<ChatController>(
-                  create: (_) {
-                    final HomeController homeController = controller;
-                    return ChatController(
-                      chatService: RealChatService(
-                        homeController.api,
-                        homeController.sessionId,
-                      ),
-                    );
-                  },
-                  child: const ChatPanel(),
+          flex: 3,
+          child: ChangeNotifierProvider<ChatController>(
+            create: (_) {
+              final HomeController homeController = controller;
+              return ChatController(
+                chatService: RealChatService(
+                  homeController.api,
+                  homeController.sessionId,
                 ),
-              ),
-              Expanded(
-                flex: 5,
-                child: ChangeNotifierProvider<CartController>(
-                  create: (_) => CartController(),
-                  child: CartPanel(),
-                ),
-              ),
-            ],
+              );
+            },
+            child: const ChatPanel(),
+          ),
+        ),
+        Expanded(
+          flex: 5,
+          child: ChangeNotifierProvider<CartController>(
+            create: (_) => CartController(),
+            child: CartPanel(),
           ),
         ),
       ],
@@ -53,28 +44,3 @@ class HomeDesktopLayout extends StatelessWidget {
   }
 }
 
-class _ErrorBanner extends StatelessWidget {
-  const _ErrorBanner({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-    return Container(
-      width: double.infinity,
-      color: colorScheme.errorContainer,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppConstants.spacingMd,
-        vertical: AppConstants.spacingSm,
-      ),
-      child: Text(
-        message,
-        style: theme.textTheme.bodySmall?.copyWith(
-          color: colorScheme.onErrorContainer,
-        ),
-      ),
-    );
-  }
-}

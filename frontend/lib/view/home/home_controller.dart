@@ -1,6 +1,4 @@
 import 'dart:async';
-import 'dart:io';
-
 import 'package:flutter/foundation.dart';
 
 import '../../model/api_models.dart';
@@ -36,6 +34,7 @@ class HomeController extends ChangeNotifier {
       health = await api.getHealth();
       errorMessage = null;
     } catch (e) {
+      debugPrint('HomeController.refreshHealth error: $e');
       errorMessage = e.toString();
     } finally {
       loadingHealth = false;
@@ -71,6 +70,7 @@ class HomeController extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
+      debugPrint('HomeController.sendMessage error: $e');
       errorMessage = 'Connection error: $e';
       chatItems.add(ChatItem.error(errorMessage!));
       notifyListeners();
