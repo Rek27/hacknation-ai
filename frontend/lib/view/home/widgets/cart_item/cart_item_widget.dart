@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/model/chat_models.dart';
 import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
@@ -125,7 +126,33 @@ class _HeaderRow extends StatelessWidget {
                     size: AppConstants.iconSizeXs,
                   ),
                   const SizedBox(width: AppConstants.spacingXs),
-                  Text('Qty: ${item.amount}', style: theme.textTheme.bodySmall),
+                  Text('Qty:'),
+                  const SizedBox(width: AppConstants.spacingXs),
+                  SizedBox(
+                    width: 40,
+                    child: TextFormField(
+                      initialValue: item.amount.toString(),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (value) {
+                        if (value.isEmpty) return;
+                        final qty = int.tryParse(value);
+                        if (qty == null) return;
+                        final key = item.id ?? item.name;
+                        context.read<CartController>().updateQuantity(key, qty);
+                      },
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppConstants.spacingSm,
+                          vertical: AppConstants.spacingXs,
+                        ),
+                        hintText: 'Qty',
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -135,7 +162,28 @@ class _HeaderRow extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            _QuantityBadge(quantity: item.amount),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Remove',
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: AppConstants.iconSizeSm,
+                  ),
+                  onPressed: () {
+                    final key = item.id ?? item.name;
+                    context.read<CartController>().deleteItem(key);
+                  },
+                  // make it dense
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: AppConstants.spacingSm),
             Icon(
               isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,

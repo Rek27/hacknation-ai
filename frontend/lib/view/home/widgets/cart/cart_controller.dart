@@ -22,6 +22,17 @@ class CartController extends ChangeNotifier {
   /// Whether a specific item (by id) is expanded in the UI.
   bool isExpanded(String id) => _expandedIds.contains(id);
 
+  /// Removes an item by id (or name fallback) and cleans related state.
+  void deleteItem(String itemId) {
+    if (_cart == null) return;
+    bool keyMatcher(CartItem e) => (e.id ?? e.name) == itemId;
+    final updated = List<CartItem>.from(_cart!.items)..removeWhere(keyMatcher);
+    _cart = CartChunk(items: updated, price: totalPrice);
+    _expandedIds.remove(itemId);
+    _alternativesById.remove(itemId);
+    notifyListeners();
+  }
+
   /// Creates a controller and seeds it with development dummy data.
   CartController() {
     loadDummyData();
@@ -37,15 +48,35 @@ class CartController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Returns alternatives for a given item id, or null if none available.
   CartChunk? getAlternatives(String id) => _alternativesById[id];
+
+  /// Updates the quantity for a given item (min 1). Recomputes totals.
+  void updateQuantity(String itemId, int quantity) {
+    if (_cart == null) return;
+    final q = quantity < 1 ? 1 : quantity;
+    final idx = _cart!.items.indexWhere((e) => (e.id ?? e.name) == itemId);
+    if (idx < 0) return;
+    final it = _cart!.items[idx];
+    final updated = CartItem(
+      id: it.id,
+      name: it.name,
+      price: it.price,
+      amount: q,
+      retailer: it.retailer,
+      deliveryTime: it.deliveryTime,
+    );
+    final list = List<CartItem>.from(_cart!.items);
+    list[idx] = updated;
+    _cart = CartChunk(items: list, price: totalPrice);
+    notifyListeners();
+  }
 
   /// Swaps currently selected item with the chosen alternative.
   /// The previous selection becomes an alternative entry.
   void selectAlternative(String itemId, CartItem newSelection) {
     if (_cart == null) return;
-    String _keyOf(CartItem it) => it.id ?? it.name;
-    final int idx = _cart!.items.indexWhere((e) => _keyOf(e) == itemId);
+    String keyOf(CartItem it) => it.id ?? it.name;
+    final int idx = _cart!.items.indexWhere((e) => keyOf(e) == itemId);
     if (idx < 0) return;
     final CartItem previous = _cart!.items[idx];
 
@@ -59,7 +90,7 @@ class CartController extends ChangeNotifier {
     final existing = _alternativesById[itemId];
     final altItems = List<CartItem>.from(existing?.items ?? const []);
     final int chosenIndex = altItems.indexWhere(
-      (e) => _keyOf(e) == _keyOf(newSelection),
+      (e) => keyOf(e) == keyOf(newSelection),
     );
     if (chosenIndex >= 0) {
       altItems.removeAt(chosenIndex);
@@ -70,7 +101,7 @@ class CartController extends ChangeNotifier {
     }
 
     // Re-key the alternatives under the NEW selection key so UI continues to find them.
-    final String newKey = _keyOf(newSelection);
+    final String newKey = keyOf(newSelection);
     _alternativesById.remove(itemId);
     _alternativesById[newKey] = CartChunk(items: altItems, price: 0);
     notifyListeners();

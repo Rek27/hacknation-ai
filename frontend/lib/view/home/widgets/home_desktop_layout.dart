@@ -29,14 +29,14 @@ class HomeDesktopLayout extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                flex: 1,
+                flex: 2,
                 child: ChatPanel(
                   scrollController: scrollController,
                   inputController: inputController,
                 ),
               ),
               Expanded(
-                flex: 2,
+                flex: 3,
                 child: ChangeNotifierProvider<CartController>(
                   create: (_) => CartController(),
                   child: CartPanel(),
