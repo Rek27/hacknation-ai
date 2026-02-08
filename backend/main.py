@@ -25,7 +25,39 @@ setup_logging(
 logger = get_logger(__name__)
 
 # ── App ────────────────────────────────────────────────────────────────────
-app = FastAPI(title="Event Shopping Agent API", version="2.0.0")
+_tags_metadata = [
+    {
+        "name": "Meta",
+        "description": "Service metadata and health checks.",
+    },
+    {
+        "name": "Chat",
+        "description": "TreeAgent streaming conversation endpoints.",
+    },
+    {
+        "name": "Tree",
+        "description": "Submit confirmed trees and generate a form.",
+    },
+    {
+        "name": "Form",
+        "description": "Submit the structured form data.",
+    },
+    {
+        "name": "UI",
+        "description": "Local test UI for manual verification.",
+    },
+]
+
+app = FastAPI(
+    title="Event Shopping Agent API",
+    version="2.0.0",
+    description=(
+        "API for generating event shopping trees and structured forms. "
+        "Streaming endpoints emit Server-Sent Events (SSE) with JSON-encoded "
+        "payloads derived from the output models."
+    ),
+    openapi_tags=_tags_metadata,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -97,8 +129,32 @@ class SubmitFormRequest(BaseModel):
     )
 
 
+class RootResponse(BaseModel):
+    service: str
+    version: str
+    endpoints: list[str]
+
+
+class SubmitFormResponse(BaseModel):
+    success: bool
+    message: str
+    session_id: str
+    items_summary: list[str]
+
+
+class HealthResponse(BaseModel):
+    status: str
+    active_sessions: int
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────
-@app.get("/")
+@app.get(
+    "/",
+    response_model=RootResponse,
+    tags=["Meta"],
+    summary="API metadata",
+    description="Returns service metadata and available endpoints.",
+)
 async def root():
     return {
         "service": "Event Shopping Agent API",
@@ -107,20 +163,40 @@ async def root():
     }
 
 
-@app.get("/test")
+@app.get(
+    "/test",
+    response_class=HTMLResponse,
+    tags=["UI"],
+    summary="Serve local test UI",
+    description="Returns the bundled HTML test page.",
+)
 async def test_page():
-    """Serve the test UI."""
     html_path = os.path.join(os.path.dirname(__file__), "test.html")
     with open(html_path, "r", encoding="utf-8") as f:
         return HTMLResponse(f.read())
 
 
-@app.post("/chat")
+@app.post(
+    "/chat",
+    tags=["Chat"],
+    summary="Stream TreeAgent output",
+    description=(
+        "Streams Server-Sent Events (SSE). Each event is a JSON-encoded "
+        "OutputItem such as TextChunk, PeopleTreeTrunk, PlaceTreeTrunk, or ErrorOutput."
+    ),
+    responses={
+        200: {
+            "description": "SSE stream of JSON-encoded OutputItem events.",
+            "content": {
+                "text/event-stream": {
+                    "schema": {"type": "string"},
+                    "example": 'data: {"type":"text","content":"Hello"}\\n\\n',
+                }
+            },
+        }
+    },
+)
 async def chat_stream(request: ChatRequest):
-    """TreeAgent streaming endpoint (SSE).
-
-    Returns TextChunk | PeopleTreeTrunk | PlaceTreeTrunk | ErrorOutput.
-    """
     logger.info(
         f"/chat from {request.user_name} (session={request.session_id}): "
         f"{request.message[:80]!r}"
@@ -149,12 +225,27 @@ async def chat_stream(request: ChatRequest):
     )
 
 
-@app.post("/submit-tree")
+@app.post(
+    "/submit-tree",
+    tags=["Tree"],
+    summary="Submit trees and stream form",
+    description=(
+        "Persists the confirmed people/place trees and streams an intro TextChunk "
+        "followed by a TextFormChunk via SSE."
+    ),
+    responses={
+        200: {
+            "description": "SSE stream containing TextChunk and TextFormChunk.",
+            "content": {
+                "text/event-stream": {
+                    "schema": {"type": "string"},
+                    "example": 'data: {"type":"text_form","address":{"label":"Address","content":""}}\\n\\n',
+                }
+            },
+        }
+    },
+)
 async def submit_tree(request: SubmitTreeRequest):
-    """Persist confirmed trees and stream a form via FormAgent (SSE).
-
-    Returns TextChunk (intro) + TextFormChunk.
-    """
     logger.info(
         f"/submit-tree session={request.session_id} "
         f"people_nodes={len(request.people_tree)} "
@@ -188,9 +279,14 @@ async def submit_tree(request: SubmitTreeRequest):
     )
 
 
-@app.post("/submit-form")
+@app.post(
+    "/submit-form",
+    response_model=SubmitFormResponse,
+    tags=["Form"],
+    summary="Submit form data",
+    description="Persists confirmed form data and returns a summary.",
+)
 async def submit_form(request: SubmitFormRequest):
-    """Persist confirmed form data. Stub for future BuyerAgent."""
     fields = [
         request.address,
         request.budget,
@@ -217,7 +313,13 @@ async def submit_form(request: SubmitFormRequest):
     }
 
 
-@app.get("/health")
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    tags=["Meta"],
+    summary="Health check",
+    description="Returns service health and active session count.",
+)
 async def health():
     return {"status": "healthy", "active_sessions": len(sessions)}
 
