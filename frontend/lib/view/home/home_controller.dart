@@ -26,7 +26,7 @@ class HomeController extends ChangeNotifier {
   final Map<String, bool> activeTools = {};
 
   Future<void> loadInitial() async {
-    await Future.wait([refreshHealth(), refreshDocuments()]);
+    await Future.wait([refreshHealth()]);
   }
 
   Future<void> refreshHealth() async {
@@ -39,40 +39,6 @@ class HomeController extends ChangeNotifier {
       errorMessage = e.toString();
     } finally {
       loadingHealth = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> refreshDocuments() async {
-    loadingDocs = true;
-    notifyListeners();
-    try {
-      documents = await api.listDocuments();
-      errorMessage = null;
-    } catch (e) {
-      errorMessage = e.toString();
-    } finally {
-      loadingDocs = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> upload(File file) async {
-    try {
-      await api.uploadDocument(file);
-      await Future.wait([refreshDocuments(), refreshHealth()]);
-    } catch (e) {
-      errorMessage = e.toString();
-      notifyListeners();
-    }
-  }
-
-  Future<void> deleteDoc(String filename) async {
-    try {
-      await api.deleteDocument(filename);
-      await Future.wait([refreshDocuments(), refreshHealth()]);
-    } catch (e) {
-      errorMessage = e.toString();
       notifyListeners();
     }
   }

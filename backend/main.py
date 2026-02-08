@@ -11,6 +11,7 @@ from app.models.context import Context
 from app.tree_agent import TreeAgent
 from app.form_agent import FormAgent
 from app.logger import setup_logging, get_logger
+from app.rag_pipeline import RAGPipeline
 
 load_dotenv()
 
@@ -102,6 +103,42 @@ def _get_or_create_session(session_id: str, user_name: str = "User") -> Context:
         logger.info(f"New session: {session_id}")
         sessions[session_id] = Context(user_name=user_name)
     return sessions[session_id]
+
+
+def get_unique_item_names() -> list[str]:
+    """
+    Retrieve all unique article names from the vector database.
+    
+    Returns:
+        List of unique article names (e.g., ["Banana Smoothie", "Water 0.5L", ...])
+    """
+    logger.info("Retrieving unique item names from vector database")
+    
+    # Initialize RAG pipeline to access the vector database
+    rag = RAGPipeline(collection_name="documents")
+    
+    # Get all documents from the collection
+    results = rag.collection.get()
+    
+    # Extract unique article names from document texts
+    unique_names = set()
+    
+    if results['documents']:
+        for doc_text in results['documents']:
+            # Parse the document text to extract the Article field
+            # Format: "ID: 1, Article: Banana Smoothie, Price: 1.49, ..."
+            parts = doc_text.split(", ")
+            for part in parts:
+                if part.strip().startswith("Article:"):
+                    # Extract the article name after "Article: "
+                    article_name = part.split("Article:", 1)[1].strip()
+                    unique_names.add(article_name)
+                    break
+    
+    result_list = sorted(list(unique_names))
+    logger.info(f"Found {len(result_list)} unique item names")
+    
+    return result_list
 
 
 # ── Request models ─────────────────────────────────────────────────────────

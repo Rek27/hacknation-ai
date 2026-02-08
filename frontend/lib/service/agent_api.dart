@@ -30,36 +30,6 @@ class AgentApi {
     return HealthStatus.fromJson(jsonDecode(res.body));
   }
 
-  Future<List<RagDocument>> listDocuments() async {
-    _log('listDocuments()');
-    final res = await _client.get('/documents');
-    if (res.statusCode != 200) {
-      throw HttpException('Documents failed: ${res.statusCode}');
-    }
-    final data = jsonDecode(res.body) as Map<String, dynamic>;
-    final docs = (data['documents'] as List<dynamic>? ?? [])
-        .cast<Map<String, dynamic>>();
-    return docs.map(RagDocument.fromJson).toList();
-  }
-
-  Future<UploadResponse> uploadDocument(File file) async {
-    _log('uploadDocument(file=${file.path})');
-    final streamed = await _client.postMultipart('/upload', file, 'file');
-    final res = await http.Response.fromStream(streamed);
-    if (res.statusCode != 200) {
-      throw HttpException('Upload failed: ${res.statusCode}');
-    }
-    return UploadResponse.fromJson(jsonDecode(res.body));
-  }
-
-  Future<void> deleteDocument(String filename) async {
-    _log('deleteDocument(filename=$filename)');
-    final res = await _client.delete('/documents/$filename');
-    if (res.statusCode != 200 && res.statusCode != 404) {
-      throw HttpException('Delete failed: ${res.statusCode}');
-    }
-  }
-
   /// Stream OutputItemBase from POST /chat (SSE-esque text/event-stream).
   Stream<OutputItemBase> streamChat(ChatRequestBody body) async* {
     _log('streamChat(sessionId=${body.sessionId})');
