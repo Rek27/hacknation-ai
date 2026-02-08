@@ -46,6 +46,20 @@ body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; 
 .form-field label { display: block; font-size: 12px; color: #888; margin-bottom: 3px; }
 .form-field input { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid #333; background: #1a1a1a; color: #e0e0e0; font-size: 13px; }
 
+/* ── Lists / Cart ── */
+#list-section h3 { font-size: 13px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+#list-items { font-size: 12px; color: #bdbdbd; white-space: pre-wrap; }
+
+#cart-section { display: none; }
+#cart-section h3 { font-size: 13px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+.cart-item { padding: 8px 10px; border: 1px solid #2a2a2a; border-radius: 8px; margin-bottom: 8px; background: #151515; }
+.cart-item .name { font-size: 13px; color: #e0e0e0; margin-bottom: 4px; }
+.cart-item .meta { font-size: 12px; color: #999; }
+.cart-total { margin-top: 8px; font-size: 13px; color: #cbd5f5; }
+
+
+/* ── Sidebar controls ── */
+
 /* ── Buttons ── */
 .btn-action { width: 100%; padding: 10px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 14px; }
 #btn-submit-tree { background: #f59e0b; color: #000; display: none; }
@@ -71,6 +85,18 @@ body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; 
     <div id="form-fields"></div>
     <button id="btn-submit-form" class="btn-action" onclick="submitForm()">Submit Form ✓</button>
   </div>
+
+  <div id="list-section">
+    <h3>Shopping List</h3>
+    <div id="list-items"><span style="color:#555">No list yet</span></div>
+  </div>
+
+  <div id="cart-section">
+    <h3>Cart</h3>
+    <div id="cart-items"><span style="color:#555">No cart yet</span></div>
+    <div id="cart-total" class="cart-total"></div>
+  </div>
+
 </div>
 
 <div id="main">
@@ -298,6 +324,64 @@ function renderForm(form) {
   $('btn-submit-form').style.display = 'block';
 }
 
+function renderList(items) {
+  const container = $('list-items');
+  const list = (items || []).map(i => `• ${i}`).join('\n');
+  container.textContent = list || 'No items suggested';
+  $('list-section').style.display = 'block';
+}
+
+function renderCart(cart) {
+  const container = $('cart-items');
+  container.innerHTML = '';
+  const items = cart.items || [];
+  if (!items.length) {
+    container.innerHTML = '<span style="color:#555">No items in cart</span>';
+    $('cart-total').textContent = '';
+    $('cart-section').style.display = 'block';
+    return;
+  }
+  const pick = (entry, key) =>
+    entry?.[key] ||
+    entry?.[key.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`)];
+  const formatLine = (label, entry) => {
+    if (!entry) return `${label}: n/a`;
+    const price = typeof entry.price === 'number' ? entry.price.toFixed(2) : entry.price;
+    const deliveryMs = entry.deliveryTimeMs || 0;
+    const deliveryDays = Math.max(0, Math.round(deliveryMs / (24 * 60 * 60 * 1000)));
+    return `${label}: €${price} · ${entry.retailer} · ${deliveryDays}d`;
+  };
+  items.forEach(entry => {
+    const recommended =
+      pick(entry, 'recommendedItem') || entry;
+    const cheapest =
+      pick(entry, 'cheapestItem') || entry;
+    const bestRating =
+      pick(entry, 'bestRatingItem') || entry;
+    const fastest =
+      pick(entry, 'fastestDeliveryItem') || entry;
+
+    const div = document.createElement('div');
+    div.className = 'cart-item';
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = recommended?.name || 'Item';
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const qty = recommended?.amount ?? 0;
+    const recLine = formatLine('Rec', recommended);
+    const cheapestLine = formatLine('Cheap', cheapest);
+    const bestLine = formatLine('Best', bestRating);
+    const fastLine = formatLine('Fast', fastest);
+    meta.textContent = `Qty: ${qty} · ${recLine} | ${cheapestLine} | ${bestLine} | ${fastLine}`;
+    div.appendChild(name);
+    div.appendChild(meta);
+    container.appendChild(div);
+  });
+  $('cart-total').textContent = `Total: €${(cart.price || 0).toFixed(2)}`;
+  $('cart-section').style.display = 'block';
+}
+
 // ── Submit form ───────────────────────────────────────────────
 
 async function submitForm() {
@@ -309,30 +393,52 @@ async function submitForm() {
   const map = Object.fromEntries(values.map(v => [v.label, v]));
 
   $('btn-submit-form').style.display = 'none';
+  $('list-section').style.display = 'none';
+  $('cart-section').style.display = 'none';
 
-  const res = await fetch(`${API}/submit-form`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      session_id: SESSION,
-      address: map['Address'] || { label: 'Address', content: '' },
-      budget: map['Budget'] || { label: 'Budget', content: '' },
-      date: map['Date'] || { label: 'Date', content: '' },
-      duration: map['Duration (days)'] || { label: 'Duration (days)', content: '' },
-      numberOfAttendees: map['Number of attendees'] || { label: 'Number of attendees', content: '' },
-    }),
+  addBubble('msg-system', 'Form submitted. Building cart...');
+
+  await readSSE(`${API}/submit-form`, {
+    session_id: SESSION,
+    address: map['Address'] || { label: 'Address', content: '' },
+    budget: map['Budget'] || { label: 'Budget', content: '' },
+    date: map['Date'] || { label: 'Date', content: '' },
+    duration: map['Duration (hours)'] || { label: 'Duration (hours)', content: '' },
+    numberOfAttendees: map['Number of attendees'] || { label: 'Number of attendees', content: '' },
+  }, (data) => {
+    switch (data.type) {
+      case 'text': {
+        const b = getOrCreateAssistantBubble();
+        b.textContent += data.content;
+        log.scrollTop = log.scrollHeight;
+        break;
+      }
+      case 'items':
+        renderList(data.items || []);
+        addBubble('msg-system', '↑ Suggested items from inventory');
+        break;
+      case 'tool': {
+        addBubble('msg-system', `Tool: ${data.name} → ${JSON.stringify(data.arguments || {})}`);
+        break;
+      }
+      case 'tool_result': {
+        addBubble('msg-system', `Tool result: ${data.name} → ${data.result}`);
+        break;
+      }
+      case 'cart':
+        renderCart(data);
+        phase = 'done';
+        $('phase-text').textContent = 'Phase 3 — Done!';
+        $('phase-bar').querySelector('.dot').className = 'dot dot-done';
+        addBubble('msg-system', '↑ Cart ready in sidebar');
+        break;
+      case 'error':
+        addBubble('msg-error', `Error: ${data.message}`);
+        break;
+    }
   });
-  const result = await res.json();
 
-  phase = 'done';
-  $('phase-text').textContent = 'Phase 3 — Done!';
-  $('phase-bar').querySelector('.dot').className = 'dot dot-done';
-
-  addBubble('msg-system', 'Form submitted!');
-  if (result.items_summary && result.items_summary.length) {
-    addBubble('msg-assistant', 'Summary:\n' + result.items_summary.join('\n'));
-  }
-  addBubble('msg-system', result.message || 'Complete.');
+  finalizeAssistantBubble();
 }
 </script>
 </body>

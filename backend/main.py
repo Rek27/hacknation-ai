@@ -2,14 +2,19 @@ from fastapi import FastAPI, Request
 from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+import json
 import os
 import time
 from dotenv import load_dotenv
 
-from app.models import TreeNode, TextFieldChunk, ErrorOutput
+from app.models import TreeNode, TextFieldChunk, ErrorOutput, ItemsChunk, TextChunk
 from app.models.context import Context
 from app.tree_agent import TreeAgent
 from app.form_agent import FormAgent
+from app.shopping_list_agent import ShoppingListAgent
+from app.shopping_agent import ShoppingAgent
+from app.rag_pipeline import RAGPipeline
+from app.tools import tools
 from app.logger import setup_logging, get_logger
 from app.rag_pipeline import RAGPipeline
 
@@ -93,6 +98,10 @@ async def log_requests(request: Request, call_next):
 api_key = os.getenv("OPENAI_API_KEY", "")
 tree_agent = TreeAgent(api_key=api_key)
 form_agent = FormAgent(api_key=api_key)
+rag_pipeline = RAGPipeline()
+tools.set_rag_pipeline(rag_pipeline)
+shopping_list_agent = ShoppingListAgent(api_key=api_key)
+shopping_agent = ShoppingAgent(rag_pipeline=rag_pipeline)
 
 # In-memory session store (swap for DB in production)
 sessions: dict[str, Context] = {}
@@ -105,40 +114,7 @@ def _get_or_create_session(session_id: str, user_name: str = "User") -> Context:
     return sessions[session_id]
 
 
-def get_unique_item_names() -> list[str]:
-    """
-    Retrieve all unique article names from the vector database.
-    
-    Returns:
-        List of unique article names (e.g., ["Banana Smoothie", "Water 0.5L", ...])
-    """
-    logger.info("Retrieving unique item names from vector database")
-    
-    # Initialize RAG pipeline to access the vector database
-    rag = RAGPipeline(collection_name="documents")
-    
-    # Get all documents from the collection
-    results = rag.collection.get()
-    
-    # Extract unique article names from document texts
-    unique_names = set()
-    
-    if results['documents']:
-        for doc_text in results['documents']:
-            # Parse the document text to extract the Article field
-            # Format: "ID: 1, Article: Banana Smoothie, Price: 1.49, ..."
-            parts = doc_text.split(", ")
-            for part in parts:
-                if part.strip().startswith("Article:"):
-                    # Extract the article name after "Article: "
-                    article_name = part.split("Article:", 1)[1].strip()
-                    unique_names.add(article_name)
-                    break
-    
-    result_list = sorted(list(unique_names))
-    logger.info(f"Found {len(result_list)} unique item names")
-    
-    return result_list
+
 
 
 # ── Request models ─────────────────────────────────────────────────────────
@@ -170,13 +146,6 @@ class RootResponse(BaseModel):
     service: str
     version: str
     endpoints: list[str]
-
-
-class SubmitFormResponse(BaseModel):
-    success: bool
-    message: str
-    session_id: str
-    items_summary: list[str]
 
 
 class HealthResponse(BaseModel):
@@ -318,10 +287,23 @@ async def submit_tree(request: SubmitTreeRequest):
 
 @app.post(
     "/submit-form",
-    response_model=SubmitFormResponse,
     tags=["Form"],
-    summary="Submit form data",
-    description="Persists confirmed form data and returns a summary.",
+    summary="Submit form data and stream cart",
+    description=(
+        "Streams Server-Sent Events (SSE): TextChunk reasoning, ItemsChunk, "
+        "tool/tool_result events, then final cart."
+    ),
+    responses={
+        200: {
+            "description": "SSE stream of JSON-encoded OutputItem events.",
+            "content": {
+                "text/event-stream": {
+                    "schema": {"type": "string"},
+                    "example": 'data: {"type":"cart","items":[]}\\n\\n',
+                }
+            },
+        }
+    },
 )
 async def submit_form(request: SubmitFormRequest):
     fields = [
@@ -338,16 +320,57 @@ async def submit_form(request: SubmitFormRequest):
     context = _get_or_create_session(request.session_id)
     context.save_form(fields)
 
-    items_summary = [
-        f"{f.label}: {f.content}" for f in fields if f.content
-    ]
+    async def generate():
+        try:
+            items, price_ranges, quantities = await shopping_list_agent.generate_shopping_list(
+                context=context,
+                people_tree=context.people_tree,
+                place_tree=context.place_tree,
+                form_data=context.form_data,
+            )
 
-    return {
-        "success": True,
-        "message": "Form submitted. BuyerAgent will process your request.",
-        "session_id": request.session_id,
-        "items_summary": items_summary,
-    }
+            async for output_json in shopping_list_agent.stream_reasoning(
+                context=context,
+                items=items,
+                price_ranges=price_ranges,
+                quantities=quantities,
+                people_tree=context.people_tree,
+                place_tree=context.place_tree,
+                form_data=context.form_data,
+            ):
+                yield f"data: {output_json}\n\n"
+
+            if items:
+                yield f"data: {ItemsChunk(items=items).model_dump_json()}\n\n"
+
+            cart, tool_events, missing_items = shopping_agent.build_cart(
+                items=items,
+                price_ranges=price_ranges,
+                quantities=quantities,
+                form_data=context.form_data,
+            )
+            if missing_items:
+                missing_text = (
+                    "I couldn't find these items in the inventory: "
+                    + ", ".join(missing_items)
+                    + "."
+                )
+                yield f"data: {TextChunk(content=missing_text).model_dump_json()}\n\n"
+            yield f"data: {cart.model_dump_json(by_alias=True)}\n\n"
+        except Exception as e:
+            logger.error(f"/submit-form stream error: {e}", exc_info=True)
+            error = ErrorOutput(message=str(e), code="SHOPPING_ERROR")
+            yield f"data: {error.model_dump_json()}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @app.get(

@@ -9,6 +9,10 @@ from app.models.outputs import (
     TextFieldChunk,
     TextFormChunk,
     ItemsChunk,
+    ShoppingList,
+    CartItem,
+    CartItemDetail,
+    ChunkShoppingCart,
     ErrorOutput,
 )
 from app.models.context import Message, Context
@@ -22,6 +26,10 @@ __all__ = [
     "TextFieldChunk",
     "TextFormChunk",
     "ItemsChunk",
+    "ShoppingList",
+    "CartItem",
+    "CartItemDetail",
+    "ChunkShoppingCart",
     "ErrorOutput",
     "Message",
     "Context",

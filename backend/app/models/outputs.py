@@ -104,6 +104,74 @@ class ItemsChunk(BaseModel):
     model_config = _model_config
 
 
+class ShoppingList(BaseModel):
+    """Internal shopping list generated after form submission."""
+
+    items: list[str] = Field(
+        default_factory=list,
+        description="Detailed names of each item to purchase",
+    )
+
+    model_config = _model_config
+
+
+class CartItemDetail(BaseModel):
+    """Single item option derived from vector DB results."""
+
+    id: Optional[str] = Field(default=None, description="Optional item id")
+    name: str = Field(..., description="Current item name")
+    price: float = Field(..., description="Price per item")
+    amount: int = Field(..., description="Quantity for this item")
+    retailer: str = Field(..., description="Retailer or store name")
+    delivery_time_ms: int = Field(
+        ...,
+        alias="deliveryTimeMs",
+        description="Delivery time in milliseconds",
+    )
+
+    model_config = _model_config
+
+
+class CartItem(BaseModel):
+    """Cart entry containing recommended and alternative options."""
+
+    recommended_item: CartItemDetail = Field(
+        ...,
+        alias="recommendedItem",
+        description="Recommended item derived from top results",
+    )
+    cheapest_item: CartItemDetail = Field(
+        ...,
+        alias="cheapestItem",
+        description="Cheapest item in the top results",
+    )
+    best_rating_item: CartItemDetail = Field(
+        ...,
+        alias="bestRatingItem",
+        description="Highest rated item in the top results",
+    )
+    fastest_delivery_item: CartItemDetail = Field(
+        ...,
+        alias="fastestDeliveryItem",
+        description="Fastest delivery item in the top results",
+    )
+
+    model_config = _model_config
+
+
+class ChunkShoppingCart(BaseModel):
+    """Cart chunk containing items and total price."""
+
+    type: Literal["cart"] = "cart"
+    items: list[CartItem] = Field(default_factory=list)
+    price: float = Field(
+        default=0.0,
+        description="Total price across cart items",
+    )
+
+    model_config = _model_config
+
+
 class ErrorOutput(BaseModel):
     """Error during processing."""
 
@@ -120,5 +188,6 @@ OutputItem = Union[
     PlaceTreeTrunk,
     TextFormChunk,
     ItemsChunk,
+    ChunkShoppingCart,
     ErrorOutput,
 ]
