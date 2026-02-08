@@ -7,6 +7,7 @@ Streams TextChunk reasoning; returns ShoppingList internally (not to user).
 from __future__ import annotations
 
 import json
+import re
 from typing import AsyncGenerator
 from openai import AsyncOpenAI
 
@@ -111,6 +112,7 @@ Use the selected tree nodes and form fields (budget, date, duration, attendees, 
 Each item should be specific (brand/type/size when possible), but keep the list practical.
 When the user requests items that are not available, choose the most similar items from the \
 provided inventory list. Only select items that are explicitly available in the inventory list.
+Do not include quantities in the item names.
 Return only by calling emit_items once.
 """
 
@@ -128,6 +130,22 @@ fits their budget and selections. Reference price range data and quantities when
 Do not output the shopping list itself. Only call emit_text.
 Provide 2-4 short, practical messages.
 """
+
+_QUANTITY_SUFFIX_RE = re.compile(
+    r"\((\d+)\s*(bottles?|cans?|packs?|pcs?|pieces?|units?)\)",
+    re.IGNORECASE,
+)
+
+
+def _strip_quantity_from_item(item: str) -> tuple[str, int | None]:
+    match = _QUANTITY_SUFFIX_RE.search(item)
+    if not match:
+        return item.strip(), None
+    qty = int(match.group(1))
+    cleaned = _QUANTITY_SUFFIX_RE.sub("", item).strip()
+    # Remove dangling separators like "-" or ":" at end
+    cleaned = cleaned.rstrip("-:").strip()
+    return cleaned, qty
 
 def get_unique_item_names(rag_pipeline=None) -> list[str]:
     """
@@ -284,6 +302,7 @@ class ShoppingListAgent:
         ]
 
         items: list[str] = []
+        extracted_quantities: dict[str, int] = {}
         try:
             response = await self.client.chat.completions.create(
                 model=self.model,
@@ -299,7 +318,16 @@ class ShoppingListAgent:
                 args = json.loads(call.function.arguments or "{}")
                 raw_items = args.get("items", [])
                 if isinstance(raw_items, list):
-                    items = [str(i).strip() for i in raw_items if str(i).strip()]
+                    cleaned_items: list[str] = []
+                    for raw in raw_items:
+                        raw_item = str(raw).strip()
+                        if not raw_item:
+                            continue
+                        cleaned, qty = _strip_quantity_from_item(raw_item)
+                        cleaned_items.append(cleaned)
+                        if qty and qty > 0:
+                            extracted_quantities[cleaned] = qty
+                    items = cleaned_items
         except Exception as e:
             logger.error(f"ShoppingListAgent list generation error: {e}", exc_info=True)
 
@@ -352,6 +380,9 @@ class ShoppingListAgent:
                     f"Quantity suggestion failed: {e}",
                     exc_info=True,
                 )
+
+        if extracted_quantities:
+            quantities.update(extracted_quantities)
 
         return items, price_ranges, quantities
 

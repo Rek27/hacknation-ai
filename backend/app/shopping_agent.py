@@ -7,6 +7,7 @@ from __future__ import annotations
 import asyncio
 import json
 import math
+import os
 import re
 from dataclasses import dataclass
 from typing import Any
@@ -16,6 +17,7 @@ from app.models import CartItem, CartItemDetail, ChunkShoppingCart
 from app.tools.implementations import check_retailer_sponsorship
 
 logger = get_logger(__name__)
+IMAGE_BASE_URL = os.getenv("IMAGE_BASE_URL", "http://localhost:8000/images")
 
 
 def _parse_fields_from_content(content: str) -> dict[str, str]:
@@ -59,6 +61,25 @@ def _parse_review_rating(value: str) -> float | None:
         return float(match.group(1))
     except ValueError:
         return None
+
+
+def _parse_review_count(value: str) -> int | None:
+    match = re.search(r"([0-9]+)", value)
+    if not match:
+        return None
+    try:
+        return int(match.group(1))
+    except ValueError:
+        return None
+
+
+def _image_url(image_id: str | None) -> str | None:
+    if not image_id:
+        return None
+    clean = str(image_id).strip()
+    if not clean:
+        return None
+    return f"{IMAGE_BASE_URL}/{clean}.jpg"
 
 
 def _extract_retailer(result: dict[str, Any]) -> str:
@@ -409,6 +430,21 @@ class ShoppingAgent:
         if review_rating is None:
             review_rating = 0.0
 
+        review_count = None
+        for key in ("reviews count", "review count", "reviews"):
+            if key in fields:
+                review_count = _parse_review_count(fields[key])
+                if review_count is not None:
+                    break
+        if review_count is None:
+            review_count = 0
+
+        image_id = None
+        for key in ("image", "image id", "image_id"):
+            if key in fields and fields[key]:
+                image_id = fields[key]
+                break
+
         if isinstance(quantity_override, int) and quantity_override > 0:
             amount = quantity_override
         else:
@@ -428,7 +464,10 @@ class ShoppingAgent:
             price=float(price),
             amount=int(amount),
             retailer=str(retailer),
+            review_rating=float(review_rating),
+            reviews_count=int(review_count),
             delivery_time_ms=_delivery_ms(int(delivery_days)),
+            image_url=_image_url(image_id),
         )
         return _Candidate(
             detail=detail,
