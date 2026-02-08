@@ -24,7 +24,7 @@ class HomeDesktopLayout extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                flex: 1,
+                flex: 3,
                 child: ChangeNotifierProvider<ChatController>(
                   create: (_) => ChatController(
                     chatService: MockChatService(),
@@ -33,7 +33,7 @@ class HomeDesktopLayout extends StatelessWidget {
                 ),
               ),
               Expanded(
-                flex: 3,
+                flex: 5,
                 child: ChangeNotifierProvider<CartController>(
                   create: (_) => CartController(),
                   child: CartPanel(),
