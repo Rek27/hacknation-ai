@@ -9,6 +9,8 @@ enum OutputItemType {
   error('error'),
   textForm('text_form'),
   tree('tree'),
+  peopleTree('people_tree'),
+  placeTree('place_tree'),
   cart('cart');
 
   const OutputItemType(this.jsonValue);
@@ -192,8 +194,8 @@ class TextFormChunk implements OutputItemBase {
   };
 }
 
-/// Root type for the category tree: people or equipment.
-enum TreeType { people, equipment }
+/// Root type for the category tree: people or place.
+enum TreeType { people, place }
 
 /// Selectable category in the tree. Expandable and may have subcategories.
 /// User can select which subcategories are interesting for them.
@@ -215,7 +217,7 @@ class Category {
     label: json['label'] as String,
     isSelected: (json['selected'] as bool?) ?? false,
     subcategories:
-        (json['subcategories'] as List<dynamic>?)
+        (json['children'] as List<dynamic>?)
             ?.map((e) => Category.fromJson(e as Map<String, dynamic>))
             .toList() ??
         const [],
@@ -225,7 +227,7 @@ class Category {
     'emoji': emoji,
     'label': label,
     'selected': isSelected,
-    'subcategories': subcategories.map((e) => e.toJson()).toList(),
+    'children': subcategories.map((e) => e.toJson()).toList(),
   };
 }
 
@@ -266,7 +268,6 @@ Duration _parseDeliveryTime(Map<String, dynamic> json) {
   return Duration(milliseconds: innerMs ?? 0);
 }
 
-/// Single item in the cart.
 class CartItem {
   final String? id;
   final String name;
@@ -303,11 +304,43 @@ class CartItem {
   };
 }
 
+/// Single item in the cart.
+class RecommendedItem {
+  CartItem main;
+  CartItem cheapest;
+  CartItem bestReviewed;
+  CartItem fastest;
+
+  RecommendedItem({
+    required this.main,
+    required this.cheapest,
+    required this.bestReviewed,
+    required this.fastest,
+  });
+
+  factory RecommendedItem.fromJson(Map<String, dynamic> json) =>
+      RecommendedItem(
+        main: CartItem.fromJson(json['main'] as Map<String, dynamic>),
+        cheapest: CartItem.fromJson(json['cheapest'] as Map<String, dynamic>),
+        bestReviewed: CartItem.fromJson(
+          json['bestReviewed'] as Map<String, dynamic>,
+        ),
+        fastest: CartItem.fromJson(json['fastest'] as Map<String, dynamic>),
+      );
+
+  Map<String, dynamic> toJson() => {
+    'main': main.toJson(),
+    'cheapest': cheapest.toJson(),
+    'bestReviewed': bestReviewed.toJson(),
+    'fastest': fastest.toJson(),
+  };
+}
+
 /// Chunk containing cart items and total price.
 class CartChunk implements OutputItemBase {
   @override
   final OutputItemType type;
-  final List<CartItem> items;
+  final List<RecommendedItem> items;
   final double price;
 
   CartChunk({OutputItemType? type, required this.items, required this.price})
@@ -319,7 +352,7 @@ class CartChunk implements OutputItemBase {
     type: OutputItemType.cart,
     items:
         (json['items'] as List<dynamic>?)
-            ?.map((e) => CartItem.fromJson(e as Map<String, dynamic>))
+            ?.map((e) => RecommendedItem.fromJson(e as Map<String, dynamic>))
             .toList() ??
         const [],
     price: (json['price'] as num?)?.toDouble() ?? 0,
@@ -362,7 +395,34 @@ OutputItemBase parseOutputItem(Map<String, dynamic> json) {
       return TextFormChunk.fromJson(json);
     case OutputItemType.tree:
       return TreeChunk.fromJson(json);
+    case OutputItemType.peopleTree:
+      return _parseTreeTrunk(json, TreeType.people);
+    case OutputItemType.placeTree:
+      return _parseTreeTrunk(json, TreeType.place);
     case OutputItemType.cart:
       return CartChunk.fromJson(json);
   }
+}
+
+/// Parses a backend PeopleTreeTrunk / PlaceTreeTrunk into a frontend TreeChunk.
+/// The backend sends `{ "type": "people_tree", "nodes": [...] }` where nodes
+/// is a flat list of top-level TreeNodes. We wrap them in a synthetic root
+/// Category so the existing UI can render them unchanged.
+TreeChunk _parseTreeTrunk(Map<String, dynamic> json, TreeType treeType) {
+  final List<Category> nodes =
+      (json['nodes'] as List<dynamic>?)
+          ?.map((e) => Category.fromJson(e as Map<String, dynamic>))
+          .toList() ??
+      const [];
+  final String rootEmoji = treeType == TreeType.people ? '👥' : '📍';
+  final String rootLabel = treeType == TreeType.people ? 'People' : 'Place';
+  return TreeChunk(
+    treeType: treeType,
+    category: Category(
+      emoji: rootEmoji,
+      label: rootLabel,
+      isSelected: false,
+      subcategories: nodes,
+    ),
+  );
 }

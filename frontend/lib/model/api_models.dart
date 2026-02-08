@@ -62,21 +62,91 @@ class ChatRequestBody {
   final String userName;
   final String message;
   final String sessionId;
-  final String pageContext;
 
   ChatRequestBody({
     required this.userName,
     required this.message,
     required this.sessionId,
-    required this.pageContext,
   });
 
   Map<String, dynamic> toJson() => {
     'user_name': userName,
     'message': message,
     'session_id': sessionId,
-    'page_context': pageContext,
   };
 
   String toJsonString() => jsonEncode(toJson());
+}
+
+/// Request body for POST /submit-tree
+class SubmitTreeRequestBody {
+  final String sessionId;
+  final List<Map<String, dynamic>> peopleTree;
+  final List<Map<String, dynamic>> placeTree;
+
+  SubmitTreeRequestBody({
+    required this.sessionId,
+    required this.peopleTree,
+    required this.placeTree,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'session_id': sessionId,
+    'people_tree': peopleTree,
+    'place_tree': placeTree,
+  };
+}
+
+/// Request body for POST /submit-form
+class SubmitFormRequestBody {
+  final String sessionId;
+  final Map<String, dynamic> address;
+  final Map<String, dynamic> budget;
+  final Map<String, dynamic> date;
+  final Map<String, dynamic> duration;
+  final Map<String, dynamic> numberOfAttendees;
+
+  SubmitFormRequestBody({
+    required this.sessionId,
+    required this.address,
+    required this.budget,
+    required this.date,
+    required this.duration,
+    required this.numberOfAttendees,
+  });
+
+  Map<String, dynamic> toJson() => {
+    'session_id': sessionId,
+    'address': address,
+    'budget': budget,
+    'date': date,
+    'duration': duration,
+    'numberOfAttendees': numberOfAttendees,
+  };
+}
+
+/// Response from POST /submit-form
+class SubmitFormResponse {
+  final bool success;
+  final String message;
+  final String sessionId;
+  final List<String> itemsSummary;
+
+  SubmitFormResponse({
+    required this.success,
+    required this.message,
+    required this.sessionId,
+    required this.itemsSummary,
+  });
+
+  factory SubmitFormResponse.fromJson(Map<String, dynamic> json) =>
+      SubmitFormResponse(
+        success: json['success'] as bool,
+        message: json['message'] as String,
+        sessionId: json['session_id'] as String,
+        itemsSummary: (json['items_summary'] as List<dynamic>?)
+                ?.map((e) => e as String)
+                .toList() ??
+            const [],
+      );
 }

@@ -82,7 +82,7 @@ class HomeController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> sendMessage(String message, String pageContext) async {
+  Future<void> sendMessage(String message) async {
     if (sending || message.trim().isEmpty) return;
 
     addUserMessage(message);
@@ -97,7 +97,6 @@ class HomeController extends ChangeNotifier {
       userName: 'User',
       message: message,
       sessionId: sessionId,
-      pageContext: pageContext,
     );
 
     try {

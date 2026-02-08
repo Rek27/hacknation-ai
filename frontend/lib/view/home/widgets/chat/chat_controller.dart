@@ -1,6 +1,7 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/widgets.dart';
 
+import 'package:frontend/model/api_models.dart';
 import 'package:frontend/model/chat_message.dart';
 import 'package:frontend/model/chat_models.dart';
 import 'package:frontend/service/agent_api.dart';
@@ -207,30 +208,67 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Submit tree selections as a text summary to the agent.
+  /// Submit all tree selections to the backend via /submit-tree.
+  /// Collects every TreeChunk across all messages, applies the user's
+  /// selection state, and sends the reconstructed trees to the API.
   Future<void> submitTree(String messageId) async {
     if (isMessageDisabled(messageId)) return;
-    _disabledMessageIds.add(messageId);
 
-    final Map<String, CategoryNodeState> state = getTreeState(messageId);
-    final List<String> selected = state.entries
-        .where((MapEntry<String, CategoryNodeState> e) => e.value.isSelected)
-        .map((MapEntry<String, CategoryNodeState> e) => e.key.split('/').last)
-        .toList();
+    // Collect all tree chunks grouped by type, applying selections
+    List<Map<String, dynamic>> peopleTree = const [];
+    List<Map<String, dynamic>> placeTree = const [];
 
-    final String summary = selected.isEmpty
-        ? 'No categories selected.'
-        : 'Selected: ${selected.join(', ')}';
+    for (final ChatMessage msg in _messages) {
+      for (final OutputItemBase chunk in msg.chunks) {
+        if (chunk is TreeChunk) {
+          _disabledMessageIds.add(msg.id);
+          final List<Map<String, dynamic>> nodes =
+              _buildTreeNodesWithSelections(
+                msg.id,
+                chunk.category.subcategories,
+                <String>[chunk.category.label],
+              );
+          if (chunk.treeType == TreeType.people) {
+            peopleTree = nodes;
+          } else if (chunk.treeType == TreeType.place) {
+            placeTree = nodes;
+          }
+        }
+      }
+    }
 
+    _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
-    await sendMessage(summary);
+
+    try {
+      final List<OutputItemBase> chunks = await _chatService.submitTree(
+        peopleTree: peopleTree,
+        placeTree: placeTree,
+      );
+      _handleAgentResponse(chunks);
+    } catch (e) {
+      _errorMessage = 'Connection error: $e';
+      _messages.add(
+        ChatMessage.agent([
+          ErrorOutput(
+            type: OutputItemType.error,
+            message: _errorMessage!,
+          ),
+        ]),
+      );
+    } finally {
+      _isLoading = false;
+      _triggerScroll();
+      notifyListeners();
+    }
   }
 
   // ---------------------------------------------------------------------------
   // TextFormChunk interactions
   // ---------------------------------------------------------------------------
 
-  /// Submit the pinned text form with edited field values.
+  /// Submit the pinned text form with edited field values via /submit-form.
   Future<void> submitTextForm(Map<String, String> values) async {
     if (_pinnedTextForm == null) return;
 
@@ -270,16 +308,35 @@ class ChatController extends ChangeNotifier {
     _pinnedTextForm = null;
     _pinnedTextFormMessageId = null;
     _triggerScroll();
+    _isLoading = true;
     notifyListeners();
 
-    // Build a text summary and send to agent
-    final StringBuffer summary = StringBuffer('Event details:\n');
-    values.forEach((String key, String value) {
-      if (value.isNotEmpty) {
-        summary.writeln('- $key: $value');
-      }
-    });
-    await sendMessage(summary.toString());
+    try {
+      final SubmitFormResponse response =
+          await _chatService.submitForm(submittedForm);
+      _messages.add(
+        ChatMessage.agent([
+          TextChunk(
+            type: OutputItemType.text,
+            content: response.message,
+          ),
+        ]),
+      );
+    } catch (e) {
+      _errorMessage = 'Connection error: $e';
+      _messages.add(
+        ChatMessage.agent([
+          ErrorOutput(
+            type: OutputItemType.error,
+            message: _errorMessage!,
+          ),
+        ]),
+      );
+    } finally {
+      _isLoading = false;
+      _triggerScroll();
+      notifyListeners();
+    }
   }
 
   /// Re-pin a submitted form for editing. Disables the old one.
@@ -330,6 +387,31 @@ class ChatController extends ChangeNotifier {
     if (scrollChunks.isNotEmpty) {
       _messages.add(ChatMessage.agent(scrollChunks));
     }
+  }
+
+  /// Recursively converts a list of [Category] nodes into backend-compatible
+  /// TreeNode maps, applying the user's selection state from [_treeStates].
+  List<Map<String, dynamic>> _buildTreeNodesWithSelections(
+    String messageId,
+    List<Category> categories,
+    List<String> ancestors,
+  ) {
+    final List<Map<String, dynamic>> result = <Map<String, dynamic>>[];
+    for (final Category cat in categories) {
+      final String path = buildLabelPath(ancestors, cat.label);
+      final CategoryNodeState nodeState = getNodeState(messageId, path);
+      result.add(<String, dynamic>{
+        'emoji': cat.emoji,
+        'label': cat.label,
+        'selected': nodeState.isSelected,
+        'children': _buildTreeNodesWithSelections(
+          messageId,
+          cat.subcategories,
+          <String>[...ancestors, cat.label],
+        ),
+      });
+    }
+    return result;
   }
 
   void _clearDescendants(String messageId, String parentPath) {

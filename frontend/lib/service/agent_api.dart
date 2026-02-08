@@ -63,25 +63,48 @@ class AgentApi {
   /// Stream OutputItemBase from POST /chat (SSE-esque text/event-stream).
   Stream<OutputItemBase> streamChat(ChatRequestBody body) async* {
     _log('streamChat(sessionId=${body.sessionId})');
-    final response = await _client.postStreamJson('/chat', body.toJson());
-    if (response.statusCode != 200) {
-      throw HttpException('Chat failed: ${response.statusCode}');
-    }
-    _log('streamChat() connected: ${response.statusCode}');
+    yield* _streamSse('/chat', body.toJson(), 'streamChat');
+  }
 
-    // Read the byte stream and parse lines starting with "data: "
+  /// Stream OutputItemBase from POST /submit-tree (SSE text/event-stream).
+  Stream<OutputItemBase> streamSubmitTree(SubmitTreeRequestBody body) async* {
+    _log('streamSubmitTree(sessionId=${body.sessionId})');
+    yield* _streamSse('/submit-tree', body.toJson(), 'streamSubmitTree');
+  }
+
+  /// Submit form data via POST /submit-form (regular JSON response).
+  Future<SubmitFormResponse> submitForm(SubmitFormRequestBody body) async {
+    _log('submitForm(sessionId=${body.sessionId})');
+    final res = await _client.postJson('/submit-form', body.toJson());
+    if (res.statusCode != 200) {
+      throw HttpException('Submit form failed: ${res.statusCode}');
+    }
+    return SubmitFormResponse.fromJson(jsonDecode(res.body));
+  }
+
+  /// Shared SSE stream parser for streaming endpoints.
+  Stream<OutputItemBase> _streamSse(
+    String path,
+    Map<String, dynamic> body,
+    String tag,
+  ) async* {
+    final response = await _client.postStreamJson(path, body);
+    if (response.statusCode != 200) {
+      throw HttpException('$tag failed: ${response.statusCode}');
+    }
+    _log('$tag() connected: ${response.statusCode}');
+
     final stream = response.stream.transform(utf8.decoder);
     final buffer = StringBuffer();
 
     await for (final chunk in stream) {
-      _log('streamChat() chunk bytes=${chunk.length}');
+      _log('$tag() chunk bytes=${chunk.length}');
       buffer.write(chunk);
       var text = buffer.toString();
 
       final lines = text.split('\n');
       buffer.clear();
       if (!text.endsWith('\n')) {
-        // keep last incomplete line in buffer
         buffer.write(lines.removeLast());
       }
 
@@ -93,10 +116,10 @@ class AgentApi {
         try {
           final json = jsonDecode(data) as Map<String, dynamic>;
           final item = parseOutputItem(json);
-          _log('streamChat() item type=${item.type}');
+          _log('$tag() item type=${item.type}');
           yield item;
         } catch (e) {
-          _log('streamChat() parse failed: $e; data="$data"');
+          _log('$tag() parse failed: $e; data="$data"');
         }
       }
     }
@@ -107,10 +130,58 @@ class AgentApi {
 // Chat service abstraction for the new chunk-based chat feature.
 // ---------------------------------------------------------------------------
 
-/// Contract for sending a user message and receiving agent output chunks.
-/// Implement with real HTTP when the backend is ready.
+/// Contract for chat operations: messaging, tree submission, and form submission.
 abstract class ChatService {
   Future<List<OutputItemBase>> sendMessage(String message);
+  Future<List<OutputItemBase>> submitTree({
+    required List<Map<String, dynamic>> peopleTree,
+    required List<Map<String, dynamic>> placeTree,
+  });
+  Future<SubmitFormResponse> submitForm(TextFormChunk form);
+}
+
+/// Real implementation that delegates to [AgentApi] over HTTP.
+class RealChatService implements ChatService {
+  final AgentApi _api;
+  final String _sessionId;
+
+  RealChatService(this._api, this._sessionId);
+
+  @override
+  Future<List<OutputItemBase>> sendMessage(String message) async {
+    final ChatRequestBody body = ChatRequestBody(
+      userName: 'User',
+      message: message,
+      sessionId: _sessionId,
+    );
+    return await _api.streamChat(body).toList();
+  }
+
+  @override
+  Future<List<OutputItemBase>> submitTree({
+    required List<Map<String, dynamic>> peopleTree,
+    required List<Map<String, dynamic>> placeTree,
+  }) async {
+    final SubmitTreeRequestBody body = SubmitTreeRequestBody(
+      sessionId: _sessionId,
+      peopleTree: peopleTree,
+      placeTree: placeTree,
+    );
+    return await _api.streamSubmitTree(body).toList();
+  }
+
+  @override
+  Future<SubmitFormResponse> submitForm(TextFormChunk form) async {
+    final SubmitFormRequestBody body = SubmitFormRequestBody(
+      sessionId: _sessionId,
+      address: form.address.toJson(),
+      budget: form.budget.toJson(),
+      date: form.date.toJson(),
+      duration: form.durationOfEvent.toJson(),
+      numberOfAttendees: form.numberOfAttendees.toJson(),
+    );
+    return await _api.submitForm(body);
+  }
 }
 
 /// Mock implementation that returns realistic chunk sequences.
@@ -124,6 +195,26 @@ class MockChatService implements ChatService {
     final List<OutputItemBase> response = _responseForStep(_step);
     _step++;
     return response;
+  }
+
+  @override
+  Future<List<OutputItemBase>> submitTree({
+    required List<Map<String, dynamic>> peopleTree,
+    required List<Map<String, dynamic>> placeTree,
+  }) async {
+    await Future.delayed(const Duration(milliseconds: 1200));
+    return _responseForStep(2);
+  }
+
+  @override
+  Future<SubmitFormResponse> submitForm(TextFormChunk form) async {
+    await Future.delayed(const Duration(milliseconds: 1200));
+    return SubmitFormResponse(
+      success: true,
+      message: 'Form submitted successfully.',
+      sessionId: 'mock-session',
+      itemsSummary: const [],
+    );
   }
 
   List<OutputItemBase> _responseForStep(int step) {
@@ -226,7 +317,7 @@ class MockChatService implements ChatService {
                 'for the event:',
           ),
           TreeChunk(
-            treeType: TreeType.equipment,
+            treeType: TreeType.place,
             category: Category(
               emoji: '🔧',
               label: 'Equipment',
