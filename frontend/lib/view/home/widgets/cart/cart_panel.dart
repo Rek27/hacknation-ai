@@ -47,7 +47,7 @@ class CartPanel extends StatelessWidget {
                         ),
                         const SizedBox(width: AppConstants.spacingSm),
                         Text(
-                          'Smart Cart',
+                          'SmartCart',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: colorScheme.onSurface,
