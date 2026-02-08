@@ -106,7 +106,7 @@ their selections and explaining you are preparing a form.
    - Address
    - Budget
    - Date
-   - Duration (days)
+   - Duration (hours)
    - Number of attendees
 
 Prefill `content` when the user previously provided it; otherwise use empty string.
@@ -118,7 +118,7 @@ _FIELD_SPECS: list[tuple[str, list[str]]] = [
     ("Address", ["address", "location", "venue"]),
     ("Budget", ["budget", "price", "cost"]),
     ("Date", ["date", "event date"]),
-    ("Duration (days)", ["duration", "duration (days)", "days"]),
+    ("Duration (hours)", ["duration", "duration (hours)", "hours"]),
     ("Number of attendees", ["number of attendees", "attendees", "guests", "guest count"]),
 ]
 
@@ -198,7 +198,7 @@ def _sanitize_text(content: str) -> str:
 class FormAgent:
     """One-shot streaming agent: TextChunk intro + TextFormChunk."""
 
-    def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
+    def __init__(self, api_key: str, model: str = "gpt-4.1"):
         self.client = AsyncOpenAI(api_key=api_key)
         self.model = model
         logger.info(f"FormAgent initialized with model: {model}")
@@ -296,7 +296,7 @@ class FormAgent:
                                     address=fields["Address"],
                                     budget=fields["Budget"],
                                     date=fields["Date"],
-                                    duration=fields["Duration (days)"],
+                                    duration=fields["Duration (hours)"],
                                     number_of_attendees=fields["Number of attendees"],
                                 )
                                 yield form.model_dump_json(by_alias=True)

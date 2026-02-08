@@ -35,13 +35,29 @@ dependencies:
 
   # HTTP client (REST + streaming)
   http: ^1.2.2
+  http_parser: ^4.1.1
 
   # File picker for document upload (.txt, .pdf)
   file_picker: ^8.0.0
 
   # Simple state management for controllers (ChangeNotifier)
   provider: ^6.1.2
-  
+
+  # Rive animated avatar for the call screen
+  rive: ^0.14.2
+  record: ^6.2.0
+
+  # Audio playback for TTS responses
+  audioplayers: ^6.1.0
+
+  # Path provider for temporary audio files
+  path_provider: ^2.1.5
+
+  # macOS-style swipe-to-delete for cart items
+  flutter_slidable: ^4.0.3
+
+  # Calendar widget for date selection in forms
+  table_calendar: ^3.2.0
 
 dev_dependencies:
   flutter_test:
@@ -65,6 +81,15 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  assets:
+    - assets/wave_hear_talk.riv
+    - assets/empty_cart.riv
+    - assets/empty_cart_search_icon.riv
+    - assets/empty_cart_little_fella.riv
+    - assets/empty_cart_facial_character.riv
+    - assets/empty_cart_avatar_pack.riv
+    - assets/empty_cart_sad_blob.riv
 
   # To add assets to your application, add an assets section, like this:
   # assets:

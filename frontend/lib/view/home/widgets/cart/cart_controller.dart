@@ -1,5 +1,12 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:frontend/model/chat_models.dart';
+import 'package:frontend/service/agent_api.dart';
+
+/// Phases of the checkout flow.
+enum CheckoutPhase { cart, summary, ordering, complete }
 
 /// Manages cart state built from `CartChunk` and provides UI helpers.
 class CartController extends ChangeNotifier {
@@ -11,7 +18,36 @@ class CartController extends ChangeNotifier {
   final Set<int> _expandedGroups = <int>{};
   final Map<int, Map<String, String>> _reasonsByIndex =
       <int, Map<String, String>>{};
-  bool showSummary = false;
+
+  /// Current checkout phase.
+  CheckoutPhase _phase = CheckoutPhase.cart;
+  CheckoutPhase get phase => _phase;
+
+  /// Legacy helper for backwards-compat in cart_panel routing.
+  bool get showSummary => _phase == CheckoutPhase.summary;
+
+  /// Retailer sponsorship offers received from the backend.
+  List<RetailerOffer> _retailerOffers = const [];
+  List<RetailerOffer> get retailerOffers => _retailerOffers;
+
+  /// Unique retailers derived from current items.
+  List<String> get uniqueRetailers =>
+      items.map((e) => e.retailer).toSet().toList();
+
+  /// Representative image per retailer (first available item image).
+  Map<String, String?> get retailerImageUrls {
+    final Map<String, String?> out = {};
+    for (final item in items) {
+      if (!out.containsKey(item.retailer) || out[item.retailer] == null) {
+        out[item.retailer] = item.imageUrl;
+      }
+    }
+    return out;
+  }
+
+  /// Which retailers have finished the mock ordering process.
+  final Set<String> _confirmedRetailers = <String>{};
+  Set<String> get confirmedRetailers => _confirmedRetailers;
 
   bool get isEmpty => (_cart?.items.isEmpty ?? true);
 
@@ -59,9 +95,44 @@ class CartController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Creates a controller and seeds it with development dummy data.
-  CartController() {
-    loadDummyData();
+  CartController();
+
+  void setLoading(bool value) {
+    isLoading = value;
+    if (value) {
+      errorMessage = null;
+    }
+    notifyListeners();
+  }
+
+  void setError(String message) {
+    errorMessage = message;
+    isLoading = false;
+    notifyListeners();
+  }
+
+  void clearError() {
+    errorMessage = null;
+    notifyListeners();
+  }
+
+  void setCartFromChunk(CartChunk cart) {
+    _cart = cart;
+    errorMessage = null;
+    isLoading = false;
+    _selectedMainByIndex.clear();
+    _expandedIds.clear();
+    _expandedGroups.clear();
+    _reasonsByIndex.clear();
+    _aiReasoning.clear();
+    _aiReasoningLoading.clear();
+    notifyListeners();
+  }
+
+  /// Store retailer sponsorship offers from the stream.
+  void setRetailerOffers(List<RetailerOffer> offers) {
+    _retailerOffers = offers;
+    notifyListeners();
   }
 
   /// Toggles the expansion state for a cart item in the UI.
@@ -109,7 +180,7 @@ class CartController extends ChangeNotifier {
     if (same(displayed, group.cheapest))
       return reasons['cheapest'] ?? 'Cheapest available option.';
     if (same(displayed, group.bestReviewed))
-      return reasons['best'] ?? 'Best reviewed option.';
+      return reasons['best'] ?? 'Best quality option.';
     if (same(displayed, group.fastest))
       return reasons['fastest'] ?? 'Fastest delivery option.';
     return reasons['main'] ?? 'Recommended main option.';
@@ -130,7 +201,10 @@ class CartController extends ChangeNotifier {
       price: prev.price,
       amount: q,
       retailer: prev.retailer,
+      reviewRating: prev.reviewRating,
+      reviewsCount: prev.reviewsCount,
       deliveryTime: prev.deliveryTime,
+      imageUrl: prev.imageUrl,
     );
     notifyListeners();
   }
@@ -145,15 +219,66 @@ class CartController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Resets the displayed item for a group back to the original recommendation.
+  void resetToMain(int groupIndex) {
+    _selectedMainByIndex.remove(groupIndex);
+    notifyListeners();
+  }
+
+  /// Whether the user has overridden the main with an alternative for [index].
+  bool isAlternativeActive(int index) {
+    if (_cart == null) return false;
+    if (index < 0 || index >= _cart!.items.length) return false;
+    final CartItem? override = _selectedMainByIndex[index];
+    if (override == null) return false;
+    final CartItem original = _cart!.items[index].main;
+    return (override.id ?? override.name) != (original.id ?? original.name);
+  }
+
   /// Begin checkout flow (switch panel to summary).
   void startCheckout() {
-    showSummary = true;
+    _phase = CheckoutPhase.summary;
     notifyListeners();
   }
 
   /// Return to cart list (edit mode).
   void cancelCheckout() {
-    showSummary = false;
+    _phase = CheckoutPhase.cart;
+    _confirmedRetailers.clear();
+    notifyListeners();
+  }
+
+  /// Start the mock ordering animation.
+  /// Each retailer completes after a random delay (1.5–5 s).
+  /// When all are done the phase advances to [CheckoutPhase.complete].
+  void placeOrder() {
+    _phase = CheckoutPhase.ordering;
+    _confirmedRetailers.clear();
+    notifyListeners();
+
+    final rng = Random();
+    final retailers = uniqueRetailers;
+
+    for (final retailer in retailers) {
+      final delayMs = 1500 + rng.nextInt(3500); // 1.5 – 5 s
+      Future.delayed(Duration(milliseconds: delayMs), () {
+        _confirmedRetailers.add(retailer);
+        notifyListeners();
+        if (_confirmedRetailers.length == retailers.length) {
+          // Small extra pause before showing the final summary.
+          Future.delayed(const Duration(milliseconds: 800), () {
+            _phase = CheckoutPhase.complete;
+            notifyListeners();
+          });
+        }
+      });
+    }
+  }
+
+  /// Reset checkout back to the cart (for re-ordering etc).
+  void resetToCart() {
+    _phase = CheckoutPhase.cart;
+    _confirmedRetailers.clear();
     notifyListeners();
   }
 
@@ -169,6 +294,42 @@ class CartController extends ChangeNotifier {
     return 'main';
   }
 
+  // ---------------------------------------------------------------------------
+  // AI recommendation reasoning
+  // ---------------------------------------------------------------------------
+
+  final Map<int, String> _aiReasoning = <int, String>{};
+  final Set<int> _aiReasoningLoading = <int>{};
+
+  /// Whether the AI reasoning is currently being fetched for [groupIndex].
+  bool isReasoningLoading(int groupIndex) =>
+      _aiReasoningLoading.contains(groupIndex);
+
+  /// Returns the AI reasoning for [groupIndex], or null if not yet fetched.
+  String? getAiReasoning(int groupIndex) => _aiReasoning[groupIndex];
+
+  /// Fetches the AI recommendation reasoning for the given [groupIndex].
+  Future<void> fetchRecommendationReason(int groupIndex, AgentApi api) async {
+    final group = getGroup(groupIndex);
+    if (group == null) return;
+    if (_aiReasoningLoading.contains(groupIndex)) return; // already loading
+
+    _aiReasoningLoading.add(groupIndex);
+    _aiReasoning.remove(groupIndex);
+    notifyListeners();
+
+    try {
+      final reasoning = await api.getRecommendationReason(group);
+      _aiReasoning[groupIndex] = reasoning;
+    } catch (e) {
+      _aiReasoning[groupIndex] =
+          'Could not fetch explanation. Please try again.';
+    } finally {
+      _aiReasoningLoading.remove(groupIndex);
+      notifyListeners();
+    }
+  }
+
   /// Background alpha used for category chips, mirroring recommendation tiles.
   double categoryAlpha(String key) {
     switch (key) {
@@ -181,116 +342,6 @@ class CartController extends ChangeNotifier {
       case 'main':
       default:
         return 0.10;
-    }
-  }
-
-  /// Loads a dummy list of items and computes the total price.
-  Future<void> loadDummyData() async {
-    isLoading = true;
-    errorMessage = null;
-    _selectedMainByIndex.clear();
-    notifyListeners();
-    try {
-      // Simulate network/search latency so the skeleton can be seen.
-      await Future.delayed(const Duration(milliseconds: 1200));
-      final groups = <RecommendedItem>[
-        RecommendedItem(
-          main: CartItem(
-            id: '1',
-            name: 'Bulk Energy Drink Pack (48ct)',
-            price: 42.99,
-            amount: 2,
-            retailer: 'Amazon',
-            deliveryTime: const Duration(days: 3),
-          ),
-          cheapest: CartItem(
-            id: '1a',
-            name: 'Monster Energy 24‑Pack',
-            price: 38.99,
-            amount: 1,
-            retailer: 'Walmart',
-            deliveryTime: const Duration(days: 4),
-          ),
-          bestReviewed: CartItem(
-            id: '1b',
-            name: 'Red Bull 48‑Pack',
-            price: 56.99,
-            amount: 1,
-            retailer: 'Costco',
-            deliveryTime: const Duration(days: 2),
-          ),
-          fastest: CartItem(
-            id: '1c',
-            name: 'Celsius 24‑Pack',
-            price: 44.99,
-            amount: 1,
-            retailer: 'Target',
-            deliveryTime: const Duration(days: 1),
-          ),
-        ),
-        RecommendedItem(
-          main: CartItem(
-            id: '2',
-            name: 'Noise‑Cancelling Headphones',
-            price: 199.00,
-            amount: 1,
-            retailer: 'BestBuy',
-            deliveryTime: const Duration(days: 5),
-          ),
-          cheapest: CartItem(
-            id: '2a',
-            name: 'Sony WH‑1000XM5',
-            price: 329.00,
-            amount: 1,
-            retailer: 'Amazon',
-            deliveryTime: const Duration(days: 3),
-          ),
-          bestReviewed: CartItem(
-            id: '2b',
-            name: 'Bose QC45',
-            price: 299.00,
-            amount: 1,
-            retailer: 'Bose',
-            deliveryTime: const Duration(days: 2),
-          ),
-          fastest: CartItem(
-            id: '2c',
-            name: 'AirPods Max',
-            price: 549.00,
-            amount: 1,
-            retailer: 'Apple',
-            deliveryTime: const Duration(days: 1),
-          ),
-        ),
-      ];
-      final total = groups
-          .map((g) => g.main)
-          .fold<double>(0, (sum, it) => sum + it.price * it.amount);
-      _cart = CartChunk(items: groups, price: total);
-      // Seed short explanations per category for each group.
-      _reasonsByIndex
-        ..clear()
-        ..addAll({
-          0: {
-            'main': 'Balanced pick with good value and availability.',
-            'cheapest': 'This one saves you the most money.',
-            'best': 'Customers rated this the highest overall.',
-            'fastest': 'This will arrive the soonest.',
-          },
-          1: {
-            'main': 'Solid feature set for the price.',
-            'cheapest': 'Lowest cost among similar models.',
-            'best': 'Top reviews for comfort and sound.',
-            'fastest': 'Quickest delivery window right now.',
-          },
-        });
-      errorMessage = null;
-    } catch (e) {
-      errorMessage =
-          "We couldn't fetch product data. This might be a network issue.";
-    } finally {
-      isLoading = false;
-      notifyListeners();
     }
   }
 }

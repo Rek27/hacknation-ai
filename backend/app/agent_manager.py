@@ -22,7 +22,7 @@ logger = get_logger(__name__)
 class AgentManager:
     """Manages agent interactions with structured streaming."""
 
-    def __init__(self, api_key: str, model: str = "gpt-4o-mini"):
+    def __init__(self, api_key: str, model: str = "gpt-4.1"):
         self.client = AsyncOpenAI(api_key=api_key)
         self.model = model
         logger.info(f"AgentManager initialized with model: {model}")

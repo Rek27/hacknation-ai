@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/model/chat_models.dart';
+import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
+import 'package:frontend/view/home/widgets/cart/cart_utils.dart';
+import 'package:frontend/view/home/widgets/cart/cart_shared_widgets.dart';
 import 'package:provider/provider.dart';
 
 /// Visual representation of a single cart line item with expandable details.
@@ -94,7 +97,10 @@ class _HeaderRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SquareImagePlaceholder(size: 80),
+        CartImagePlaceholder(
+          size: AppConstants.cartImageSize,
+          imageUrl: item.imageUrl,
+        ),
         const SizedBox(width: AppConstants.spacingMd),
         Expanded(
           child: Column(
@@ -130,16 +136,20 @@ class _HeaderRow extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    _formatPrice(item.price),
+                    formatPrice(item.price),
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: colorScheme.primary,
                       fontWeight: FontWeight.w700,
                     ),
                   ),
                   const SizedBox(width: AppConstants.spacingSm),
-                  _RetailerChip(text: item.retailer),
+                  CartRetailerChip(text: item.retailer),
                 ],
               ),
+              if (item.reviewRating != null) ...[
+                const SizedBox(height: AppConstants.spacingXs),
+                StarRatingDisplay(rating: item.reviewRating!),
+              ],
               const SizedBox(height: AppConstants.spacingSm),
               Row(
                 children: [
@@ -149,7 +159,7 @@ class _HeaderRow extends StatelessWidget {
                   ),
                   const SizedBox(width: AppConstants.spacingXs),
                   Text(
-                    _formatEstimatedDateFromNow(item.deliveryTime),
+                    formatEstimatedDateFromNow(item.deliveryTime),
                     style: theme.textTheme.bodySmall,
                   ),
                   const SizedBox(width: AppConstants.spacingMd),
@@ -158,10 +168,10 @@ class _HeaderRow extends StatelessWidget {
                     size: AppConstants.iconSizeXs,
                   ),
                   const SizedBox(width: AppConstants.spacingXs),
-                  Text('Qty:'),
+                  Text('Qty:', style: theme.textTheme.bodySmall),
                   const SizedBox(width: AppConstants.spacingXs),
                   SizedBox(
-                    width: 40,
+                    width: AppConstants.qtyFieldWidth,
                     child: TextFormField(
                       initialValue: item.amount.toString(),
                       keyboardType: TextInputType.number,
@@ -191,37 +201,9 @@ class _HeaderRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: AppConstants.spacingMd),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  tooltip: 'Remove',
-                  icon: const Icon(
-                    Icons.delete_outline,
-                    size: AppConstants.iconSizeSm,
-                  ),
-                  onPressed: () {
-                    final key = item.id ?? item.name;
-                    context.read<CartController>().deleteItem(key);
-                  },
-                  // make it dense
-                  style: IconButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    minimumSize: Size.zero,
-                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppConstants.spacingSm),
-            Icon(
-              isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ],
+        Icon(
+          isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+          color: colorScheme.onSurfaceVariant,
         ),
       ],
     );
@@ -244,7 +226,7 @@ class _ExpandedDetails extends StatelessWidget {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.08),
+            color: colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(AppConstants.radiusSm),
           ),
           padding: const EdgeInsets.all(AppConstants.spacingSm),
@@ -256,14 +238,14 @@ class _ExpandedDetails extends StatelessWidget {
               ),
               const SizedBox(width: AppConstants.spacingSm),
               Text(
-                'Est. delivery: ${_formatEstimatedDurationLabel(item.deliveryTime)}',
+                'Est. delivery: ${formatEstimatedDurationLabel(item.deliveryTime)}',
                 style: theme.textTheme.bodySmall,
               ),
               const SizedBox(width: AppConstants.spacingMd),
               const Icon(Icons.attach_money, size: AppConstants.iconSizeXs),
               const SizedBox(width: AppConstants.spacingSm),
               Text(
-                'Item total: ${_formatPrice(item.price * item.amount)}',
+                'Item total: ${formatPrice(item.price * item.amount)}',
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: colorScheme.primary,
                   fontWeight: FontWeight.w600,
@@ -272,8 +254,59 @@ class _ExpandedDetails extends StatelessWidget {
             ],
           ),
         ),
+        // AI Recommendation Reasoning button + display
+        _AiReasoningSection(groupIndex: groupIndex),
         if (group != null) ...[
           const SizedBox(height: AppConstants.spacingMd),
+          Row(
+            children: [
+              Icon(
+                Icons.swap_horiz_rounded,
+                size: AppConstants.metaIconSize,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: AppConstants.metaIconGap),
+              Text(
+                'Alternatives',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const Spacer(),
+              if (controller.isAlternativeActive(groupIndex))
+                InkWell(
+                  onTap: () => controller.resetToMain(groupIndex),
+                  borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppConstants.spacingSm,
+                      vertical: AppConstants.spacingXs,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.restart_alt_rounded,
+                          size: AppConstants.metaIconSize,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: AppConstants.spacingXs),
+                        Text(
+                          'Use recommended',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppConstants.spacingSm),
           _RecommendationsRow(groupIndex: groupIndex, group: group),
         ],
       ],
@@ -281,103 +314,74 @@ class _ExpandedDetails extends StatelessWidget {
   }
 }
 
-/// Row of 4 recommended options: Main, Cheapest, Best reviewed, Fastest.
-class _RecommendationsRow extends StatefulWidget {
-  const _RecommendationsRow({required this.groupIndex, required this.group});
+/// Section that shows a button to ask AI why the recommended item was chosen,
+/// and displays the reasoning text once fetched.
+class _AiReasoningSection extends StatelessWidget {
+  const _AiReasoningSection({required this.groupIndex});
   final int groupIndex;
-  final RecommendedItem group;
-
-  @override
-  State<_RecommendationsRow> createState() => _RecommendationsRowState();
-}
-
-class _RecommendationsRowState extends State<_RecommendationsRow> {
-  int _hoveredIndex = -1;
-
-  bool _same(CartItem a, CartItem b) => (a.id ?? a.name) == (b.id ?? b.name);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final controller = context.read<CartController>();
-    final group = widget.group;
+    final controller = context.watch<CartController>();
+    final isLoading = controller.isReasoningLoading(groupIndex);
+    final reasoning = controller.getAiReasoning(groupIndex);
 
-    final c1 = colorScheme.primary.withValues(alpha: 0.1);
-    final c2 = colorScheme.primaryFixed.withValues(alpha: 0.1);
-    final c3 = colorScheme.primaryFixedDim.withValues(alpha: 0.15);
-    final c4 = colorScheme.onPrimaryFixedVariant.withValues(alpha: 0.15);
-
-    final displayedMain =
-        controller.getDisplayedMain(widget.groupIndex) ?? group.main;
-    final bool selectCheapest = _same(displayedMain, group.cheapest);
-    final bool selectBest = _same(displayedMain, group.bestReviewed);
-    final bool selectFastest = _same(displayedMain, group.fastest);
-    final bool selectMain = !(selectCheapest || selectBest || selectFastest);
-
-    Widget tile({
-      required int index,
-      required String label,
-      required CartItem item,
-      required Color bg,
-      required bool selected,
-    }) {
-      final bool hovered = _hoveredIndex == index;
-      final Color borderColor = selected
-          ? colorScheme.primary
-          : (hovered ? colorScheme.primary : Colors.transparent);
-      final double borderWidth = selected ? 2 : 1;
-      return Expanded(
-        child: MouseRegion(
-          onEnter: (_) => setState(() => _hoveredIndex = index),
-          onExit: (_) => setState(() => _hoveredIndex = -1),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: AppConstants.spacingSm),
+        Align(
+          alignment: Alignment.centerLeft,
           child: Material(
             color: Colors.transparent,
             child: InkWell(
               borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-              hoverColor: Colors.transparent,
-              onTap: () =>
-                  controller.selectRecommendation(widget.groupIndex, item),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: bg,
-                  borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-                  border: Border.all(color: borderColor, width: borderWidth),
+              onTap: isLoading
+                  ? null
+                  : () {
+                      final api = context.read<HomeController>().api;
+                      controller.fetchRecommendationReason(groupIndex, api);
+                    },
+              child: AnimatedContainer(
+                duration: AppConstants.durationFast,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppConstants.spacingSm + 2,
+                  vertical: AppConstants.spacingXs + 2,
                 ),
-                padding: const EdgeInsets.all(AppConstants.spacingSm),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                decoration: BoxDecoration(
+                  color: colorScheme.primaryContainer.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+                  border: Border.all(
+                    color: colorScheme.primary.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      label,
-                      style: theme.textTheme.labelSmall?.copyWith(
-                        color: colorScheme.onSurfaceVariant,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: AppConstants.spacingXs),
-                    Text(
-                      item.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    const SizedBox(height: AppConstants.spacingXs),
-                    Row(
-                      children: [
-                        Text(
-                          _formatPrice(item.price),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
+                    if (isLoading)
+                      SizedBox(
+                        width: AppConstants.iconSizeXs,
+                        height: AppConstants.iconSizeXs,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: colorScheme.primary,
                         ),
-                        const SizedBox(width: AppConstants.spacingSm),
-                        _RetailerChip(text: item.retailer),
-                      ],
+                      )
+                    else
+                      Icon(
+                        Icons.auto_awesome,
+                        size: AppConstants.iconSizeXs,
+                        color: colorScheme.primary,
+                      ),
+                    const SizedBox(width: AppConstants.spacingXs),
+                    Text(
+                      reasoning != null ? 'Ask AI again' : 'Why this item?',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
@@ -385,139 +389,260 @@ class _RecommendationsRowState extends State<_RecommendationsRow> {
             ),
           ),
         ),
-      );
-    }
+        if (reasoning != null) ...[
+          const SizedBox(height: AppConstants.spacingSm),
+          Container(
+            padding: const EdgeInsets.all(AppConstants.spacingSm + 2),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.auto_awesome,
+                  size: AppConstants.metaIconSize,
+                  color: colorScheme.primary,
+                ),
+                const SizedBox(width: AppConstants.spacingSm),
+                Expanded(
+                  child: Text(
+                    reasoning,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurface,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Row of 3 alternative recommendation tiles: Cheapest, Best reviewed, Fastest.
+/// Each tile uses a category-specific accent colour and icon for visual clarity.
+class _RecommendationsRow extends StatelessWidget {
+  const _RecommendationsRow({required this.groupIndex, required this.group});
+  final int groupIndex;
+  final RecommendedItem group;
+
+  bool _same(CartItem a, CartItem b) => (a.id ?? a.name) == (b.id ?? b.name);
+
+  @override
+  Widget build(BuildContext context) {
+    final CartController controller = context.read<CartController>();
+    final CartItem displayedMain =
+        controller.getDisplayedMain(groupIndex) ?? group.main;
+    final bool selectCheapest = _same(displayedMain, group.cheapest);
+    final bool selectBest = _same(displayedMain, group.bestReviewed);
+    final bool selectFastest = _same(displayedMain, group.fastest);
 
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        tile(
-          index: 0,
-          label: 'Main',
-          item: group.main,
-          bg: c1,
-          selected: selectMain,
+        Expanded(
+          child: _RecommendationTile(
+            categoryKey: 'cheapest',
+            label: 'Cheapest',
+            item: group.cheapest,
+            isSelected: selectCheapest,
+            onTap: () =>
+                controller.selectRecommendation(groupIndex, group.cheapest),
+          ),
         ),
         const SizedBox(width: AppConstants.spacingSm),
-        tile(
-          index: 1,
-          label: 'Cheapest',
-          item: group.cheapest,
-          bg: c2,
-          selected: selectCheapest,
+        Expanded(
+          child: _RecommendationTile(
+            categoryKey: 'best',
+            label: 'Best reviewed',
+            item: group.bestReviewed,
+            isSelected: selectBest,
+            onTap: () =>
+                controller.selectRecommendation(groupIndex, group.bestReviewed),
+          ),
         ),
         const SizedBox(width: AppConstants.spacingSm),
-        tile(
-          index: 2,
-          label: 'Best reviewed',
-          item: group.bestReviewed,
-          bg: c3,
-          selected: selectBest,
-        ),
-        const SizedBox(width: AppConstants.spacingSm),
-        tile(
-          index: 3,
-          label: 'Fastest',
-          item: group.fastest,
-          bg: c4,
-          selected: selectFastest,
+        Expanded(
+          child: _RecommendationTile(
+            categoryKey: 'fastest',
+            label: 'Fastest',
+            item: group.fastest,
+            isSelected: selectFastest,
+            onTap: () =>
+                controller.selectRecommendation(groupIndex, group.fastest),
+          ),
         ),
       ],
     );
   }
 }
 
-/// Simple square image placeholder used for product thumbnails.
-class _SquareImagePlaceholder extends StatelessWidget {
-  const _SquareImagePlaceholder({required this.size});
-  final double size;
+/// A single alternative recommendation tile with category-specific styling.
+/// Displays a coloured icon badge, product name, price, retailer, and delivery
+/// time. The key differentiating metric is highlighted in the accent colour
+/// (price for cheapest, delivery time for fastest).
+class _RecommendationTile extends StatefulWidget {
+  const _RecommendationTile({
+    required this.categoryKey,
+    required this.label,
+    required this.item,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  final String categoryKey;
+  final String label;
+  final CartItem item;
+  final bool isSelected;
+  final VoidCallback onTap;
+
   @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-      child: Container(
-        width: size,
-        height: size,
-        color: colorScheme.surfaceContainerHighest,
-        child: const Icon(Icons.image, size: AppConstants.iconSizeSm),
-      ),
-    );
-  }
+  State<_RecommendationTile> createState() => _RecommendationTileState();
 }
 
-/// Small chip showing the retailer name.
-class _RetailerChip extends StatelessWidget {
-  const _RetailerChip({required this.text});
-  final String text;
+class _RecommendationTileState extends State<_RecommendationTile> {
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppConstants.spacingSm,
-        vertical: AppConstants.spacingXs,
-      ),
-      child: Text(
-        text,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: colorScheme.onSurfaceVariant,
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    final Color accent = categoryAccentColor(context, widget.categoryKey);
+    final Color bg = categorySoftTint(
+      context,
+      widget.categoryKey,
+      isSelected: widget.isSelected,
+    );
+    final Color borderColor = widget.isSelected
+        ? accent
+        : (_hovered
+              ? accent.withValues(alpha: 0.5)
+              : colorScheme.outlineVariant.withValues(alpha: 0.3));
+    final double borderWidth = widget.isSelected ? 1.5 : 1;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+          hoverColor: Colors.transparent,
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: AppConstants.durationFast,
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+              border: Border.all(color: borderColor, width: borderWidth),
+            ),
+            padding: const EdgeInsets.all(AppConstants.spacingSm + 2),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(AppConstants.spacingXs),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(
+                          AppConstants.radiusXs,
+                        ),
+                      ),
+                      child: Icon(
+                        iconForCategoryKey(widget.categoryKey),
+                        size: AppConstants.metaIconSize,
+                        color: accent,
+                      ),
+                    ),
+                    const SizedBox(width: AppConstants.metaIconGap),
+                    Expanded(
+                      child: Text(
+                        widget.label,
+                        style: theme.textTheme.labelSmall?.copyWith(
+                          color: accent,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                    if (widget.isSelected)
+                      Icon(
+                        Icons.check_circle_rounded,
+                        size: AppConstants.iconSizeXs,
+                        color: accent,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: AppConstants.spacingSm),
+                Text(
+                  widget.item.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (widget.item.reviewRating != null) ...[
+                  const SizedBox(height: AppConstants.spacingXs),
+                  StarRatingDisplay(
+                    rating: widget.item.reviewRating!,
+                    starSize: AppConstants.metaIconSize - 2,
+                  ),
+                ],
+                const SizedBox(height: AppConstants.spacingXs),
+                Row(
+                  children: [
+                    Text(
+                      formatPrice(widget.item.price),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: widget.categoryKey == 'cheapest'
+                            ? accent
+                            : colorScheme.onSurface,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: AppConstants.spacingSm),
+                    Flexible(
+                      child: CartRetailerChip(text: widget.item.retailer),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppConstants.spacingXs),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.local_shipping_outlined,
+                      size: AppConstants.metaIconSize - 2,
+                      color: widget.categoryKey == 'fastest'
+                          ? accent
+                          : colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: AppConstants.spacingXs),
+                    Text(
+                      '~${formatEstimatedDurationLabel(widget.item.deliveryTime)}',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: widget.categoryKey == 'fastest'
+                            ? accent
+                            : colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
-}
-
-/// Formats a price in euro style (e.g. €1.234,56).
-String _formatPrice(double price) {
-  final isNegative = price < 0;
-  final abs = price.abs();
-  final fixed = abs.toStringAsFixed(2); // 1234.56
-  final parts = fixed.split('.');
-  String intPart = parts[0];
-  final decPart = parts[1];
-  final chars = intPart.split('').reversed.toList();
-  final buf = StringBuffer();
-  for (int i = 0; i < chars.length; i++) {
-    buf.write(chars[i]);
-    if ((i + 1) % 3 == 0 && i + 1 != chars.length) {
-      buf.write('.');
-    }
-  }
-  final grouped = buf.toString().split('').reversed.join();
-  final sign = isNegative ? '-' : '';
-  return '$sign$grouped,$decPart €';
-}
-
-/// Short human label for a duration (e.g. 2d, 5h, 30m).
-String _formatEstimatedDurationLabel(Duration d) {
-  if (d.inDays >= 1) return '${d.inDays}d';
-  if (d.inHours >= 1) return '${d.inHours}h';
-  return '${d.inMinutes}m';
-}
-
-/// Returns a short date like "Feb 10" computed from now + duration.
-String _formatEstimatedDateFromNow(Duration d) {
-  final DateTime date = DateTime.now().add(d);
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  final month = months[date.month - 1];
-  return '$month ${date.day}';
 }

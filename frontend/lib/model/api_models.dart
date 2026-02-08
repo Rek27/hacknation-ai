@@ -3,22 +3,13 @@ import 'dart:convert';
 /// Health endpoint response: GET /health
 class HealthStatus {
   final String status;
-  final String ragPipeline;
-  final int toolsAvailable;
-  final int documentsCount;
+  final int activeSessions;
 
-  HealthStatus({
-    required this.status,
-    required this.ragPipeline,
-    required this.toolsAvailable,
-    required this.documentsCount,
-  });
+  HealthStatus({required this.status, required this.activeSessions});
 
   factory HealthStatus.fromJson(Map<String, dynamic> json) => HealthStatus(
     status: json['status'] as String,
-    ragPipeline: json['rag_pipeline'] as String,
-    toolsAvailable: json['tools_available'] as int,
-    documentsCount: json['documents_count'] as int,
+    activeSessions: json['active_sessions'] as int,
   );
 }
 
@@ -149,5 +140,57 @@ class SubmitFormResponse {
                 ?.map((e) => e as String)
                 .toList() ??
             const [],
+      );
+}
+
+/// Response from POST /start-voice
+class StartVoiceResponse {
+  final String sessionId;
+  final String text;
+  final String audioId;
+  final String phase;
+
+  StartVoiceResponse({
+    required this.sessionId,
+    required this.text,
+    required this.audioId,
+    required this.phase,
+  });
+
+  factory StartVoiceResponse.fromJson(Map<String, dynamic> json) =>
+      StartVoiceResponse(
+        sessionId: json['session_id'] as String,
+        text: json['text'] as String,
+        audioId: json['audio_id'] as String,
+        phase: json['phase'] as String,
+      );
+}
+
+/// Response from POST /voice-input
+class VoiceInputResponse {
+  final String text;
+  final String audioId;
+  final String phase;
+  final Map<String, dynamic> data;
+  final String transcribedText;
+  final bool waitForInput;
+
+  VoiceInputResponse({
+    required this.text,
+    required this.audioId,
+    required this.phase,
+    required this.data,
+    required this.transcribedText,
+    required this.waitForInput,
+  });
+
+  factory VoiceInputResponse.fromJson(Map<String, dynamic> json) =>
+      VoiceInputResponse(
+        text: json['text'] as String,
+        audioId: json['audio_id'] as String,
+        phase: json['phase'] as String,
+        data: json['data'] as Map<String, dynamic>? ?? {},
+        transcribedText: json['transcribed_text'] as String? ?? '',
+        waitForInput: json['wait_for_input'] as bool? ?? true,
       );
 }

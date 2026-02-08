@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:rive/rive.dart';
 import 'package:frontend/config/app_theme.dart';
 import 'package:frontend/view/home/home_page.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await RiveNative.init();
   runApp(const AgentApp());
 }
 
@@ -14,7 +17,9 @@ class AgentApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'AI Agent Chat',
-      theme: AppTheme.theme,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: ThemeMode.system,
       home: const HomePage(),
     );
   }

@@ -48,79 +48,44 @@ class _ChatInputBarState extends State<ChatInputBar> {
     final ChatController controller = context.watch<ChatController>();
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
+    final bool isLoading = controller.isLoading;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppConstants.spacingMd,
         vertical: AppConstants.spacingSm,
       ),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(
-          top: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
+      color: colorScheme.surface,
+      child: Focus(
+        onKeyEvent: _handleKeyEvent,
+        child: TextField(
+          controller: _textController,
+          focusNode: _focusNode,
+          minLines: 3,
+          maxLines: 8,
+          enabled: !isLoading,
+          textInputAction: TextInputAction.newline,
+          decoration: InputDecoration(
+            hintText: 'Type a message...  (Enter to send)',
+            filled: true,
+            fillColor: colorScheme.surfaceContainerHigh,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppConstants.spacingLg,
+              vertical: AppConstants.spacingMd,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+              borderSide: BorderSide.none,
+            ),
+          ),
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: Focus(
-              onKeyEvent: _handleKeyEvent,
-              child: TextField(
-                controller: _textController,
-                focusNode: _focusNode,
-                minLines: 1,
-                maxLines: 5,
-                enabled: !controller.isLoading,
-                textInputAction: TextInputAction.newline,
-                decoration: InputDecoration(
-                  hintText: 'Type a message...',
-                  filled: true,
-                  fillColor: colorScheme.surfaceContainerHighest,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppConstants.spacingLg,
-                    vertical: AppConstants.spacingMd,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.radiusLg),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.radiusLg),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.radiusLg),
-                    borderSide: BorderSide(
-                      color: colorScheme.primary,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: AppConstants.spacingSm),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            child: IconButton(
-              onPressed: controller.isLoading ? null : _handleSend,
-              icon: Icon(
-                Icons.send_rounded,
-                color: controller.isLoading
-                    ? colorScheme.onSurface.withValues(alpha: 0.38)
-                    : colorScheme.primary,
-              ),
-              tooltip: 'Send message',
-              style: IconButton.styleFrom(
-                backgroundColor: controller.isLoading
-                    ? colorScheme.surfaceContainerHigh
-                    : colorScheme.primaryContainer,
-                shape: const CircleBorder(),
-                padding: const EdgeInsets.all(AppConstants.spacingMd),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

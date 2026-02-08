@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/app_constants.dart';
+import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
+import 'package:frontend/view/home/widgets/cart/cart_utils.dart';
+import 'package:frontend/view/home/widgets/cart/cart_shared_widgets.dart';
 import 'package:frontend/view/home/widgets/cart_item/cart_item_widget.dart';
 import 'package:frontend/view/home/widgets/cart_item/cart_item_controller.dart';
 import 'package:frontend/model/chat_models.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:frontend/view/home/widgets/cart/cart_loading_list.dart';
 import 'package:frontend/view/home/widgets/cart/cart_error_widget.dart';
 
@@ -81,7 +85,7 @@ class CartPanel extends StatelessWidget {
                           ),
                         ),
                         Text(
-                          _formatPrice(controller.totalPrice),
+                          formatPrice(controller.totalPrice),
                           style: theme.textTheme.titleLarge?.copyWith(
                             color: colorScheme.primary,
                             fontWeight: FontWeight.w700,
@@ -92,7 +96,6 @@ class CartPanel extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppConstants.spacingMd),
-              const Divider(height: 1),
               Expanded(
                 child: controller.isLoading
                     ? const CartLoadingList()
@@ -100,49 +103,63 @@ class CartPanel extends StatelessWidget {
                     ? CartErrorWidget(
                         title: 'Something went wrong',
                         subtitle: controller.errorMessage!,
-                        onRetry: () => controller.loadDummyData(),
+                        onRetry: () => controller.clearError(),
                       )
+                    : controller.phase == CheckoutPhase.ordering
+                    ? const _RetailerOrderingScreen()
+                    : controller.phase == CheckoutPhase.complete
+                    ? const _OrderCompleteSummary()
                     : controller.showSummary
                     ? const _CartSummaryPanel()
                     : controller.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.shopping_cart_outlined),
-                            const SizedBox(height: AppConstants.spacingMd),
-                            Text(
-                              'No items yet',
-                              style: theme.textTheme.titleMedium,
-                            ),
-                            const SizedBox(height: AppConstants.spacingSm),
-                            Text(
-                              'Tell the agent what you need and it\'ll find the best deals across the web.',
-                              style: theme.textTheme.bodyMedium,
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      )
+                    ? const CartEmptyState()
                     : ListView.separated(
                         padding: const EdgeInsets.only(
                           top: AppConstants.spacingMd,
-                          bottom: 104, // space for bottom bar height
+                          bottom: AppConstants.bottomBarHeight,
                         ),
                         itemCount: controller.items.length,
                         separatorBuilder: (context, index) =>
                             const SizedBox(height: AppConstants.spacingMd),
                         itemBuilder: (context, index) {
                           final CartItem item = controller.items[index];
+                          final String key = item.id ?? item.name;
                           final expanded = controller.isExpandedGroup(index);
-                          return ChangeNotifierProvider<CartItemController>(
-                            create: (_) => CartItemController(item: item),
-                            child: CartItemWidget(
-                              groupIndex: index,
-                              item: item,
-                              isExpanded: expanded,
-                              onToggle: () =>
-                                  controller.toggleExpandedGroup(index),
+                          return Slidable(
+                            key: ValueKey<String>(key),
+                            endActionPane: ActionPane(
+                              motion: const DrawerMotion(),
+                              extentRatio: AppConstants.cartActionExtentRatio,
+                              dismissible: DismissiblePane(
+                                onDismissed: () => controller.deleteItem(key),
+                              ),
+                              children: [
+                                SlidableAction(
+                                  onPressed: (_) => controller.deleteItem(key),
+                                  backgroundColor: AppConstants.cartDeleteColor,
+                                  foregroundColor: Colors.white,
+                                  icon: Icons.delete_outline,
+                                  label: 'Delete',
+                                  borderRadius: BorderRadius.only(
+                                    topRight: Radius.circular(
+                                      AppConstants.radiusMd,
+                                    ),
+                                    bottomRight: Radius.circular(
+                                      AppConstants.radiusMd,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            child: ChangeNotifierProvider<CartItemController>(
+                              create: (_) => CartItemController(item: item),
+                              child: CartItemWidget(
+                                groupIndex: index,
+                                item: item,
+                                isExpanded: expanded,
+                                onToggle: () =>
+                                    controller.toggleExpandedGroup(index),
+                              ),
                             ),
                           );
                         },
@@ -154,7 +171,8 @@ class CartPanel extends StatelessWidget {
         // Edge-to-edge fixed bottom confirm bar (outside page padding)
         if (!controller.isLoading &&
             controller.errorMessage == null &&
-            !controller.showSummary)
+            controller.phase == CheckoutPhase.cart &&
+            !controller.isEmpty)
           Positioned(
             left: 0,
             right: 0,
@@ -169,14 +187,12 @@ class CartPanel extends StatelessWidget {
                   color: colorScheme.surface,
                   border: Border(
                     top: BorderSide(
-                      color: colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.3,
-                      ),
+                      color: colorScheme.outlineVariant,
                       width: 1,
                     ),
                   ),
                 ),
-                child: _CheckoutBar(
+                child: CartCheckoutBar(
                   totalPrice: controller.totalPrice,
                   retailerCount: controller.retailerCount,
                   onCheckout: () => controller.startCheckout(),
@@ -185,65 +201,6 @@ class CartPanel extends StatelessWidget {
             ),
           ),
       ],
-    );
-  }
-}
-
-/// Fixed bottom checkout bar with confirm CTA and helper text.
-class _CheckoutBar extends StatelessWidget {
-  const _CheckoutBar({
-    required this.totalPrice,
-    required this.retailerCount,
-    required this.onCheckout,
-  });
-
-  final double totalPrice;
-  final int retailerCount;
-  final VoidCallback onCheckout;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingMd),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-                ),
-              ),
-              onPressed: onCheckout,
-              icon: const Icon(Icons.bolt),
-              label: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: AppConstants.spacingSm,
-                ),
-                child: Text(
-                  'Checkout All — ${_formatPrice(totalPrice)}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: colorScheme.onPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: AppConstants.spacingSm),
-          Text(
-            'Agent will handle checkout across $retailerCount retailers',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
     );
   }
 }
@@ -291,7 +248,10 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
     final cs = theme.colorScheme;
     final controller = context.watch<CartController>();
     return Padding(
-      padding: const EdgeInsets.only(top: AppConstants.spacingMd, bottom: 104),
+      padding: const EdgeInsets.only(
+        top: AppConstants.spacingMd,
+        bottom: AppConstants.bottomBarHeight,
+      ),
       child: ListView(
         children: [
           // Header with back
@@ -338,9 +298,10 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _SummaryImagePlaceholder(
-                    size: 75,
+                  CartImagePlaceholder(
+                    size: AppConstants.cartSummaryImageSize,
                     color: cs.surfaceContainerHighest,
+                    imageUrl: item.imageUrl,
                   ),
                   const SizedBox(width: AppConstants.spacingMd),
                   Expanded(
@@ -361,7 +322,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                             const SizedBox(width: AppConstants.spacingSm),
                             Container(
                               decoration: BoxDecoration(
-                                color: _categoryBgForKey(context, categoryKey),
+                                color: categoryBgForKey(context, categoryKey),
                                 borderRadius: BorderRadius.circular(
                                   AppConstants.radiusSm,
                                 ),
@@ -375,7 +336,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                                 vertical: AppConstants.spacingXs,
                               ),
                               child: Text(
-                                _labelForKey(categoryKey),
+                                labelForCategoryKey(categoryKey),
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: cs.onSurfaceVariant,
                                   fontWeight: FontWeight.w600,
@@ -388,30 +349,34 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                         Row(
                           children: [
                             Text(
-                              _formatPrice(item.price),
+                              formatPrice(item.price),
                               style: theme.textTheme.titleMedium?.copyWith(
                                 color: cs.primary,
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
                             const SizedBox(width: AppConstants.spacingSm),
-                            _SummaryRetailerChip(text: item.retailer),
+                            CartRetailerChip(text: item.retailer),
                           ],
                         ),
                         const SizedBox(height: AppConstants.spacingXs),
                         Row(
                           children: [
-                            const Icon(Icons.calendar_today_outlined, size: 14),
-                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.calendar_today_outlined,
+                              size: AppConstants.metaIconSize,
+                            ),
+                            const SizedBox(width: AppConstants.metaIconGap),
                             Text(
-                              _formatSummaryEstimatedDateFromNow(
-                                item.deliveryTime,
-                              ),
+                              formatEstimatedDateFromNow(item.deliveryTime),
                               style: theme.textTheme.bodySmall,
                             ),
                             const SizedBox(width: AppConstants.spacingMd),
-                            const Icon(Icons.shopping_bag_outlined, size: 14),
-                            const SizedBox(width: 6),
+                            const Icon(
+                              Icons.shopping_bag_outlined,
+                              size: AppConstants.metaIconSize,
+                            ),
+                            const SizedBox(width: AppConstants.metaIconGap),
                             Text(
                               'Qty: ${item.amount}',
                               style: theme.textTheme.bodySmall,
@@ -549,14 +514,9 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                           ),
                         ),
                       ),
-                      onPressed: () {
-                        // no-op for now
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Order placed (mock).')),
-                        );
-                      },
+                      onPressed: () => controller.placeOrder(),
                       child: Text(
-                        'Place order — ${_formatPrice(controller.totalPrice)}',
+                        'Place order — ${formatPrice(controller.totalPrice)}',
                       ),
                     ),
                   ],
@@ -580,20 +540,6 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
       onChanged: (v) => setState(() => _payment = v ?? 'card'),
       title: Text(label, style: theme.textTheme.bodyMedium),
     );
-  }
-
-  String _labelForKey(String key) {
-    switch (key) {
-      case 'cheapest':
-        return 'Cheapest';
-      case 'best':
-        return 'Best reviewed';
-      case 'fastest':
-        return 'Fastest';
-      case 'main':
-      default:
-        return 'Main';
-    }
   }
 
   InputDecoration _inputDecoration(String label, BuildContext context) {
@@ -622,100 +568,430 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
   }
 }
 
-class _SummaryImagePlaceholder extends StatelessWidget {
-  const _SummaryImagePlaceholder({required this.size, required this.color});
+// ---------------------------------------------------------------------------
+// Retailer ordering animation screen
+// ---------------------------------------------------------------------------
+
+/// Displays a retailer logo fetched from the backend. Falls back to a coloured
+/// initials box when the image is unavailable.
+class _RetailerLogoImage extends StatelessWidget {
+  const _RetailerLogoImage({required this.name, required this.size});
+  final String name;
   final double size;
-  final Color color;
+
   @override
   Widget build(BuildContext context) {
+    final String baseUrl = context.read<HomeController>().api.baseUrl;
+    final String fullUrl = '$baseUrl${retailerLogoUrl(name)}';
+    final Color fallbackColor = _retailerColor(name);
+
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-      child: Container(
+      child: Image.network(
+        fullUrl,
         width: size,
         height: size,
-        color: color,
-        child: const Icon(Icons.image, size: AppConstants.iconSizeSm),
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: fallbackColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            _retailerInitials(name),
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: fallbackColor,
+              fontWeight: FontWeight.w800,
+              fontSize: size * 0.3,
+            ),
+          ),
+        ),
       ),
     );
   }
 }
 
-class _SummaryRetailerChip extends StatelessWidget {
-  const _SummaryRetailerChip({required this.text});
-  final String text;
+/// Mock retailer logo colours (deterministic per retailer name).
+Color _retailerColor(String name) {
+  final colors = [
+    const Color(0xFF1565C0), // blue
+    const Color(0xFFE65100), // orange
+    const Color(0xFF2E7D32), // green
+    const Color(0xFF6A1B9A), // purple
+    const Color(0xFFC62828), // red
+    const Color(0xFF00838F), // teal
+    const Color(0xFF4E342E), // brown
+    const Color(0xFF283593), // indigo
+  ];
+  return colors[name.hashCode.abs() % colors.length];
+}
+
+/// First two letters of the retailer name, used as a mock logo.
+String _retailerInitials(String name) {
+  final trimmed = name.trim();
+  if (trimmed.length <= 2) return trimmed.toUpperCase();
+  return trimmed.substring(0, 2).toUpperCase();
+}
+
+class _RetailerOrderingScreen extends StatelessWidget {
+  const _RetailerOrderingScreen();
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppConstants.spacingSm,
-        vertical: AppConstants.spacingXs,
-      ),
-      child: Text(
-        text,
-        style: theme.textTheme.labelSmall?.copyWith(color: cs.onSurfaceVariant),
+    final controller = context.watch<CartController>();
+    final retailers = controller.uniqueRetailers;
+    final retailerImages = controller.retailerImageUrls;
+    final confirmed = controller.confirmedRetailers;
+    final allDone = confirmed.length == retailers.length;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppConstants.spacingMd),
+      child: Column(
+        children: [
+          // Title
+          Icon(
+            allDone ? Icons.check_circle_rounded : Icons.sync_rounded,
+            size: AppConstants.iconSizeMd,
+            color: allDone ? const Color(0xFF34C759) : cs.primary,
+          ),
+          const SizedBox(height: AppConstants.spacingMd),
+          Text(
+            allDone ? 'All orders placed!' : 'Placing orders...',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: cs.onSurface,
+            ),
+          ),
+          const SizedBox(height: AppConstants.spacingSm),
+          Text(
+            allDone
+                ? 'Every retailer has confirmed your order.'
+                : 'Contacting ${retailers.length} retailers. This won\'t take long.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: cs.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppConstants.spacingXl),
+          // Retailer grid
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.only(bottom: AppConstants.spacingXl),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 200,
+                mainAxisSpacing: AppConstants.spacingMd,
+                crossAxisSpacing: AppConstants.spacingMd,
+                childAspectRatio: 1.0,
+              ),
+              itemCount: retailers.length,
+              itemBuilder: (context, index) {
+                final name = retailers[index];
+                final done = confirmed.contains(name);
+                return _RetailerCard(
+                  name: name,
+                  confirmed: done,
+                  imageUrl: retailerImages[name],
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-String _formatSummaryEstimatedDateFromNow(Duration d) {
-  final date = DateTime.now().add(d);
-  const months = [
-    'Jan',
-    'Feb',
-    'Mar',
-    'Apr',
-    'May',
-    'Jun',
-    'Jul',
-    'Aug',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dec',
-  ];
-  return '${months[date.month - 1]} ${date.day}';
-}
+class _RetailerCard extends StatelessWidget {
+  const _RetailerCard({
+    required this.name,
+    required this.confirmed,
+    this.imageUrl,
+  });
+  final String name;
+  final bool confirmed;
+  final String? imageUrl;
 
-/// Returns the same category background colors used in cart_item_widget.dart
-Color _categoryBgForKey(BuildContext context, String key) {
-  final cs = Theme.of(context).colorScheme;
-  switch (key) {
-    case 'cheapest':
-      return cs.primaryFixed.withValues(alpha: 0.10);
-    case 'best':
-      return cs.primaryFixedDim.withValues(alpha: 0.15);
-    case 'fastest':
-      return cs.onPrimaryFixedVariant.withValues(alpha: 0.15);
-    case 'main':
-    default:
-      return cs.primary.withValues(alpha: 0.10);
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return AnimatedContainer(
+      duration: AppConstants.durationSlow,
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+        border: Border.all(
+          color: confirmed ? const Color(0xFF34C759) : cs.outlineVariant,
+          width: confirmed ? 2 : 1,
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Main content
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _RetailerLogoImage(name: name, size: 64),
+                const SizedBox(height: AppConstants.spacingSm),
+                Text(
+                  name,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppConstants.spacingXs),
+                // Status indicator
+                AnimatedSwitcher(
+                  duration: AppConstants.durationMedium,
+                  child: confirmed
+                      ? Row(
+                          key: const ValueKey('done'),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check_circle,
+                              size: 16,
+                              color: Color(0xFF34C759),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Confirmed',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: const Color(0xFF34C759),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        )
+                      : SizedBox(
+                          key: const ValueKey('loading'),
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: cs.primary,
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+          // Overlay green checkmark badge (top-right)
+          if (confirmed)
+            Positioned(
+              top: AppConstants.spacingSm,
+              right: AppConstants.spacingSm,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF34C759),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check, size: 18, color: Colors.white),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }
 
-/// Formats a price in euro style (e.g. €1.234,56).
-String _formatPrice(double price) {
-  final isNegative = price < 0;
-  final abs = price.abs();
-  final fixed = abs.toStringAsFixed(2); // 1234.56
-  final parts = fixed.split('.');
-  String intPart = parts[0];
-  final decPart = parts[1];
-  final chars = intPart.split('').reversed.toList();
-  final buf = StringBuffer();
-  for (int i = 0; i < chars.length; i++) {
-    buf.write(chars[i]);
-    if ((i + 1) % 3 == 0 && i + 1 != chars.length) {
-      buf.write('.');
+// ---------------------------------------------------------------------------
+// Order complete summary
+// ---------------------------------------------------------------------------
+
+class _OrderCompleteSummary extends StatelessWidget {
+  const _OrderCompleteSummary();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final controller = context.watch<CartController>();
+    final items = controller.items;
+    final retailers = controller.uniqueRetailers;
+
+    // Group items by retailer
+    final Map<String, List<CartItem>> byRetailer = {};
+    for (final item in items) {
+      byRetailer.putIfAbsent(item.retailer, () => []).add(item);
     }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppConstants.spacingMd),
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: AppConstants.spacingXl),
+        children: [
+          // Success header
+          Center(
+            child: Column(
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF34C759),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    size: 40,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingMd),
+                Text(
+                  'Order confirmed!',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurface,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingSm),
+                Text(
+                  '${items.length} items from ${retailers.length} retailers',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppConstants.spacingXl),
+          const Divider(),
+          const SizedBox(height: AppConstants.spacingMd),
+
+          // Per-retailer breakdown
+          ...byRetailer.entries.expand((entry) {
+            final retailer = entry.key;
+            final retailerItems = entry.value;
+            final retailerTotal = retailerItems.fold<double>(
+              0.0,
+              (sum, it) => sum + it.price * it.amount,
+            );
+            return [
+              // Retailer header
+              Row(
+                children: [
+                  _RetailerLogoImage(name: retailer, size: 36),
+                  const SizedBox(width: AppConstants.spacingSm),
+                  Expanded(
+                    child: Text(
+                      retailer,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    formatPrice(retailerTotal),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: cs.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppConstants.spacingSm),
+              // Items under this retailer
+              ...retailerItems.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(
+                    left: AppConstants.spacingXl + AppConstants.spacingSm,
+                    bottom: AppConstants.spacingSm,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle_outline,
+                        size: 16,
+                        color: Color(0xFF34C759),
+                      ),
+                      const SizedBox(width: AppConstants.spacingSm),
+                      Expanded(
+                        child: Text(
+                          '${item.name} x${item.amount}',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: cs.onSurface,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        formatPrice(item.price * item.amount),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: AppConstants.spacingSm),
+              const Divider(),
+              const SizedBox(height: AppConstants.spacingMd),
+            ];
+          }),
+
+          // Grand total
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Total',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: cs.onSurface,
+                ),
+              ),
+              Text(
+                formatPrice(controller.totalPrice),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: cs.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppConstants.spacingXl),
+
+          // Action buttons
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.all(AppConstants.spacingMd),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.radiusSm,
+                      ),
+                    ),
+                    side: BorderSide(color: cs.primary),
+                  ),
+                  onPressed: () => controller.resetToCart(),
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Back to cart'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
-  final grouped = buf.toString().split('').reversed.join();
-  final sign = isNegative ? '-' : '';
-  return '$sign$grouped,$decPart €';
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/config/app_constants.dart';
+import 'package:frontend/config/app_theme.dart';
 import 'package:frontend/model/api_models.dart';
 import 'package:frontend/service/agent_api.dart';
 import 'package:frontend/service/api_client.dart';
@@ -20,7 +21,7 @@ class HomePage extends StatelessWidget {
     //   flutter run --dart-define=API_BASE_URL=http://localhost:8000  (desktop/web -> local)
     const envBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
     const hostedBaseUrl =
-        'https://ca97-2001-4ca0-0-f237-1562-d89a-324c-8866.ngrok-free.app';
+        'https://ca97-2001-4ca0-0-f237-1562-d89a-324c-8866.ngrok-free.app/';
 
     final baseUrl = envBaseUrl.isNotEmpty ? envBaseUrl : hostedBaseUrl;
 
@@ -48,39 +49,19 @@ class _HomeViewState extends State<_HomeView> {
   Widget build(BuildContext context) {
     final double width = MediaQuery.sizeOf(context).width;
     final bool isMobile = width < AppConstants.kMobileBreakpoint;
-    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Agent Chat'),
-        leading: isMobile
-            ? IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () => Scaffold.of(context).openDrawer(),
-              )
-            : null,
-        actions: [_AppBarActions(baseUrl: widget.baseUrl)],
-      ),
-      drawer: isMobile
-          ? Drawer(
-              child: SafeArea(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(AppConstants.spacingMd),
-                      child: Text(
-                        'Documents',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+      appBar: isMobile
+          ? null
+          : AppBar(
+              title: const Text('AI Agent Chat'),
+              actions: [_AppBarActions(baseUrl: widget.baseUrl)],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(1),
+                child: Container(height: 1, color: colorScheme.outlineVariant),
               ),
-            )
-          : null,
+            ),
+      drawer: null,
       body: isMobile ? const HomeMobileLayout() : const HomeDesktopLayout(),
     );
   }
@@ -97,6 +78,7 @@ class _AppBarActions extends StatelessWidget {
     final HealthStatus? health = controller.health;
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
+    final bool isHealthy = health?.status == 'healthy';
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -109,15 +91,16 @@ class _AppBarActions extends StatelessWidget {
               child: Text(
                 'API',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onPrimary,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ),
           ),
         ),
         Icon(
-          health?.status == 'healthy' ? Icons.check_circle : Icons.error,
-          color: colorScheme.onPrimary,
+          isHealthy ? Icons.check_circle : Icons.error,
+          color: isHealthy ? AppTheme.success : colorScheme.error,
+          size: AppConstants.iconSizeXs,
         ),
         const SizedBox(width: AppConstants.spacingSm),
         if (health != null)
@@ -125,9 +108,9 @@ class _AppBarActions extends StatelessWidget {
             padding: const EdgeInsets.only(right: AppConstants.spacingMd),
             child: Center(
               child: Text(
-                'Chunks: ${health.documentsCount}',
+                'Sessions: ${health.activeSessions}',
                 style: theme.textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onPrimary,
+                  color: colorScheme.onSurfaceVariant,
                 ),
               ),
             ),

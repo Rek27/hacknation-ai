@@ -16,6 +16,12 @@ body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; 
 #input-bar input { flex: 1; padding: 10px 14px; border-radius: 8px; border: 1px solid #333; background: #1a1a1a; color: #e0e0e0; font-size: 14px; }
 #input-bar button { padding: 10px 20px; border-radius: 8px; border: none; background: #3b82f6; color: #fff; font-weight: 600; cursor: pointer; }
 #input-bar button:disabled { opacity: .4; cursor: default; }
+#btn-voice { position: relative; padding: 10px; width: 48px; background: #4ade80; }
+#btn-voice.listening { background: #ef4444; animation: pulse 1.5s infinite; }
+#btn-voice.processing { background: #f59e0b; }
+#btn-voice.speaking { background: #8b5cf6; animation: pulse 1.5s infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.6; } }
+.voice-status { font-size: 11px; color: #888; margin-top: 4px; text-align: center; }
 
 /* ── Phase indicator ── */
 #phase-bar { padding: 10px 16px; background: #1a1a1a; border-bottom: 1px solid #2a2a2a; font-size: 13px; color: #888; display: flex; align-items: center; gap: 12px; }
@@ -46,6 +52,28 @@ body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; 
 .form-field label { display: block; font-size: 12px; color: #888; margin-bottom: 3px; }
 .form-field input { width: 100%; padding: 8px 10px; border-radius: 6px; border: 1px solid #333; background: #1a1a1a; color: #e0e0e0; font-size: 13px; }
 
+/* ── Lists / Cart ── */
+#list-section h3 { font-size: 13px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+#list-items { font-size: 12px; color: #bdbdbd; white-space: pre-wrap; }
+
+#sponsor-section h3 { font-size: 13px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+.sponsor-item { padding: 8px 10px; border: 1px solid #2a2a2a; border-radius: 8px; margin-bottom: 8px; background: #151515; }
+.sponsor-item.pending { border-left: 4px solid #f59e0b; }
+.sponsor-item.approved { border-left: 4px solid #22c55e; }
+.sponsor-item.rejected { border-left: 4px solid #ef4444; }
+.sponsor-item .name { font-size: 13px; color: #e0e0e0; margin-bottom: 4px; }
+.sponsor-item .meta { font-size: 12px; color: #999; white-space: pre-wrap; }
+
+#cart-section { display: none; }
+#cart-section h3 { font-size: 13px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+.cart-item { padding: 8px 10px; border: 1px solid #2a2a2a; border-radius: 8px; margin-bottom: 8px; background: #151515; }
+.cart-item .name { font-size: 13px; color: #e0e0e0; margin-bottom: 4px; }
+.cart-item .meta { font-size: 12px; color: #999; }
+.cart-total { margin-top: 8px; font-size: 13px; color: #cbd5f5; }
+
+
+/* ── Sidebar controls ── */
+
 /* ── Buttons ── */
 .btn-action { width: 100%; padding: 10px; border-radius: 8px; border: none; font-weight: 600; cursor: pointer; font-size: 14px; }
 #btn-submit-tree { background: #f59e0b; color: #000; display: none; }
@@ -71,6 +99,23 @@ body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; 
     <div id="form-fields"></div>
     <button id="btn-submit-form" class="btn-action" onclick="submitForm()">Submit Form ✓</button>
   </div>
+
+  <div id="list-section">
+    <h3>Shopping List</h3>
+    <div id="list-items"><span style="color:#555">No list yet</span></div>
+  </div>
+
+  <div id="sponsor-section">
+    <h3>Retailer Sponsorship</h3>
+    <div id="sponsor-items"><span style="color:#555">No sponsor calls yet</span></div>
+  </div>
+
+  <div id="cart-section">
+    <h3>Cart</h3>
+    <div id="cart-items"><span style="color:#555">No cart yet</span></div>
+    <div id="cart-total" class="cart-total"></div>
+  </div>
+
 </div>
 
 <div id="main">
@@ -81,8 +126,14 @@ body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; 
   <div id="chat-log"></div>
   <div id="input-bar">
     <input id="msg-input" placeholder="Describe your event..." onkeydown="if(event.key==='Enter')sendMsg()">
+    <button id="btn-voice" onclick="toggleVoice()" title="Voice mode">🎤</button>
     <button id="btn-send" onclick="sendMsg()">Send</button>
   </div>
+  <div id="voice-status" class="voice-status" style="display:none;"></div>
+</div>
+
+<!-- Hidden audio player for TTS -->
+<audio id="tts-audio" style="display:none;"></audio>
 </div>
 
 <script>
@@ -93,6 +144,13 @@ let currentPeopleTree = null;
 let currentPlaceTree = null;
 let phase = 'tree'; // tree | form | done
 let sending = false;
+
+// Voice mode state
+let voiceMode = false;
+let voiceState = 'idle'; // idle | listening | processing | speaking
+let mediaRecorder = null;
+let audioChunks = [];
+let mediaStream = null; // Keep stream alive
 
 const $ = id => document.getElementById(id);
 const log = $('chat-log');
@@ -298,6 +356,109 @@ function renderForm(form) {
   $('btn-submit-form').style.display = 'block';
 }
 
+function renderList(items) {
+  const container = $('list-items');
+  const list = (items || []).map(i => `• ${i}`).join('\n');
+  container.textContent = list || 'No items suggested';
+  $('list-section').style.display = 'block';
+}
+
+function renderSponsors(offers) {
+  const container = $('sponsor-items');
+  container.innerHTML = '';
+  const list = offers || [];
+  if (!list.length) {
+    container.innerHTML = '<span style="color:#555">No sponsor calls yet</span>';
+    return;
+  }
+  list.forEach(offer => {
+    const div = document.createElement('div');
+    const status = (offer.status || 'pending').toLowerCase();
+    div.className = `sponsor-item ${status}`;
+    const name = document.createElement('div');
+    name.className = 'name';
+    const discount = offer.discountPercent ? ` (${offer.discountPercent}% off)` : '';
+    name.textContent = `${offer.retailer || 'Retailer'}${discount}`;
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const reason = offer.reason ? `${offer.reason}\n` : '';
+    const items = (offer.discountedItems || []).map(i => `- ${i.item}: ${i.percent}%`).join('\n');
+    meta.textContent = `${reason}${items}`.trim() || 'No details provided';
+    div.appendChild(name);
+    div.appendChild(meta);
+    container.appendChild(div);
+  });
+}
+
+function addSponsorPending(entry) {
+  const container = $('sponsor-items');
+  if (container.textContent.includes('No sponsor calls yet')) {
+    container.innerHTML = '';
+  }
+  const div = document.createElement('div');
+  div.className = 'sponsor-item pending';
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.textContent = entry.retailer || 'Retailer';
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = entry.reason || 'Checking sponsorship options...';
+  div.appendChild(name);
+  div.appendChild(meta);
+  container.appendChild(div);
+}
+
+function renderCart(cart) {
+  const container = $('cart-items');
+  container.innerHTML = '';
+  const items = cart.items || [];
+  if (!items.length) {
+    container.innerHTML = '<span style="color:#555">No items in cart</span>';
+    $('cart-total').textContent = '';
+    $('cart-section').style.display = 'block';
+    return;
+  }
+  const pick = (entry, key) =>
+    entry?.[key] ||
+    entry?.[key.replace(/[A-Z]/g, m => `_${m.toLowerCase()}`)];
+  const formatLine = (label, entry) => {
+    if (!entry) return `${label}: n/a`;
+    const price = typeof entry.price === 'number' ? entry.price.toFixed(2) : entry.price;
+    const deliveryMs = entry.deliveryTimeMs || 0;
+    const deliveryDays = Math.max(0, Math.round(deliveryMs / (24 * 60 * 60 * 1000)));
+    return `${label}: €${price} · ${entry.retailer} · ${deliveryDays}d`;
+  };
+  items.forEach(entry => {
+    const recommended =
+      pick(entry, 'recommendedItem') || entry;
+    const cheapest =
+      pick(entry, 'cheapestItem') || entry;
+    const bestRating =
+      pick(entry, 'bestRatingItem') || entry;
+    const fastest =
+      pick(entry, 'fastestDeliveryItem') || entry;
+
+    const div = document.createElement('div');
+    div.className = 'cart-item';
+    const name = document.createElement('div');
+    name.className = 'name';
+    name.textContent = recommended?.name || 'Item';
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const qty = recommended?.amount ?? 0;
+    const recLine = formatLine('Rec', recommended);
+    const cheapestLine = formatLine('Cheap', cheapest);
+    const bestLine = formatLine('Best', bestRating);
+    const fastLine = formatLine('Fast', fastest);
+    meta.textContent = `Qty: ${qty} · ${recLine} | ${cheapestLine} | ${bestLine} | ${fastLine}`;
+    div.appendChild(name);
+    div.appendChild(meta);
+    container.appendChild(div);
+  });
+  $('cart-total').textContent = `Total: €${(cart.price || 0).toFixed(2)}`;
+  $('cart-section').style.display = 'block';
+}
+
 // ── Submit form ───────────────────────────────────────────────
 
 async function submitForm() {
@@ -309,30 +470,363 @@ async function submitForm() {
   const map = Object.fromEntries(values.map(v => [v.label, v]));
 
   $('btn-submit-form').style.display = 'none';
+  $('list-section').style.display = 'none';
+  $('cart-section').style.display = 'none';
+  $('sponsor-items').innerHTML = '<span style="color:#555">No sponsor calls yet</span>';
 
-  const res = await fetch(`${API}/submit-form`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      session_id: SESSION,
-      address: map['Address'] || { label: 'Address', content: '' },
-      budget: map['Budget'] || { label: 'Budget', content: '' },
-      date: map['Date'] || { label: 'Date', content: '' },
-      duration: map['Duration (days)'] || { label: 'Duration (days)', content: '' },
-      numberOfAttendees: map['Number of attendees'] || { label: 'Number of attendees', content: '' },
-    }),
+  addBubble('msg-system', 'Form submitted. Building cart...');
+
+  await readSSE(`${API}/submit-form`, {
+    session_id: SESSION,
+    address: map['Address'] || { label: 'Address', content: '' },
+    budget: map['Budget'] || { label: 'Budget', content: '' },
+    date: map['Date'] || { label: 'Date', content: '' },
+    duration: map['Duration (hours)'] || { label: 'Duration (hours)', content: '' },
+    numberOfAttendees: map['Number of attendees'] || { label: 'Number of attendees', content: '' },
+  }, (data) => {
+    switch (data.type) {
+      case 'text': {
+        const b = getOrCreateAssistantBubble();
+        b.textContent += data.content;
+        log.scrollTop = log.scrollHeight;
+        break;
+      }
+      case 'items':
+        renderList(data.items || []);
+        addBubble('msg-system', '↑ Suggested items from inventory');
+        break;
+      case 'tool': {
+        addBubble('msg-system', `Tool: ${data.name} → ${JSON.stringify(data.arguments || {})}`);
+        if (data.name === 'check_retailer_sponsorship') {
+          const retailer = data.arguments?.retailer || 'Retailer';
+          addSponsorPending({
+            retailer,
+            reason: data.reason || 'Checking sponsorship options...',
+          });
+        }
+        break;
+      }
+      case 'tool_result': {
+        addBubble('msg-system', `Tool result: ${data.name} → ${data.result}`);
+        break;
+      }
+      case 'cart':
+        renderCart(data);
+        phase = 'done';
+        $('phase-text').textContent = 'Phase 3 — Done!';
+        $('phase-bar').querySelector('.dot').className = 'dot dot-done';
+        addBubble('msg-system', '↑ Cart ready in sidebar');
+        break;
+      case 'retailer_offers':
+        renderSponsors(data.offers || []);
+        addBubble('msg-system', '↑ Retailer sponsorship results updated');
+        break;
+      case 'error':
+        addBubble('msg-error', `Error: ${data.message}`);
+        break;
+    }
   });
-  const result = await res.json();
 
-  phase = 'done';
-  $('phase-text').textContent = 'Phase 3 — Done!';
-  $('phase-bar').querySelector('.dot').className = 'dot dot-done';
+  finalizeAssistantBubble();
+}
 
-  addBubble('msg-system', 'Form submitted!');
-  if (result.items_summary && result.items_summary.length) {
-    addBubble('msg-assistant', 'Summary:\n' + result.items_summary.join('\n'));
+// ── Voice mode ─────────────────────────────────────────────
+
+async function toggleVoice() {
+  if (!voiceMode) {
+    // Start voice mode
+    voiceMode = true;
+    $('btn-voice').classList.add('processing');
+    updateVoiceStatus('Initializing voice mode...');
+    
+    try {
+      // Request microphone permission once
+      if (!mediaStream) {
+        mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
+      
+      // Start voice session
+      const res = await fetch(`${API}/start-voice`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ session_id: SESSION, message: '', user_name: 'tester' }),
+      });
+      
+      const data = await res.json();
+      
+      // Show voice status
+      $('voice-status').style.display = 'block';
+      
+      // Play greeting
+      await playTTSAudio(data.audio_id, data.text);
+      
+      // Start listening
+      await startListening();
+    } catch (err) {
+      console.error('Voice mode error:', err);
+      addBubble('msg-error', `Voice error: ${err.message}`);
+      voiceMode = false;
+      $('btn-voice').classList.remove('processing');
+      updateVoiceStatus('');
+      // Clean up stream on error
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+    }
+  } else {
+    // Stop voice mode
+    stopListening();
+    voiceMode = false;
+    voiceState = 'idle';
+    $('btn-voice').classList.remove('listening', 'processing', 'speaking');
+    $('voice-status').style.display = 'none';
+    updateVoiceStatus('');
+    // Stop media stream
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(track => track.stop());
+      mediaStream = null;
+    }
   }
-  addBubble('msg-system', result.message || 'Complete.');
+}
+
+let audioContext = null;
+let analyserNode = null;
+let silenceTimeout = null;
+let vadCheckInterval = null;
+
+async function startListening() {
+  if (voiceState !== 'idle') return;
+  
+  try {
+    // Use existing stream instead of requesting new permission
+    if (!mediaStream) {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    }
+    
+    mediaRecorder = new MediaRecorder(mediaStream);
+    audioChunks = [];
+    
+    // Setup audio context for VAD if not already done
+    if (!audioContext) {
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    
+    const source = audioContext.createMediaStreamSource(mediaStream);
+    analyserNode = audioContext.createAnalyser();
+    analyserNode.fftSize = 512;
+    analyserNode.smoothingTimeConstant = 0.8;
+    source.connect(analyserNode);
+    
+    const bufferLength = analyserNode.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    let speechDetected = false;
+    let silenceStart = null;
+    
+    function checkVoiceActivity() {
+      if (!mediaRecorder || mediaRecorder.state !== 'recording') {
+        return;
+      }
+      
+      analyserNode.getByteFrequencyData(dataArray);
+      
+      // Calculate average volume
+      let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        sum += dataArray[i];
+      }
+      const average = sum / bufferLength;
+      
+      console.log('Audio level:', average);
+      
+      // Threshold for speech detection (adjust if needed)
+      const SPEECH_THRESHOLD = 30;
+      const SILENCE_DURATION = 1000; // 1 second of silence
+      
+      if (average > SPEECH_THRESHOLD) {
+        // Speech detected
+        if (!speechDetected) {
+          console.log('Speech started');
+          speechDetected = true;
+          updateVoiceStatus('Listening... (speaking detected)');
+        }
+        silenceStart = null;
+      } else if (speechDetected) {
+        // Silence after speech
+        if (!silenceStart) {
+          silenceStart = Date.now();
+          console.log('Silence started');
+        } else {
+          const silenceDuration = Date.now() - silenceStart;
+          if (silenceDuration > SILENCE_DURATION) {
+            console.log('Silence threshold reached, stopping recording');
+            stopListening();
+          }
+        }
+      }
+    }
+    
+    mediaRecorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        audioChunks.push(event.data);
+      }
+    };
+    
+    mediaRecorder.onstop = async () => {
+      const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+      
+      // Cleanup VAD
+      if (vadCheckInterval) {
+        clearInterval(vadCheckInterval);
+        vadCheckInterval = null;
+      }
+      
+      await sendAudioToServer(audioBlob);
+      audioChunks = [];
+    };
+    
+    mediaRecorder.start();
+    voiceState = 'listening';
+    $('btn-voice').classList.remove('processing', 'speaking');
+    $('btn-voice').classList.add('listening');
+    updateVoiceStatus('Listening... (speak now)');
+    
+    // Start VAD checking
+    vadCheckInterval = setInterval(checkVoiceActivity, 100);
+    
+    // Change button behavior to stop recording manually
+    $('btn-voice').onclick = stopListening;
+  } catch (err) {
+    console.error('Microphone error:', err);
+    addBubble('msg-error', `Microphone error: ${err.message}`);
+    voiceMode = false;
+    updateVoiceStatus('');
+  }
+}
+
+function stopListening() {
+  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+    console.log('Stopping recording');
+    mediaRecorder.stop();
+    voiceState = 'processing';
+    $('btn-voice').classList.remove('listening');
+    $('btn-voice').classList.add('processing');
+    updateVoiceStatus('Processing...');
+    
+    // Cleanup VAD
+    if (vadCheckInterval) {
+      clearInterval(vadCheckInterval);
+      vadCheckInterval = null;
+    }
+    
+    // Restore button behavior
+    $('btn-voice').onclick = toggleVoice;
+  }
+}
+
+async function sendAudioToServer(audioBlob) {
+  try {
+    const formData = new FormData();
+    formData.append('audio', audioBlob, 'voice-input.webm');
+    formData.append('session_id', SESSION);
+    
+    const res = await fetch(`${API}/voice-input`, {
+      method: 'POST',
+      body: formData,
+    });
+    
+    const data = await res.json();
+    
+    // Display what the user actually said (transcribed text)
+    if (data.transcribed_text) {
+      addBubble('msg-user', '[Voice] ' + data.transcribed_text);
+    }
+    
+    // Play TTS response
+    await playTTSAudio(data.audio_id, data.text);
+    
+    // Check if done or if we shouldn't wait for input
+    if (data.phase === 'done' || data.phase === 'error') {
+      voiceMode = false;
+      voiceState = 'idle';
+      $('btn-voice').classList.remove('listening', 'processing', 'speaking');
+      $('voice-status').style.display = 'none';
+      updateVoiceStatus('');
+      addBubble('msg-system', 'Voice session ended.');
+      // Stop media stream
+      if (mediaStream) {
+        mediaStream.getTracks().forEach(track => track.stop());
+        mediaStream = null;
+      }
+    } else if (data.wait_for_input !== false) {
+      // Only continue listening if wait_for_input is not explicitly false
+      await startListening();
+    } else {
+      // Don't start listening - backend is processing
+      voiceState = 'idle';
+      $('btn-voice').classList.remove('listening', 'processing', 'speaking');
+      updateVoiceStatus('Ready for next question...');
+    }
+  } catch (err) {
+    console.error('Audio upload error:', err);
+    addBubble('msg-error', `Upload error: ${err.message}`);
+    voiceMode = false;
+    voiceState = 'idle';
+    $('btn-voice').classList.remove('listening', 'processing', 'speaking');
+    updateVoiceStatus('');
+    // Stop media stream on error
+    if (mediaStream) {
+      mediaStream.getTracks().forEach(track => track.stop());
+      mediaStream = null;
+    }
+  }
+}
+
+async function playTTSAudio(audioId, text) {
+  return new Promise((resolve, reject) => {
+    const audio = $('tts-audio');
+    const audioUrl = `${API}/tts-audio/${audioId}`;
+    
+    voiceState = 'speaking';
+    $('btn-voice').classList.remove('listening', 'processing');
+    $('btn-voice').classList.add('speaking');
+    updateVoiceStatus('Speaking...');
+    
+    // Show assistant message
+    addBubble('msg-assistant', text);
+    
+    audio.src = audioUrl;
+    audio.onended = () => {
+      voiceState = 'idle';
+      $('btn-voice').classList.remove('speaking');
+      resolve();
+    };
+    audio.onerror = (err) => {
+      console.error('Audio playback error:', err);
+      voiceState = 'idle';
+      $('btn-voice').classList.remove('speaking');
+      reject(err);
+    };
+    
+    audio.play().catch(err => {
+      console.error('Audio play error:', err);
+      voiceState = 'idle';
+      $('btn-voice').classList.remove('speaking');
+      reject(err);
+    });
+  });
+}
+
+function updateVoiceStatus(message) {
+  const statusEl = $('voice-status');
+  if (message) {
+    statusEl.textContent = message;
+    statusEl.style.display = 'block';
+  } else {
+    statusEl.textContent = '';
+    statusEl.style.display = 'none';
+  }
 }
 </script>
 </body>

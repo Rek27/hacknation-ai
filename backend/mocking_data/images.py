@@ -155,4 +155,4 @@ print("image_id sample:", df['image_id'].dropna().head().tolist())
 df.to_csv('items.csv', index=False)
 print("✅ SAVED!")
 
-print(f"Unique images: {next_image_id}, Shared: {sum(1 for iid in df['image_id'] if iid == '0')}")
+print(f"Unique images: {next_image_id}, Shared: {df['image_id'].eq('0').sum()}")

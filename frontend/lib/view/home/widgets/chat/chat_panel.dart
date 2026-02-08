@@ -17,10 +17,8 @@ class ChatPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ChatController controller = context.watch<ChatController>();
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
     return Container(
-      color: colorScheme.surfaceContainerLow,
+      color: Colors.transparent,
       child: Column(
         children: [
           // Main content: sample prompts or message list
@@ -32,13 +30,7 @@ class ChatPanel extends StatelessWidget {
           // Pinned TextFormChunk (final step)
           if (controller.pinnedTextForm != null)
             _PinnedFormSection(chunk: controller.pinnedTextForm!),
-          // Loading indicator
-          if (controller.isLoading)
-            LinearProgressIndicator(
-              minHeight: 2,
-              color: colorScheme.primary,
-              backgroundColor: colorScheme.surfaceContainerHighest,
-            ),
+          // Loading indicator removed – thinking bubble shown in message list
           // Input bar
           const ChatInputBar(),
         ],

@@ -5,6 +5,7 @@ import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/model/chat_message.dart';
 import 'package:frontend/view/home/widgets/chat/chat_bubble.dart';
 import 'package:frontend/view/home/widgets/chat/chat_controller.dart';
+import 'package:frontend/view/home/widgets/chat/thinking_bubble.dart';
 
 /// Scrollable message list with auto-scroll and consecutive sender grouping.
 class ChatMessageList extends StatefulWidget {
@@ -49,7 +50,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
     if (!_scrollController.hasClients) return;
     _scrollController.animateTo(
       _scrollController.position.maxScrollExtent,
-      duration: const Duration(milliseconds: 300),
+      duration: AppConstants.durationSlow,
       curve: Curves.easeOut,
     );
   }
@@ -69,13 +70,19 @@ class _ChatMessageListState extends State<ChatMessageList> {
       });
     }
 
+    final bool isLoading = controller.isLoading;
+    final int totalItems = messages.length + (isLoading ? 1 : 0);
     return Stack(
       children: [
         ListView.builder(
           controller: _scrollController,
           padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingSm),
-          itemCount: messages.length,
+          itemCount: totalItems,
           itemBuilder: (BuildContext context, int index) {
+            // Last item is the thinking bubble when loading
+            if (isLoading && index == messages.length) {
+              return const ThinkingBubble();
+            }
             final ChatMessage message = messages[index];
             final bool showAvatar = _shouldShowAvatar(messages, index);
             final bool isDisabled = controller.isMessageDisabled(message.id);
@@ -130,7 +137,7 @@ class _ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: AppConstants.durationMedium,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: _isHovered
@@ -139,8 +146,8 @@ class _ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
           boxShadow: [
             BoxShadow(
               color: colorScheme.shadow.withValues(alpha: 0.12),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              blurRadius: AppConstants.elevationMd,
+              offset: const Offset(0, AppConstants.elevationSm),
             ),
           ],
         ),
