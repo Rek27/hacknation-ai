@@ -267,5 +267,5 @@ String _formatPrice(double price) {
   }
   final grouped = buf.toString().split('').reversed.join();
   final sign = isNegative ? '-' : '';
-  return '€$sign$grouped,$decPart';
+  return '$sign$grouped,$decPart €';
 }

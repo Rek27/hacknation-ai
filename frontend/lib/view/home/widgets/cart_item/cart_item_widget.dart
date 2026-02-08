@@ -491,7 +491,7 @@ String _formatPrice(double price) {
   }
   final grouped = buf.toString().split('').reversed.join();
   final sign = isNegative ? '-' : '';
-  return '€$sign$grouped,$decPart';
+  return '$sign$grouped,$decPart €';
 }
 
 /// Short human label for a duration (e.g. 2d, 5h, 30m).
