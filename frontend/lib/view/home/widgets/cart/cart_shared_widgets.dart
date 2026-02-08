@@ -15,11 +15,11 @@ class CartRetailerChip extends StatelessWidget {
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+        borderRadius: BorderRadius.circular(AppConstants.radiusFull),
       ),
       padding: const EdgeInsets.symmetric(
         horizontal: AppConstants.spacingSm,
-        vertical: AppConstants.spacingXs,
+        vertical: AppConstants.spacingXs / 2,
       ),
       child: Text(
         text,
@@ -42,12 +42,16 @@ class CartImagePlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return ClipRRect(
-      borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+      borderRadius: BorderRadius.circular(AppConstants.radiusMd),
       child: Container(
         width: size,
         height: size,
         color: color ?? colorScheme.surfaceContainerHighest,
-        child: const Icon(Icons.image, size: AppConstants.iconSizeSm),
+        child: Icon(
+          Icons.image_outlined,
+          size: size * 0.4,
+          color: colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+        ),
       ),
     );
   }
@@ -60,23 +64,44 @@ class CartEmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
     return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.shopping_cart_outlined),
-          const SizedBox(height: AppConstants.spacingMd),
-          Text(
-            'No items yet',
-            style: theme.textTheme.titleMedium,
-          ),
-          const SizedBox(height: AppConstants.spacingSm),
-          Text(
-            'Tell the agent what you need and it\'ll find the best deals across the web.',
-            style: theme.textTheme.bodyMedium,
-            textAlign: TextAlign.center,
-          ),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingXl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: AppConstants.errorIconSize,
+              height: AppConstants.errorIconSize,
+              decoration: BoxDecoration(
+                color: colorScheme.surfaceContainerHigh,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.shopping_cart_outlined,
+                size: AppConstants.iconSizeSm + 8,
+                color: colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: AppConstants.spacingLg),
+            Text(
+              'No items yet',
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: AppConstants.spacingSm),
+            Text(
+              'Tell the agent what you need and it\'ll find the best deals across the web.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: colorScheme.onSurfaceVariant,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -108,22 +133,20 @@ class CartCheckoutBar extends StatelessWidget {
             width: double.infinity,
             child: FilledButton.icon(
               style: FilledButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppConstants.spacingSm + 4,
+                ),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                  borderRadius: BorderRadius.circular(AppConstants.radiusLg),
                 ),
               ),
               onPressed: onCheckout,
               icon: const Icon(Icons.bolt),
-              label: Padding(
-                padding: const EdgeInsets.symmetric(
-                  vertical: AppConstants.spacingSm,
-                ),
-                child: Text(
-                  'Checkout All — ${formatPrice(totalPrice)}',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: colorScheme.onPrimary,
-                    fontWeight: FontWeight.w700,
-                  ),
+              label: Text(
+                'Checkout All — ${formatPrice(totalPrice)}',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: colorScheme.onPrimary,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
             ),

@@ -145,7 +145,7 @@ class _CategoryColumn extends StatelessWidget {
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return AnimatedSize(
-      duration: const Duration(milliseconds: 300),
+      duration: AppConstants.durationSlow,
       curve: Curves.easeInOut,
       alignment: Alignment.topCenter,
       child: Column(
@@ -155,7 +155,7 @@ class _CategoryColumn extends StatelessWidget {
           tile,
           if (isExpanded)
             Container(
-              margin: const EdgeInsets.only(top: AppConstants.radiusXxs),
+              margin: const EdgeInsets.only(top: AppConstants.spacingXs),
               padding: const EdgeInsets.only(left: AppConstants.spacingXs),
               decoration: BoxDecoration(
                 border: Border(
@@ -166,7 +166,7 @@ class _CategoryColumn extends StatelessWidget {
                 ),
               ),
               child: AnimatedOpacity(
-                duration: const Duration(milliseconds: 250),
+                duration: AppConstants.durationMedium,
                 opacity: 1.0,
                 child: subcategories,
               ),
@@ -201,10 +201,10 @@ class _SubmitTreeButtonState extends State<_SubmitTreeButton> {
         onExit: (_) => setState(() => _isHovered = false),
         cursor: SystemMouseCursors.click,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: AppConstants.durationMedium,
           child: ElevatedButton.icon(
             onPressed: widget.onPressed,
-            icon: const Icon(Icons.check_rounded, size: 18),
+            icon: const Icon(Icons.check_rounded, size: AppConstants.iconSizeXs),
             label: const Text('Submit Selection'),
             style: ElevatedButton.styleFrom(
               backgroundColor: _isHovered

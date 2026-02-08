@@ -19,13 +19,13 @@ class TextChunkWidget extends StatelessWidget {
         vertical: AppConstants.spacingMd,
       ),
       decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(AppConstants.radiusLg),
         boxShadow: [
           BoxShadow(
             color: colorScheme.shadow.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            blurRadius: AppConstants.elevationMd,
+            offset: const Offset(0, AppConstants.elevationSm),
           ),
         ],
       ),

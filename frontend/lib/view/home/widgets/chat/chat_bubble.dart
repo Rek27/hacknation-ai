@@ -87,9 +87,8 @@ class ChatBubble extends StatelessWidget {
           ),
           child: Text(
             _formatTimestamp(message.timestamp),
-            style: theme.textTheme.bodySmall?.copyWith(
+            style: theme.textTheme.labelSmall?.copyWith(
               color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-              fontSize: 11,
             ),
           ),
         ),
@@ -146,12 +145,12 @@ class _UserTextBubble extends StatelessWidget {
       ),
       decoration: BoxDecoration(
         color: colorScheme.primary,
-        borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+        borderRadius: BorderRadius.circular(AppConstants.radiusLg),
         boxShadow: [
           BoxShadow(
             color: colorScheme.shadow.withValues(alpha: 0.06),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            blurRadius: AppConstants.elevationMd,
+            offset: const Offset(0, AppConstants.elevationSm),
           ),
         ],
       ),

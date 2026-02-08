@@ -111,7 +111,7 @@ class CartPanel extends StatelessWidget {
                     : ListView.separated(
                         padding: const EdgeInsets.only(
                           top: AppConstants.spacingMd,
-                          bottom: 104, // space for bottom bar height
+                          bottom: AppConstants.bottomBarHeight,
                         ),
                         itemCount: controller.items.length,
                         separatorBuilder: (context, index) =>
@@ -153,9 +153,7 @@ class CartPanel extends StatelessWidget {
                   color: colorScheme.surface,
                   border: Border(
                     top: BorderSide(
-                      color: colorScheme.surfaceContainerHighest.withValues(
-                        alpha: 0.3,
-                      ),
+                      color: colorScheme.outlineVariant,
                       width: 1,
                     ),
                   ),
@@ -217,7 +215,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
     final cs = theme.colorScheme;
     final controller = context.watch<CartController>();
     return Padding(
-      padding: const EdgeInsets.only(top: AppConstants.spacingMd, bottom: 104),
+      padding: const EdgeInsets.only(top: AppConstants.spacingMd, bottom: AppConstants.bottomBarHeight),
       child: ListView(
         children: [
           // Header with back
@@ -265,7 +263,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CartImagePlaceholder(
-                    size: 75,
+                    size: AppConstants.cartSummaryImageSize,
                     color: cs.surfaceContainerHighest,
                   ),
                   const SizedBox(width: AppConstants.spacingMd),
@@ -327,8 +325,8 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                         const SizedBox(height: AppConstants.spacingXs),
                         Row(
                           children: [
-                            const Icon(Icons.calendar_today_outlined, size: 14),
-                            const SizedBox(width: 6),
+                            const Icon(Icons.calendar_today_outlined, size: AppConstants.metaIconSize),
+                            const SizedBox(width: AppConstants.metaIconGap),
                             Text(
                               formatEstimatedDateFromNow(
                                 item.deliveryTime,
@@ -336,8 +334,8 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                               style: theme.textTheme.bodySmall,
                             ),
                             const SizedBox(width: AppConstants.spacingMd),
-                            const Icon(Icons.shopping_bag_outlined, size: 14),
-                            const SizedBox(width: 6),
+                            const Icon(Icons.shopping_bag_outlined, size: AppConstants.metaIconSize),
+                            const SizedBox(width: AppConstants.metaIconGap),
                             Text(
                               'Qty: ${item.amount}',
                               style: theme.textTheme.bodySmall,

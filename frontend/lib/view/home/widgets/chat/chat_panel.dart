@@ -20,7 +20,7 @@ class ChatPanel extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
     return Container(
-      color: colorScheme.surfaceContainerLow,
+      color: Colors.transparent,
       child: Column(
         children: [
           // Main content: sample prompts or message list

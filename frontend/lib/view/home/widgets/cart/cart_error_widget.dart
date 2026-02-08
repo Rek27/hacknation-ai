@@ -23,8 +23,8 @@ class CartErrorWidget extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 75,
-            height: 75,
+            width: AppConstants.errorIconSize,
+            height: AppConstants.errorIconSize,
             decoration: BoxDecoration(
               color: cs.errorContainer,
               borderRadius: BorderRadius.circular(AppConstants.radiusMd),

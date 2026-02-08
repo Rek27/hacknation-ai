@@ -25,21 +25,24 @@ class CartItemMobileWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final Color borderColor = isExpanded
         ? colorScheme.primary
         : colorScheme.outlineVariant.withValues(alpha: 0.6);
-    return InkWell(
-      onTap: onToggle,
-      child: Container(
-        decoration: BoxDecoration(
-          color: colorScheme.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-          border: Border.all(color: borderColor, width: 1.5),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(AppConstants.spacingSm),
+    return Material(
+      color: colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+      child: InkWell(
+        onTap: onToggle,
+        borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+        child: AnimatedContainer(
+          duration: AppConstants.durationMedium,
+          curve: Curves.easeOut,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+            border: Border.all(color: borderColor, width: 1.5),
+          ),
+          padding: const EdgeInsets.all(AppConstants.spacingSm + 2),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -84,7 +87,10 @@ class _MobileHeaderRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const CartImagePlaceholder(size: 56),
+        CartImagePlaceholder(
+          size: AppConstants.cartImageSizeMobile,
+          color: colorScheme.surfaceContainerHigh,
+        ),
         const SizedBox(width: AppConstants.spacingSm),
         Expanded(
           child: Column(
@@ -128,25 +134,37 @@ class _MobileHeaderRow extends StatelessWidget {
               const SizedBox(height: AppConstants.spacingXs),
               Row(
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.calendar_today_outlined,
-                    size: AppConstants.iconSizeXs,
+                    size: AppConstants.metaIconSize,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
+                  const SizedBox(width: AppConstants.spacingXs),
+                  Flexible(
+                    child: Text(
+                      formatEstimatedDateFromNow(item.deliveryTime),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const SizedBox(width: AppConstants.spacingSm),
+                  Icon(
+                    Icons.shopping_bag_outlined,
+                    size: AppConstants.metaIconSize,
+                    color: colorScheme.onSurfaceVariant,
                   ),
                   const SizedBox(width: AppConstants.spacingXs),
                   Text(
-                    formatEstimatedDateFromNow(item.deliveryTime),
-                    style: theme.textTheme.bodySmall,
+                    'Qty:',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
-                  const SizedBox(width: AppConstants.spacingMd),
-                  const Icon(
-                    Icons.shopping_bag_outlined,
-                    size: AppConstants.iconSizeXs,
-                  ),
-                  const SizedBox(width: AppConstants.spacingXs),
-                  const Text('Qty:'),
                   const SizedBox(width: AppConstants.spacingXs),
                   SizedBox(
-                    width: 40,
+                    width: AppConstants.qtyFieldWidth,
                     child: TextFormField(
                       initialValue: item.amount.toString(),
                       keyboardType: TextInputType.number,
@@ -160,11 +178,34 @@ class _MobileHeaderRow extends StatelessWidget {
                       },
                       textAlign: TextAlign.center,
                       style: theme.textTheme.bodySmall,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         isDense: true,
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: AppConstants.spacingSm,
+                        filled: true,
+                        fillColor: colorScheme.surfaceContainerHigh,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppConstants.spacingXs,
                           vertical: AppConstants.spacingXs,
+                        ),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusSm,
+                          ),
+                          borderSide: BorderSide.none,
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusSm,
+                          ),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusSm,
+                          ),
+                          borderSide: BorderSide(
+                            color: colorScheme.primary,
+                            width: 1,
+                          ),
                         ),
                         hintText: 'Qty',
                       ),
@@ -198,9 +239,10 @@ class _MobileActionIcons extends StatelessWidget {
       children: [
         IconButton(
           tooltip: 'Remove',
-          icon: const Icon(
+          icon: Icon(
             Icons.delete_outline,
             size: AppConstants.iconSizeXs,
+            color: colorScheme.onSurfaceVariant,
           ),
           onPressed: () {
             final String key = item.id ?? item.name;
@@ -243,7 +285,7 @@ class _MobileExpandedDetails extends StatelessWidget {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.08),
+            color: colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(AppConstants.radiusSm),
           ),
           padding: const EdgeInsets.all(AppConstants.spacingSm),
@@ -254,22 +296,29 @@ class _MobileExpandedDetails extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(
+                  Icon(
                     Icons.local_shipping_outlined,
-                    size: AppConstants.iconSizeXs,
+                    size: AppConstants.metaIconSize,
+                    color: colorScheme.onSurfaceVariant,
                   ),
-                  const SizedBox(width: AppConstants.spacingSm),
+                  const SizedBox(width: AppConstants.metaIconGap),
                   Text(
                     'Est. delivery: ${formatEstimatedDurationLabel(item.deliveryTime)}',
-                    style: theme.textTheme.bodySmall,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.attach_money, size: AppConstants.iconSizeXs),
-                  const SizedBox(width: AppConstants.spacingSm),
+                  Icon(
+                    Icons.attach_money,
+                    size: AppConstants.metaIconSize,
+                    color: colorScheme.primary,
+                  ),
+                  const SizedBox(width: AppConstants.metaIconGap),
                   Text(
                     'Item total: ${formatPrice(item.price * item.amount)}',
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -305,8 +354,7 @@ class _MobileRecommendationsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final CartController controller = context.read<CartController>();
     final CartItem displayedMain =
         controller.getDisplayedMain(groupIndex) ?? group.main;
@@ -314,10 +362,11 @@ class _MobileRecommendationsGrid extends StatelessWidget {
     final bool selectBest = _same(displayedMain, group.bestReviewed);
     final bool selectFastest = _same(displayedMain, group.fastest);
     final bool selectMain = !(selectCheapest || selectBest || selectFastest);
-    final Color c1 = colorScheme.primary.withValues(alpha: 0.1);
-    final Color c2 = colorScheme.primaryFixed.withValues(alpha: 0.1);
-    final Color c3 = colorScheme.primaryFixedDim.withValues(alpha: 0.15);
-    final Color c4 = colorScheme.onPrimaryFixedVariant.withValues(alpha: 0.15);
+    final Color tint = colorScheme.primary;
+    final Color c1 = tint.withValues(alpha: 0.08);
+    final Color c2 = tint.withValues(alpha: 0.05);
+    final Color c3 = tint.withValues(alpha: 0.06);
+    final Color c4 = tint.withValues(alpha: 0.04);
     return LayoutBuilder(
       builder: (BuildContext context, BoxConstraints constraints) {
         final double tileWidth =
@@ -392,19 +441,20 @@ class _MobileRecommendationTile extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
     final Color borderColor =
-        selected ? colorScheme.primary : Colors.transparent;
-    final double borderWidth = selected ? 2 : 1;
+        selected ? colorScheme.primary : colorScheme.outlineVariant.withValues(alpha: 0.4);
+    final double borderWidth = selected ? 2 : 0.5;
     return SizedBox(
       width: width,
       child: Material(
-        color: Colors.transparent,
+        color: bg,
+        borderRadius: BorderRadius.circular(AppConstants.radiusMd),
         child: InkWell(
-          borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+          borderRadius: BorderRadius.circular(AppConstants.radiusMd),
           onTap: onTap,
-          child: Container(
+          child: AnimatedContainer(
+            duration: AppConstants.durationFast,
             decoration: BoxDecoration(
-              color: bg,
-              borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+              borderRadius: BorderRadius.circular(AppConstants.radiusMd),
               border: Border.all(color: borderColor, width: borderWidth),
             ),
             padding: const EdgeInsets.all(AppConstants.spacingSm),

@@ -119,6 +119,7 @@ class _PreCallCenterContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingXl),
@@ -132,18 +133,16 @@ class _PreCallCenterContent extends StatelessWidget {
             const SizedBox(height: AppConstants.spacingLg),
             Text(
               AppConstants.callUiAssistantName,
-              style: const TextStyle(
+              style: theme.textTheme.headlineMedium?.copyWith(
                 color: Colors.white,
-                fontSize: 28,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: AppConstants.spacingSm),
             Text(
               'Tap to start a call with your assistant',
-              style: TextStyle(
+              style: theme.textTheme.bodyLarge?.copyWith(
                 color: Colors.white.withValues(alpha: 0.8),
-                fontSize: 16,
               ),
               textAlign: TextAlign.center,
             ),
@@ -171,26 +170,22 @@ class _PreCallBottomButton extends StatelessWidget {
       child: Semantics(
         label: 'Start call',
         button: true,
-        child: GestureDetector(
-          onTap: onStartCall,
-          child: Container(
-            width: AppConstants.callUiEndButtonSize,
-            height: AppConstants.callUiEndButtonSize,
-            decoration: BoxDecoration(
-              color: const Color(0xFF34C759),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF34C759).withValues(alpha: 0.4),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.call_rounded,
-              color: Colors.white,
-              size: 36,
+        child: Material(
+          color: AppConstants.callAccept,
+          shape: const CircleBorder(),
+          elevation: AppConstants.elevationSm,
+          shadowColor: AppConstants.callAccept.withValues(alpha: 0.4),
+          child: InkWell(
+            onTap: onStartCall,
+            customBorder: const CircleBorder(),
+            child: SizedBox(
+              width: AppConstants.callUiEndButtonSize,
+              height: AppConstants.callUiEndButtonSize,
+              child: const Icon(
+                Icons.call_rounded,
+                color: Colors.white,
+                size: AppConstants.callUiActionIconSize,
+              ),
             ),
           ),
         ),
@@ -241,9 +236,9 @@ class _CallStyleBackground extends StatelessWidget {
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [
-            Color(0xFF1C1C1E),
-            Color(0xFF2C2C2E),
-            Color(0xFF000000),
+            AppConstants.callBgTop,
+            AppConstants.callBgMid,
+            AppConstants.callBgBottom,
           ],
         ),
       ),
@@ -273,7 +268,10 @@ class _CallTopBar extends StatelessWidget {
             color: Colors.white,
             iconSize: AppConstants.iconSizeSm,
             style: IconButton.styleFrom(
-              minimumSize: const Size(44, 44),
+              minimumSize: const Size(
+                AppConstants.callUiTouchTarget,
+                AppConstants.callUiTouchTarget,
+              ),
             ),
           ),
         ],
@@ -287,6 +285,7 @@ class _CallCenterContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     final ChatController chatController = context.watch<ChatController>();
     final MicrophoneController micController = context.watch<MicrophoneController>();
     return Center(
@@ -302,18 +301,16 @@ class _CallCenterContent extends StatelessWidget {
             const SizedBox(height: AppConstants.spacingLg),
             Text(
               AppConstants.callUiAssistantName,
-              style: const TextStyle(
+              style: theme.textTheme.headlineMedium?.copyWith(
                 color: Colors.white,
-                fontSize: 28,
                 fontWeight: FontWeight.w600,
               ),
             ),
             const SizedBox(height: AppConstants.spacingSm),
             Text(
               chatController.isLoading ? 'Listening...' : 'Say something',
-              style: TextStyle(
+              style: theme.textTheme.bodyLarge?.copyWith(
                 color: Colors.white.withValues(alpha: 0.8),
-                fontSize: 16,
               ),
             ),
             const SizedBox(height: AppConstants.spacingLg),
@@ -334,6 +331,7 @@ class _LiveTranscriptStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     final String? snippet = _lastAgentTextSnippet(chatController);
     if (snippet == null || snippet.isEmpty) return const SizedBox.shrink();
     return ConstrainedBox(
@@ -351,9 +349,8 @@ class _LiveTranscriptStrip extends StatelessWidget {
           snippet,
           maxLines: 3,
           overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: Colors.white70,
-            fontSize: 14,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: Colors.white.withValues(alpha: 0.7),
           ),
           textAlign: TextAlign.center,
         ),
@@ -428,6 +425,7 @@ class _PlaceholderCallButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -437,15 +435,17 @@ class _PlaceholderCallButton extends StatelessWidget {
           color: Colors.white,
           iconSize: AppConstants.iconSizeSm,
           style: IconButton.styleFrom(
-            minimumSize: const Size(44, 44),
+            minimumSize: const Size(
+              AppConstants.callUiTouchTarget,
+              AppConstants.callUiTouchTarget,
+            ),
           ),
         ),
         const SizedBox(height: AppConstants.spacingXs),
         Text(
           label,
-          style: TextStyle(
+          style: theme.textTheme.labelSmall?.copyWith(
             color: Colors.white.withValues(alpha: 0.8),
-            fontSize: 12,
           ),
         ),
       ],
@@ -463,30 +463,25 @@ class _EndCallButton extends StatelessWidget {
     return Semantics(
       label: 'End call',
       button: true,
-      child: GestureDetector(
-        onTap: onPressed,
-        child: Container(
-          width: AppConstants.callUiEndButtonSize,
-          height: AppConstants.callUiEndButtonSize,
-          decoration: const BoxDecoration(
-            color: Color(0xFFEB2D2D),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x4DEB2D2D),
-                blurRadius: 8,
-                offset: Offset(0, 2),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.call_end_rounded,
-            color: Colors.white,
-            size: 36,
+      child: Material(
+        color: AppConstants.callReject,
+        shape: const CircleBorder(),
+        elevation: AppConstants.elevationSm,
+        shadowColor: AppConstants.callReject.withValues(alpha: 0.4),
+        child: InkWell(
+          onTap: onPressed,
+          customBorder: const CircleBorder(),
+          child: SizedBox(
+            width: AppConstants.callUiEndButtonSize,
+            height: AppConstants.callUiEndButtonSize,
+            child: const Icon(
+              Icons.call_end_rounded,
+              color: Colors.white,
+              size: AppConstants.callUiActionIconSize,
+            ),
           ),
         ),
       ),
     );
   }
 }
-

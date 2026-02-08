@@ -128,15 +128,24 @@ class _SkeletonCartItem extends StatelessWidget {
       padding: const EdgeInsets.all(AppConstants.spacingMd),
       child: Row(
         children: [
-          const _AnimatedSkeletonBox(width: 80, height: 80),
+          const _AnimatedSkeletonBox(
+            width: AppConstants.skeletonImageSize,
+            height: AppConstants.skeletonImageSize,
+          ),
           const SizedBox(width: AppConstants.spacingMd),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                _AnimatedSkeletonBox(width: 250, height: 16),
+                _AnimatedSkeletonBox(
+                  width: AppConstants.skeletonTitleWidth,
+                  height: AppConstants.skeletonTitleHeight,
+                ),
                 SizedBox(height: AppConstants.spacingSm),
-                _AnimatedSkeletonBox(width: 170, height: 14),
+                _AnimatedSkeletonBox(
+                  width: AppConstants.skeletonSubtitleWidth,
+                  height: AppConstants.skeletonSubtitleHeight,
+                ),
               ],
             ),
           ),

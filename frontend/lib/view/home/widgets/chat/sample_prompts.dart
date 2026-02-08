@@ -82,7 +82,7 @@ class _SamplePromptCardState extends State<_SamplePromptCard> {
           context.read<ChatController>().sendSamplePrompt(widget.prompt);
         },
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
+          duration: AppConstants.durationMedium,
           curve: Curves.easeOut,
           width: AppConstants.samplePromptWidth,
           padding: const EdgeInsets.all(AppConstants.spacingLg),

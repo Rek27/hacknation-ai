@@ -48,6 +48,7 @@ class _ChatInputBarState extends State<ChatInputBar> {
     final ChatController controller = context.watch<ChatController>();
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
+    final bool isLoading = controller.isLoading;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppConstants.spacingMd,
@@ -70,26 +71,26 @@ class _ChatInputBarState extends State<ChatInputBar> {
                 focusNode: _focusNode,
                 minLines: 1,
                 maxLines: 5,
-                enabled: !controller.isLoading,
+                enabled: !isLoading,
                 textInputAction: TextInputAction.newline,
                 decoration: InputDecoration(
                   hintText: 'Type a message...',
                   filled: true,
-                  fillColor: colorScheme.surfaceContainerHighest,
+                  fillColor: colorScheme.surfaceContainerHigh,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: AppConstants.spacingLg,
-                    vertical: AppConstants.spacingMd,
+                    vertical: AppConstants.spacingSm + 2,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+                    borderRadius: BorderRadius.circular(AppConstants.radiusXl),
                     borderSide: BorderSide.none,
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+                    borderRadius: BorderRadius.circular(AppConstants.radiusXl),
                     borderSide: BorderSide.none,
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+                    borderRadius: BorderRadius.circular(AppConstants.radiusXl),
                     borderSide: BorderSide(
                       color: colorScheme.primary,
                       width: 1.5,
@@ -101,22 +102,26 @@ class _ChatInputBarState extends State<ChatInputBar> {
           ),
           const SizedBox(width: AppConstants.spacingSm),
           AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+            duration: AppConstants.durationMedium,
             child: IconButton(
-              onPressed: controller.isLoading ? null : _handleSend,
-              icon: Icon(
-                Icons.send_rounded,
-                color: controller.isLoading
-                    ? colorScheme.onSurface.withValues(alpha: 0.38)
-                    : colorScheme.primary,
+              onPressed: isLoading ? null : _handleSend,
+              icon: AnimatedSwitcher(
+                duration: AppConstants.durationFast,
+                child: Icon(
+                  Icons.send_rounded,
+                  key: ValueKey<bool>(isLoading),
+                  color: isLoading
+                      ? colorScheme.onSurface.withValues(alpha: 0.38)
+                      : colorScheme.onPrimary,
+                ),
               ),
               tooltip: 'Send message',
               style: IconButton.styleFrom(
-                backgroundColor: controller.isLoading
+                backgroundColor: isLoading
                     ? colorScheme.surfaceContainerHigh
-                    : colorScheme.primaryContainer,
+                    : colorScheme.primary,
                 shape: const CircleBorder(),
-                padding: const EdgeInsets.all(AppConstants.spacingMd),
+                padding: const EdgeInsets.all(AppConstants.spacingSm + 2),
               ),
             ),
           ),

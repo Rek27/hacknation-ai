@@ -100,8 +100,8 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget> {
             ? [
                 BoxShadow(
                   color: colorScheme.shadow.withValues(alpha: 0.1),
-                  blurRadius: 16,
-                  offset: const Offset(0, -4),
+                  blurRadius: AppConstants.elevationLg,
+                  offset: const Offset(0, -AppConstants.spacingXs),
                 ),
               ]
             : null,
@@ -245,7 +245,7 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget> {
       alignment: Alignment.centerRight,
       child: ElevatedButton.icon(
         onPressed: _handleSubmit,
-        icon: const Icon(Icons.check_rounded, size: 18),
+        icon: const Icon(Icons.check_rounded, size: AppConstants.iconSizeXs),
         label: const Text('Confirm Details'),
         style: ElevatedButton.styleFrom(
           backgroundColor: colorScheme.primary,
@@ -286,7 +286,7 @@ class _FormField extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: 14, color: colorScheme.onSurfaceVariant),
+            Icon(icon, size: AppConstants.metaIconSize, color: colorScheme.onSurfaceVariant),
             const SizedBox(width: AppConstants.spacingXs),
             Text(
               label,

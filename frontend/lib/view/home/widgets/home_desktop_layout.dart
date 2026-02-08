@@ -14,33 +14,67 @@ class HomeDesktopLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final HomeController controller = context.watch<HomeController>();
+    final ColorScheme colorScheme = Theme.of(context).colorScheme;
 
     return Row(
       children: [
+        // ── Chat panel (left) ────────────────────────────────────────
         Expanded(
           flex: 3,
-          child: ChangeNotifierProvider<ChatController>(
-            create: (_) {
-              final HomeController homeController = controller;
-              return ChatController(
-                chatService: RealChatService(
-                  homeController.api,
-                  homeController.sessionId,
-                ),
-              );
-            },
-            child: const ChatPanel(),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  colorScheme.surfaceContainerLow,
+                  colorScheme.surface,
+                ],
+              ),
+            ),
+            child: ChangeNotifierProvider<ChatController>(
+              create: (_) {
+                final HomeController homeController = controller;
+                return ChatController(
+                  chatService: RealChatService(
+                    homeController.api,
+                    homeController.sessionId,
+                  ),
+                );
+              },
+              child: const ChatPanel(),
+            ),
           ),
         ),
+        // ── Divider ──────────────────────────────────────────────────
+        VerticalDivider(
+          width: 1,
+          thickness: 1,
+          color: colorScheme.outlineVariant,
+        ),
+        // ── Cart panel (right) ───────────────────────────────────────
         Expanded(
           flex: 5,
-          child: ChangeNotifierProvider<CartController>(
-            create: (_) => CartController(),
-            child: CartPanel(),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  colorScheme.surface,
+                  colorScheme.surfaceContainerLow,
+                  colorScheme.surface,
+                ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
+            ),
+            child: ChangeNotifierProvider<CartController>(
+              create: (_) => CartController(),
+              child: CartPanel(),
+            ),
           ),
         ),
       ],
     );
   }
 }
-

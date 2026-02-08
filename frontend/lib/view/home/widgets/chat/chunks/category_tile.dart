@@ -45,7 +45,7 @@ class _CategoryTileState extends State<CategoryTile>
     super.initState();
     _scaleController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 150),
+      duration: AppConstants.durationFast,
     );
     _scaleAnimation = Tween<double>(begin: 1.0, end: 0.96).animate(
       CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
@@ -125,7 +125,7 @@ class _CategoryTileState extends State<CategoryTile>
         child: ScaleTransition(
           scale: _scaleAnimation,
           child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
+            duration: AppConstants.durationMedium,
             curve: Curves.easeOut,
             width: widget.width ?? AppConstants.categoryTileMinWidth,
             height: widget.height ?? AppConstants.categoryTileHeight,
@@ -141,8 +141,8 @@ class _CategoryTileState extends State<CategoryTile>
                   ? [
                       BoxShadow(
                         color: colorScheme.primary.withValues(alpha: 0.15),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
+                        blurRadius: AppConstants.elevationMd,
+                        offset: const Offset(0, AppConstants.elevationSm),
                       ),
                     ]
                   : null,
@@ -166,9 +166,9 @@ class _CategoryTileState extends State<CategoryTile>
       children: [
         Text(
           widget.emoji,
-          style: TextStyle(fontSize: 24 * widget.contentScale),
+          style: TextStyle(fontSize: AppConstants.categoryEmojiSizeLg * widget.contentScale),
         ),
-        SizedBox(height: AppConstants.radiusXxs * widget.contentScale),
+        SizedBox(height: AppConstants.spacingXs * widget.contentScale),
         Text(
           widget.label,
           style: theme.textTheme.bodySmall?.copyWith(
@@ -192,7 +192,7 @@ class _CategoryTileState extends State<CategoryTile>
       children: [
         Text(
           widget.emoji,
-          style: TextStyle(fontSize: 18 * widget.contentScale),
+          style: TextStyle(fontSize: AppConstants.categoryEmojiSizeMd * widget.contentScale),
         ),
         SizedBox(width: AppConstants.spacingXs),
         Flexible(
@@ -219,7 +219,7 @@ class _CategoryTileState extends State<CategoryTile>
       children: [
         Text(
           widget.emoji,
-          style: TextStyle(fontSize: 14 * widget.contentScale),
+          style: TextStyle(fontSize: AppConstants.categoryEmojiSizeSm * widget.contentScale),
         ),
         SizedBox(width: AppConstants.spacingXs),
         Flexible(

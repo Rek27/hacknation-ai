@@ -49,7 +49,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
     if (!_scrollController.hasClients) return;
     _scrollController.animateTo(
       _scrollController.position.maxScrollExtent,
-      duration: const Duration(milliseconds: 300),
+      duration: AppConstants.durationSlow,
       curve: Curves.easeOut,
     );
   }
@@ -130,7 +130,7 @@ class _ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: AppConstants.durationMedium,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: _isHovered
@@ -139,8 +139,8 @@ class _ScrollToBottomButtonState extends State<_ScrollToBottomButton> {
           boxShadow: [
             BoxShadow(
               color: colorScheme.shadow.withValues(alpha: 0.12),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              blurRadius: AppConstants.elevationMd,
+              offset: const Offset(0, AppConstants.elevationSm),
             ),
           ],
         ),

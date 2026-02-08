@@ -96,7 +96,7 @@ class _HeaderRow extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const CartImagePlaceholder(size: 80),
+        const CartImagePlaceholder(size: AppConstants.cartImageSize),
         const SizedBox(width: AppConstants.spacingMd),
         Expanded(
           child: Column(
@@ -160,10 +160,10 @@ class _HeaderRow extends StatelessWidget {
                     size: AppConstants.iconSizeXs,
                   ),
                   const SizedBox(width: AppConstants.spacingXs),
-                  Text('Qty:'),
+                  Text('Qty:', style: theme.textTheme.bodySmall),
                   const SizedBox(width: AppConstants.spacingXs),
                   SizedBox(
-                    width: 40,
+                    width: AppConstants.qtyFieldWidth,
                     child: TextFormField(
                       initialValue: item.amount.toString(),
                       keyboardType: TextInputType.number,
@@ -246,7 +246,7 @@ class _ExpandedDetails extends StatelessWidget {
       children: [
         Container(
           decoration: BoxDecoration(
-            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.08),
+            color: colorScheme.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(AppConstants.radiusSm),
           ),
           padding: const EdgeInsets.all(AppConstants.spacingSm),
@@ -305,10 +305,11 @@ class _RecommendationsRowState extends State<_RecommendationsRow> {
     final controller = context.read<CartController>();
     final group = widget.group;
 
-    final c1 = colorScheme.primary.withValues(alpha: 0.1);
-    final c2 = colorScheme.primaryFixed.withValues(alpha: 0.1);
-    final c3 = colorScheme.primaryFixedDim.withValues(alpha: 0.15);
-    final c4 = colorScheme.onPrimaryFixedVariant.withValues(alpha: 0.15);
+    final Color tint = colorScheme.primary;
+    final c1 = tint.withValues(alpha: 0.08);
+    final c2 = tint.withValues(alpha: 0.05);
+    final c3 = tint.withValues(alpha: 0.06);
+    final c4 = tint.withValues(alpha: 0.04);
 
     final displayedMain =
         controller.getDisplayedMain(widget.groupIndex) ?? group.main;
