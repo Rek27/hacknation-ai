@@ -15,6 +15,7 @@ from app.models import (
     ItemsChunk,
     TextChunk,
     RetailerOffersChunk,
+    RetailerCallStartChunk,
     CartItem,
 )
 from app.models.context import Context
@@ -474,20 +475,32 @@ async def submit_form(request: SubmitFormRequest):
                 )
             )
 
-            # Stream sponsorship offers one at a time with staggered delays
+            # Stream sponsorship calls one-by-one (start → delay → end)
             all_offers: list[dict] = []
-            async for offer in shopping_agent.stream_sponsorship_offers(
+            async for event in shopping_agent.stream_sponsorship_offers(
                 retailer_items=retailer_items,
                 event_context=ctx_text,
             ):
-                all_offers.append(offer)
-                yield (
-                    "data: "
-                    + RetailerOffersChunk(offers=[offer]).model_dump_json(
-                        by_alias=True
+                if event.get("phase") == "start":
+                    yield (
+                        "data: "
+                        + RetailerCallStartChunk(
+                            retailer=event["retailer"],
+                            item_count=event.get("item_count", 0),
+                        ).model_dump_json(by_alias=True)
+                        + "\n\n"
                     )
-                    + "\n\n"
-                )
+                else:
+                    # phase == "end" — the offer result
+                    offer_data = {k: v for k, v in event.items() if k != "phase"}
+                    all_offers.append(offer_data)
+                    yield (
+                        "data: "
+                        + RetailerOffersChunk(offers=[offer_data]).model_dump_json(
+                            by_alias=True
+                        )
+                        + "\n\n"
+                    )
 
             if all_offers:
                 summary = await _summarize_sponsorships(

@@ -57,7 +57,7 @@ body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; 
 #list-items { font-size: 12px; color: #bdbdbd; white-space: pre-wrap; }
 
 #sponsor-section h3 { font-size: 13px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
-.sponsor-item { padding: 8px 10px; border: 1px solid #2a2a2a; border-radius: 8px; margin-bottom: 8px; background: #151515; transition: opacity .4s ease, transform .4s ease; }
+.sponsor-item { padding: 8px 10px; border: 1px solid #2a2a2a; border-radius: 8px; margin-bottom: 8px; background: #151515; transition: opacity .4s ease, transform .4s ease; transition: opacity .4s ease, transform .4s ease; }
 .sponsor-item.pending { border-left: 4px solid #f59e0b; }
 .sponsor-item.approved { border-left: 4px solid #22c55e; }
 .sponsor-item.rejected { border-left: 4px solid #ef4444; }
@@ -86,6 +86,25 @@ body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; 
 
 .msg-sponsor-calling { align-self: flex-start; max-width: 80%; padding: 10px 14px; border-radius: 10px; background: #1a1a1a; border: 1px dashed #333; font-size: 13px; color: #888; display: flex; align-items: center; gap: 10px; }
 .msg-sponsor-calling .spinner { width: 14px; height: 14px; border: 2px solid #333; border-top-color: #f59e0b; border-radius: 50%; animation: spin .8s linear infinite; flex-shrink: 0; }
+
+/* ── In-chat sponsorship cards ── */
+.msg-sponsor { align-self: flex-start; max-width: 80%; padding: 0; background: transparent; border: none; }
+.msg-sponsor .sponsor-card { padding: 10px 14px; border-radius: 10px; border: 1px solid #2a2a2a; background: #151515; }
+.msg-sponsor .sponsor-card.approved { border-left: 4px solid #22c55e; }
+.msg-sponsor .sponsor-card.rejected { border-left: 4px solid #ef4444; }
+.msg-sponsor .sponsor-card .sc-header { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.msg-sponsor .sponsor-card .sc-icon { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff; flex-shrink: 0; }
+.msg-sponsor .sponsor-card.approved .sc-icon { background: #22c55e; }
+.msg-sponsor .sponsor-card.rejected .sc-icon { background: #ef4444; }
+.msg-sponsor .sponsor-card .sc-retailer { font-size: 13px; font-weight: 600; color: #e0e0e0; }
+.msg-sponsor .sponsor-card .sc-discount { font-size: 12px; color: #22c55e; margin-left: auto; }
+.msg-sponsor .sponsor-card .sc-reason { font-size: 12px; color: #999; margin-bottom: 4px; }
+.msg-sponsor .sponsor-card .sc-items { font-size: 11px; color: #777; }
+.msg-sponsor .sponsor-card .sc-items span { display: block; }
+
+.msg-sponsor-calling { align-self: flex-start; max-width: 80%; padding: 10px 14px; border-radius: 10px; background: #1a1a1a; border: 1px dashed #333; font-size: 13px; color: #888; display: flex; align-items: center; gap: 10px; }
+.msg-sponsor-calling .spinner { width: 14px; height: 14px; border: 2px solid #333; border-top-color: #f59e0b; border-radius: 50%; animation: spn .8s linear infinite; flex-shrink: 0; }
+@keyframes spn { to { transform: rotate(360deg); } }
 
 #cart-section { display: none; }
 #cart-section h3 { font-size: 13px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
@@ -387,72 +406,51 @@ function renderList(items) {
 }
 
 let sponsorCount = 0;
+let callingBubble = null;
 
 function resetSponsors() {
   sponsorCount = 0;
   callingBubble = null;
-  const container = $('sponsor-items');
-  container.innerHTML = '<div class="sponsor-waiting"><div class="spinner"></div>Contacting retailers for sponsorship...</div>';
+  $('sponsor-items').innerHTML = '<span style="color:#555">Waiting for sponsorship calls...</span>';
 }
 
-function appendSponsorOffer(offer) {
+function appendSponsorToSidebar(offer) {
   const container = $('sponsor-items');
-  // Remove "waiting" placeholder on first real offer
-  const waiting = container.querySelector('.sponsor-waiting');
-
+  // Clear placeholder text on first real offer
+  if (sponsorCount === 0) container.innerHTML = '';
   sponsorCount++;
+
   const div = document.createElement('div');
   const status = (offer.status || 'pending').toLowerCase();
-  div.className = `sponsor-item ${status} entering`;
-
+  div.className = `sponsor-item ${status}`;
   const name = document.createElement('div');
   name.className = 'name';
-  const statusIcon = status === 'approved' ? '&#10003;' : '&#10007;';
   const discount = offer.discountPercent ? ` (${offer.discountPercent}% off)` : '';
-  name.innerHTML = `${statusIcon} ${offer.retailer || 'Retailer'}${discount}`;
-
+  name.textContent = `${offer.retailer || 'Retailer'}${discount}`;
   const meta = document.createElement('div');
   meta.className = 'meta';
   const reason = offer.reason ? `${offer.reason}\n` : '';
   const items = (offer.discountedItems || []).map(i => `- ${i.item}: ${i.percent}%`).join('\n');
   meta.textContent = `${reason}${items}`.trim() || 'No details provided';
-
   div.appendChild(name);
   div.appendChild(meta);
-
-  if (waiting) container.insertBefore(div, waiting);
-  else container.appendChild(div);
-
-  // Trigger enter animation on next frame
-  requestAnimationFrame(() => {
-    div.classList.remove('entering');
-    div.classList.add('visible');
-  });
+  container.appendChild(div);
 }
 
 function finishSponsors() {
-  const container = $('sponsor-items');
-  const waiting = container.querySelector('.sponsor-waiting');
-  if (waiting) waiting.remove();
   if (sponsorCount === 0) {
-    container.innerHTML = '<span style="color:#555">No sponsorship offers received</span>';
+    $('sponsor-items').innerHTML = '<span style="color:#555">No sponsorship offers received</span>';
   }
-}
-
-function addSponsorPending(entry) {
-  appendSponsorOffer({ ...entry, status: 'pending' });
 }
 
 // ── In-chat sponsorship cards ────────────────────────────────
 
-let callingBubble = null;
-
-function showCallingBubble(retailerName) {
-  // Remove previous calling bubble if any
+function showCallingBubble(retailerName, itemCount) {
   removeCallingBubble();
   const d = document.createElement('div');
   d.className = 'msg msg-sponsor-calling';
-  d.innerHTML = `<div class="spinner"></div>Calling <strong>${retailerName || 'retailer'}</strong> for sponsorship...`;
+  const suffix = itemCount ? ` (${itemCount} item${itemCount > 1 ? 's' : ''})` : '';
+  d.innerHTML = `<div class="spinner"></div>Calling <strong>${retailerName}</strong> for sponsorship${suffix}...`;
   log.appendChild(d);
   log.scrollTop = log.scrollHeight;
   callingBubble = d;
@@ -473,7 +471,7 @@ function addSponsorChatCard(offer) {
   const reason = offer.reason || '';
   const discountedItems = (offer.discountedItems || [])
     .filter(i => i.percent > 0)
-    .map(i => `<span>  ${i.item}: ${i.percent}% off</span>`)
+    .map(i => `<span>&nbsp;&nbsp;${i.item}: ${i.percent}% off</span>`)
     .join('');
 
   const d = document.createElement('div');
@@ -581,17 +579,24 @@ async function submitForm() {
         break;
       case 'tool': {
         addBubble('msg-system', `Tool: ${data.name} → ${JSON.stringify(data.arguments || {})}`);
-        if (data.name === 'check_retailer_sponsorship') {
-          const retailer = data.arguments?.retailer || 'Retailer';
-          addSponsorPending({
-            retailer,
-            reason: data.reason || 'Checking sponsorship options...',
-          });
-        }
         break;
       }
       case 'tool_result': {
         addBubble('msg-system', `Tool result: ${data.name} → ${data.result}`);
+        break;
+      }
+      case 'retailer_call_start': {
+        // Show a loading spinner in the chat for this retailer
+        showCallingBubble(data.retailer, data.itemCount || 0);
+        break;
+      }
+      case 'retailer_offers': {
+        // Result for one retailer — render card in chat + sidebar
+        const offers = data.offers || [];
+        offers.forEach(offer => {
+          addSponsorChatCard(offer);
+          appendSponsorToSidebar(offer);
+        });
         break;
       }
       case 'cart':
@@ -603,18 +608,6 @@ async function submitForm() {
         $('phase-bar').querySelector('.dot').className = 'dot dot-done';
         addBubble('msg-system', '↑ Cart ready in sidebar');
         break;
-      case 'retailer_offers': {
-        const offers = data.offers || [];
-        offers.forEach(offer => {
-          // render rich card in chat
-          addSponsorChatCard(offer);
-          // also update sidebar
-          appendSponsorOffer(offer);
-          // show a spinner for the next call (will be removed by the next offer or by cart)
-          showCallingBubble('next retailer');
-        });
-        break;
-      }
       case 'error':
         addBubble('msg-error', `Error: ${data.message}`);
         break;

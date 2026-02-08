@@ -187,7 +187,10 @@ class ShoppingAgent:
         dict[str, list[dict[str, str | None]]],
         str,
     ]:
-        """Build cart items. Returns (cart, tool_events, missing, retailer_items, context_text)."""
+        """Build cart. Returns (cart, tool_events, missing, retailer_items, context_text).
+
+        Sponsorship is handled separately via ``stream_sponsorship_offers``.
+        """
         price_fallbacks = _price_range_map(price_ranges)
         attendees = _parse_attendees(form_data or {})
         duration_hours = _parse_duration_hours(form_data or {})
@@ -288,95 +291,104 @@ class ShoppingAgent:
             context_text,
         )
 
+    # ------------------------------------------------------------------
+    # Streaming sponsorship: yields {"phase":"start",...} and
+    # {"phase":"end",...} events sequentially with a simulated delay.
+    # ------------------------------------------------------------------
+
     async def stream_sponsorship_offers(
         self,
         retailer_items: dict[str, list[dict[str, str | None]]],
         event_context: str,
     ) -> AsyncGenerator[dict, None]:
-        """Run all sponsorship checks in parallel, then yield results one at a
-        time with a random delay (3-10 s each) so the frontend can animate."""
+        """Yield start/end events for each retailer sponsorship call.
 
+        Each retailer produces two yields:
+        1. ``{"phase": "start", "retailer": ..., "item_count": ...}``
+        2. ``{"phase": "end", ...offer_data...}``
+
+        The mock calls are resolved upfront (parallel) so the
+        forced-rejection logic can be applied, then results are drip-fed
+        sequentially with a 2-4 s delay per call.
+        """
         if not retailer_items:
             return
 
-        # --- fire all mock calls concurrently ---------------------------------
-        sponsorship_entries: list[tuple[str, asyncio.Future]] = []
-        for retailer, retailer_item_list in retailer_items.items():
-            sponsorship_entries.append(
-                (
-                    retailer,
-                    asyncio.to_thread(
-                        check_retailer_sponsorship,
-                        retailer=retailer,
-                        items=json.dumps(retailer_item_list),
-                        event_context=event_context,
-                    ),
-                )
-            )
+        # ── run all mock calls in parallel ────────────────────────────
+        entries: list[tuple[str, list, asyncio.Future]] = []
+        for retailer, item_list in retailer_items.items():
+            entries.append((
+                retailer,
+                item_list,
+                asyncio.to_thread(
+                    check_retailer_sponsorship,
+                    retailer=retailer,
+                    items=json.dumps(item_list),
+                    event_context=event_context,
+                ),
+            ))
 
         raw_results = await asyncio.gather(
-            *(entry[1] for entry in sponsorship_entries),
+            *(e[2] for e in entries),
             return_exceptions=True,
         )
 
-        # --- collect results --------------------------------------------------
-        sponsorship_results: list[dict] = []
-        for (retailer, _), raw in zip(sponsorship_entries, raw_results):
+        # ── collect & normalise ───────────────────────────────────────
+        resolved: list[tuple[str, list, dict]] = []
+        for (retailer, item_list, _), raw in zip(entries, raw_results):
             if isinstance(raw, Exception):
                 logger.warning(f"Sponsorship tool failed for {retailer}: {raw}")
-                sponsorship_results.append(
-                    {
-                        "retailer": retailer,
-                        "status": "rejected",
-                        "reason": "Tool error",
-                        "discountedItems": [],
-                    }
-                )
+                resolved.append((retailer, item_list, {
+                    "retailer": retailer,
+                    "status": "rejected",
+                    "reason": "Tool error",
+                    "discountedItems": [],
+                }))
                 continue
             try:
                 parsed = json.loads(raw)
                 if isinstance(parsed, dict):
-                    sponsorship_results.append(parsed)
+                    resolved.append((retailer, item_list, parsed))
                 else:
-                    sponsorship_results.append(
-                        {
-                            "retailer": retailer,
-                            "status": "rejected",
-                            "reason": "Invalid tool response",
-                            "discountedItems": [],
-                        }
-                    )
-            except json.JSONDecodeError:
-                sponsorship_results.append(
-                    {
+                    resolved.append((retailer, item_list, {
                         "retailer": retailer,
                         "status": "rejected",
                         "reason": "Invalid tool response",
                         "discountedItems": [],
-                    }
-                )
+                    }))
+            except json.JSONDecodeError:
+                resolved.append((retailer, item_list, {
+                    "retailer": retailer,
+                    "status": "rejected",
+                    "reason": "Invalid tool response",
+                    "discountedItems": [],
+                }))
 
-        # --- force at least one rejection when all approved -------------------
-        if sponsorship_results and all(
-            r.get("status") == "approved" for r in sponsorship_results
-        ):
-            forced = sponsorship_results[0]
+        # ── force at least one rejection when all approved ────────────
+        all_offers = [r[2] for r in resolved]
+        if all_offers and all(o.get("status") == "approved" for o in all_offers):
+            forced = all_offers[0]
             forced["status"] = "rejected"
-            forced["reason"] = (
-                "Sponsorship budget already committed for this event."
-            )
+            forced["reason"] = "Sponsorship budget already committed for this event."
             forced["discountPercent"] = None
             forced["discountedItems"] = []
 
-        # --- yield one offer at a time with staggered delays ------------------
-        for offer in sponsorship_results:
+        # ── yield start → delay → end for each retailer ──────────────
+        for retailer, item_list, offer in resolved:
+            yield {
+                "phase": "start",
+                "retailer": retailer,
+                "item_count": len(item_list),
+            }
             delay = random.uniform(2.0, 4.0)
             logger.info(
-                f"Sponsorship offer for {offer.get('retailer', '?')} — "
-                f"sleeping {delay:.1f}s before emitting"
+                f"Sponsorship call to {retailer} — sleeping {delay:.1f}s"
             )
             await asyncio.sleep(delay)
-            yield offer
+            yield {
+                "phase": "end",
+                **offer,
+            }
 
     def _result_to_candidate(
         self,

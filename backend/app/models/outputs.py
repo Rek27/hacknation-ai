@@ -149,6 +149,20 @@ class RetailerOffersChunk(BaseModel):
     model_config = _model_config
 
 
+class RetailerCallStartChunk(BaseModel):
+    """Signals that a sponsorship call to a retailer has started."""
+
+    type: Literal["retailer_call_start"] = "retailer_call_start"
+    retailer: str = Field(..., description="Retailer being contacted")
+    item_count: int = Field(
+        default=0,
+        alias="itemCount",
+        description="Number of items included in the sponsorship request",
+    )
+
+    model_config = _model_config
+
+
 class ShoppingList(BaseModel):
     """Internal shopping list generated after form submission."""
 
@@ -280,6 +294,7 @@ OutputItem = Union[
     PlaceTreeTrunk,
     TextFormChunk,
     ItemsChunk,
+    RetailerCallStartChunk,
     RetailerOffersChunk,
     ChunkShoppingCart,
     ErrorOutput,
