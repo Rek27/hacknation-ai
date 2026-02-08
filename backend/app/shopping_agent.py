@@ -8,9 +8,10 @@ import asyncio
 import json
 import math
 import os
+import random
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, AsyncGenerator
 
 from app.logger import get_logger
 from app.models import CartItem, CartItemDetail, ChunkShoppingCart
@@ -179,7 +180,17 @@ class ShoppingAgent:
         quantities: dict[str, int],
         form_data: dict[str, str] | None,
         event_context: str | None = None,
-    ) -> tuple[ChunkShoppingCart, list[dict], list[str], list[dict]]:
+    ) -> tuple[
+        ChunkShoppingCart,
+        list[dict],
+        list[str],
+        dict[str, list[dict[str, str | None]]],
+        str,
+    ]:
+        """Build cart. Returns (cart, tool_events, missing, retailer_items, context_text).
+
+        Sponsorship is handled separately via ``stream_sponsorship_offers``.
+        """
         price_fallbacks = _price_range_map(price_ranges)
         attendees = _parse_attendees(form_data or {})
         duration_hours = _parse_duration_hours(form_data or {})
@@ -272,107 +283,112 @@ class ShoppingAgent:
                 * cart_item.recommended_item.amount
             )
 
-        sponsorship_entries: list[tuple[str, asyncio.Future]] = []
-        for retailer, retailer_item_list in retailer_items.items():
-            tool_events.append(
-                {
-                    "type": "tool",
-                    "name": "check_retailer_sponsorship",
-                    "reason": "Request sponsorship/discount from retailer",
-                    "arguments": {
-                        "retailer": retailer,
-                        "items": retailer_item_list,
-                        "event_context": context_text,
-                    },
-                }
-            )
-            sponsorship_entries.append(
-                (
-                    retailer,
-                    asyncio.to_thread(
-                        check_retailer_sponsorship,
-                        retailer=retailer,
-                        items=json.dumps(retailer_item_list),
-                        event_context=context_text,
-                    ),
-                )
-            )
-
-        sponsorship_results: list[dict] = []
-        if sponsorship_entries:
-            raw_results = await asyncio.gather(
-                *(entry[1] for entry in sponsorship_entries),
-                return_exceptions=True,
-            )
-            for (retailer, _), raw in zip(sponsorship_entries, raw_results):
-                if isinstance(raw, Exception):
-                    logger.warning(
-                        f"Sponsorship tool failed for {retailer}: {raw}"
-                    )
-                    tool_events.append(
-                        {
-                            "type": "tool_result",
-                            "name": "check_retailer_sponsorship",
-                            "result": json.dumps(
-                                {
-                                    "retailer": retailer,
-                                    "status": "rejected",
-                                    "reason": "Tool error",
-                                    "discountedItems": [],
-                                }
-                            ),
-                            "success": False,
-                        }
-                    )
-                    sponsorship_results.append(
-                        {
-                            "retailer": retailer,
-                            "status": "rejected",
-                            "reason": "Tool error",
-                            "discountedItems": [],
-                        }
-                    )
-                    continue
-
-                tool_events.append(
-                    {
-                        "type": "tool_result",
-                        "name": "check_retailer_sponsorship",
-                        "result": raw,
-                        "success": True,
-                    }
-                )
-                try:
-                    parsed = json.loads(raw)
-                    if isinstance(parsed, dict):
-                        sponsorship_results.append(parsed)
-                except json.JSONDecodeError:
-                    sponsorship_results.append(
-                        {
-                            "retailer": retailer,
-                            "status": "rejected",
-                            "reason": "Invalid tool response",
-                            "discountedItems": [],
-                        }
-                    )
-
-        if sponsorship_results and all(
-            r.get("status") == "approved" for r in sponsorship_results
-        ):
-            forced = sponsorship_results[0]
-            forced["status"] = "rejected"
-            forced["reason"] = (
-                "Sponsorship budget already committed for this event."
-            )
-            forced["discountPercent"] = None
-            forced["discountedItems"] = []
-
         return (
             ChunkShoppingCart(items=cart_items, price=round(total_price, 2)),
             tool_events,
             missing_items,
-            sponsorship_results,
+            retailer_items,
+            context_text,
         )
+
+    # ------------------------------------------------------------------
+    # Streaming sponsorship: yields {"phase":"start",...} and
+    # {"phase":"end",...} events sequentially with a simulated delay.
+    # ------------------------------------------------------------------
+
+    async def stream_sponsorship_offers(
+        self,
+        retailer_items: dict[str, list[dict[str, str | None]]],
+        event_context: str,
+    ) -> AsyncGenerator[dict, None]:
+        """Yield start/end events for each retailer sponsorship call.
+
+        Each retailer produces two yields:
+        1. ``{"phase": "start", "retailer": ..., "item_count": ...}``
+        2. ``{"phase": "end", ...offer_data...}``
+
+        The mock calls are resolved upfront (parallel) so the
+        forced-rejection logic can be applied, then results are drip-fed
+        sequentially with a 2-4 s delay per call.
+        """
+        if not retailer_items:
+            return
+
+        # ── run all mock calls in parallel ────────────────────────────
+        entries: list[tuple[str, list, asyncio.Future]] = []
+        for retailer, item_list in retailer_items.items():
+            entries.append((
+                retailer,
+                item_list,
+                asyncio.to_thread(
+                    check_retailer_sponsorship,
+                    retailer=retailer,
+                    items=json.dumps(item_list),
+                    event_context=event_context,
+                ),
+            ))
+
+        raw_results = await asyncio.gather(
+            *(e[2] for e in entries),
+            return_exceptions=True,
+        )
+
+        # ── collect & normalise ───────────────────────────────────────
+        resolved: list[tuple[str, list, dict]] = []
+        for (retailer, item_list, _), raw in zip(entries, raw_results):
+            if isinstance(raw, Exception):
+                logger.warning(f"Sponsorship tool failed for {retailer}: {raw}")
+                resolved.append((retailer, item_list, {
+                    "retailer": retailer,
+                    "status": "rejected",
+                    "reason": "Tool error",
+                    "discountedItems": [],
+                }))
+                continue
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, dict):
+                    resolved.append((retailer, item_list, parsed))
+                else:
+                    resolved.append((retailer, item_list, {
+                        "retailer": retailer,
+                        "status": "rejected",
+                        "reason": "Invalid tool response",
+                        "discountedItems": [],
+                    }))
+            except json.JSONDecodeError:
+                resolved.append((retailer, item_list, {
+                    "retailer": retailer,
+                    "status": "rejected",
+                    "reason": "Invalid tool response",
+                    "discountedItems": [],
+                }))
+
+        # ── force at least one rejection when all approved ────────────
+        all_offers = [r[2] for r in resolved]
+        if all_offers and all(o.get("status") == "approved" for o in all_offers):
+            forced = all_offers[0]
+            forced["status"] = "rejected"
+            forced["reason"] = "Sponsorship budget already committed for this event."
+            forced["discountPercent"] = None
+            forced["discountedItems"] = []
+
+        # ── yield start → delay → end for each retailer ──────────────
+        for retailer, item_list, offer in resolved:
+            yield {
+                "phase": "start",
+                "retailer": retailer,
+                "item_count": len(item_list),
+            }
+            delay = random.uniform(2.0, 4.0)
+            logger.info(
+                f"Sponsorship call to {retailer} — sleeping {delay:.1f}s"
+            )
+            await asyncio.sleep(delay)
+            yield {
+                "phase": "end",
+                **offer,
+            }
 
     def _result_to_candidate(
         self,

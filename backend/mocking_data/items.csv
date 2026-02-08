@@ -41,7 +41,7 @@ id,article,price,delivery_estimate,retailer,producer,reviews_count,review_rating
 40,Soft Drink Cola 0.33L,0.89,2,ALBO,BrauseWerk,521,4.8,54
 41,Soft Drink Lemon 0.33L,1.09,0,KAUFTOR,ZitroneFizz,201,4.5,56
 42,Soft Drink Lemon 0.33L,1.19,1,PEWE,LimoKing,145,4.4,56
-43,Apple Juice 1L,1.79,1,BIDL,ApfelPress,267,4.6,0
+43,Apple Juice 1L,1.99,1,BIDL,ApfelPress,267,4.6,0
 44,Apple Juice 1L,1.99,2,SCHLEIBER,ObstSaft,189,4.5,0
 45,Apple Juice 1L,1.69,0,KAUFTOR,FruchtSaft,312,4.7,0
 46,Orange Juice 1L,1.99,0,EDL Markt,ZitrusPress,234,4.6,44

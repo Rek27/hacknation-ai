@@ -15,6 +15,7 @@ from app.models import (
     ItemsChunk,
     TextChunk,
     RetailerOffersChunk,
+    RetailerCallStartChunk,
     CartItem,
 )
 from app.models.context import Context
@@ -464,23 +465,46 @@ async def submit_form(request: SubmitFormRequest):
                 context.people_tree,
                 context.place_tree,
             )
-            cart, tool_events, missing_items, retailer_offers = await shopping_agent.build_cart(
-                items=items,
-                price_ranges=price_ranges,
-                quantities=quantities,
-                form_data=context.form_data,
-                event_context=event_context,
-            )
-            yield (
-                "data: "
-                + RetailerOffersChunk(offers=retailer_offers).model_dump_json(
-                    by_alias=True
+            cart, tool_events, missing_items, retailer_items, ctx_text = (
+                await shopping_agent.build_cart(
+                    items=items,
+                    price_ranges=price_ranges,
+                    quantities=quantities,
+                    form_data=context.form_data,
+                    event_context=event_context,
                 )
-                + "\n\n"
             )
-            if retailer_offers:
+
+            # Stream sponsorship calls one-by-one (start → delay → end)
+            all_offers: list[dict] = []
+            async for event in shopping_agent.stream_sponsorship_offers(
+                retailer_items=retailer_items,
+                event_context=ctx_text,
+            ):
+                if event.get("phase") == "start":
+                    yield (
+                        "data: "
+                        + RetailerCallStartChunk(
+                            retailer=event["retailer"],
+                            item_count=event.get("item_count", 0),
+                        ).model_dump_json(by_alias=True)
+                        + "\n\n"
+                    )
+                else:
+                    # phase == "end" — the offer result
+                    offer_data = {k: v for k, v in event.items() if k != "phase"}
+                    all_offers.append(offer_data)
+                    yield (
+                        "data: "
+                        + RetailerOffersChunk(offers=[offer_data]).model_dump_json(
+                            by_alias=True
+                        )
+                        + "\n\n"
+                    )
+
+            if all_offers:
                 summary = await _summarize_sponsorships(
-                    retailer_offers,
+                    all_offers,
                     event_context,
                 )
                 if summary:
