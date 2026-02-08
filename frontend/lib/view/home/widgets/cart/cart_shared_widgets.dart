@@ -337,9 +337,7 @@ class CartEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const CartEmptyAnimation(
-              size: AppConstants.cartEmptyAnimationSize,
-            ),
+            const CartEmptyAnimation(size: AppConstants.cartEmptyAnimationSize),
             const SizedBox(height: AppConstants.spacingLg),
             Text(
               'No items yet',

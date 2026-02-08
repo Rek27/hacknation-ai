@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/model/chat_models.dart';
 
