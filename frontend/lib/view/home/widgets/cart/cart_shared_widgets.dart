@@ -400,7 +400,7 @@ class CartCheckoutBar extends StatelessWidget {
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(
-                        AppConstants.radiusLg,
+                        AppConstants.radiusMd,
                       ),
                     ),
                   ),

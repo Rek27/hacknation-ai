@@ -117,18 +117,6 @@ class _HeaderRow extends StatelessWidget {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  const SizedBox(width: AppConstants.spacingSm),
-                  Tooltip(
-                    message: context.read<CartController>().getDisplayedReason(
-                      groupIndex,
-                    ),
-                    preferBelow: true,
-                    child: Icon(
-                      Icons.info_outline,
-                      size: AppConstants.iconSizeSm,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
                 ],
               ),
               const SizedBox(height: AppConstants.spacingXs),

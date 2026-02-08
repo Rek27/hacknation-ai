@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
@@ -530,7 +531,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                       child: const Text('Back'),
                     ),
                     const SizedBox(width: AppConstants.spacingSm),
-                    FilledButton(
+                    FilledButton.icon(
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.all(AppConstants.spacingLg),
                         shape: RoundedRectangleBorder(
@@ -540,7 +541,12 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                         ),
                       ),
                       onPressed: () => controller.placeOrder(),
-                      child: Text(
+                      icon: _payment == 'apple'
+                          ? const FaIcon(FontAwesomeIcons.apple, size: 20)
+                          : _payment == 'paypal'
+                          ? const FaIcon(FontAwesomeIcons.paypal, size: 20)
+                          : const Icon(Icons.credit_card, size: 20),
+                      label: Text(
                         'Place order — ${formatPrice(controller.totalPrice)}',
                       ),
                     ),
