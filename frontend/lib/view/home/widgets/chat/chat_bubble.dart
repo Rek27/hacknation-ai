@@ -26,7 +26,9 @@ class ChatBubble extends StatelessWidget {
     final ColorScheme colorScheme = theme.colorScheme;
     final EdgeInsets bubblePadding = _isUser
         ? const EdgeInsets.only(left: AppConstants.chatBubbleHorizontalPadding)
-        : const EdgeInsets.only(right: AppConstants.chatBubbleHorizontalPadding);
+        : const EdgeInsets.only(
+            right: AppConstants.chatBubbleHorizontalPadding,
+          );
     return Padding(
       padding: const EdgeInsets.symmetric(
         vertical: AppConstants.spacingSm,
@@ -190,8 +192,8 @@ class _StaggeredChunkListState extends State<_StaggeredChunkList> {
               isDisabled: widget.isDisabled,
               onChunkReady:
                   (i == _revealedCount - 1 && widget.chunks[i] is TextChunk)
-                      ? _revealNext
-                      : null,
+                  ? _revealNext
+                  : null,
             ),
           ),
         ],
@@ -241,10 +243,7 @@ class _AnimatedChunkEntryState extends State<_AnimatedChunkEntry>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _opacity,
-      child: SlideTransition(
-        position: _slide,
-        child: widget.child,
-      ),
+      child: SlideTransition(position: _slide, child: widget.child),
     );
   }
 }

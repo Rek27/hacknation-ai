@@ -110,79 +110,65 @@ class CartMobilePanel extends StatelessWidget {
           child: controller.isLoading
               ? const CartLoadingList()
               : (controller.errorMessage != null)
-                  ? CartErrorWidget(
-                      title: 'Something went wrong',
-                      subtitle: controller.errorMessage!,
-                      onRetry: () => controller.clearError(),
-                    )
-                  : controller.isEmpty
-                      ? const CartEmptyState()
-                      : ListView.separated(
-                          padding: EdgeInsets.only(
-                            top: AppConstants.spacingMd,
-                            left: AppConstants.spacingMd,
-                            right: AppConstants.spacingMd,
-                            bottom: controller.items.isNotEmpty
-                                ? AppConstants.bottomBarHeight
-                                : AppConstants.spacingMd,
-                          ),
-                          itemCount: controller.items.length,
-                          separatorBuilder:
-                              (BuildContext context, int index) =>
-                                  const SizedBox(
-                                      height: AppConstants.spacingSm),
-                          itemBuilder:
-                              (BuildContext context, int index) {
-                            final CartItem item =
-                                controller.items[index];
-                            final String key = item.id ?? item.name;
-                            final bool expanded =
-                                controller.isExpandedGroup(index);
-                            return Slidable(
-                              key: ValueKey<String>(key),
-                              endActionPane: ActionPane(
-                                motion: const DrawerMotion(),
-                                extentRatio:
-                                    AppConstants.cartActionExtentRatio,
-                                dismissible: DismissiblePane(
-                                  onDismissed: () =>
-                                      controller.deleteItem(key),
-                                ),
-                                children: [
-                                  SlidableAction(
-                                    onPressed: (_) =>
-                                        controller.deleteItem(key),
-                                    backgroundColor:
-                                        AppConstants.cartDeleteColor,
-                                    foregroundColor: Colors.white,
-                                    icon: Icons.delete_outline,
-                                    label: 'Delete',
-                                    borderRadius: BorderRadius.only(
-                                      topRight: Radius.circular(
-                                        AppConstants.radiusLg,
-                                      ),
-                                      bottomRight: Radius.circular(
-                                        AppConstants.radiusLg,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              child: ChangeNotifierProvider<
-                                  CartItemController>(
-                                create: (_) =>
-                                    CartItemController(item: item),
-                                child: CartItemMobileWidget(
-                                  groupIndex: index,
-                                  item: item,
-                                  isExpanded: expanded,
-                                  onToggle: () => controller
-                                      .toggleExpandedGroup(index),
-                                ),
-                              ),
-                            );
-                          },
+              ? CartErrorWidget(
+                  title: 'Something went wrong',
+                  subtitle: controller.errorMessage!,
+                  onRetry: () => controller.clearError(),
+                )
+              : controller.isEmpty
+              ? const CartEmptyState()
+              : ListView.separated(
+                  padding: EdgeInsets.only(
+                    top: AppConstants.spacingMd,
+                    left: AppConstants.spacingMd,
+                    right: AppConstants.spacingMd,
+                    bottom: controller.items.isNotEmpty
+                        ? AppConstants.bottomBarHeight
+                        : AppConstants.spacingMd,
+                  ),
+                  itemCount: controller.items.length,
+                  separatorBuilder: (BuildContext context, int index) =>
+                      const SizedBox(height: AppConstants.spacingSm),
+                  itemBuilder: (BuildContext context, int index) {
+                    final CartItem item = controller.items[index];
+                    final String key = item.id ?? item.name;
+                    final bool expanded = controller.isExpandedGroup(index);
+                    return Slidable(
+                      key: ValueKey<String>(key),
+                      endActionPane: ActionPane(
+                        motion: const DrawerMotion(),
+                        extentRatio: AppConstants.cartActionExtentRatio,
+                        dismissible: DismissiblePane(
+                          onDismissed: () => controller.deleteItem(key),
                         ),
+                        children: [
+                          SlidableAction(
+                            onPressed: (_) => controller.deleteItem(key),
+                            backgroundColor: AppConstants.cartDeleteColor,
+                            foregroundColor: Colors.white,
+                            icon: Icons.delete_outline,
+                            label: 'Delete',
+                            borderRadius: BorderRadius.only(
+                              topRight: Radius.circular(AppConstants.radiusLg),
+                              bottomRight: Radius.circular(
+                                AppConstants.radiusLg,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      child: ChangeNotifierProvider<CartItemController>(
+                        create: (_) => CartItemController(item: item),
+                        child: CartItemMobileWidget(
+                          groupIndex: index,
+                          item: item,
+                          isExpanded: expanded,
+                          onToggle: () => controller.toggleExpandedGroup(index),
+                        ),
+                      ),
+                    );
+                  },
+                ),
         ),
         // ── Checkout bar ──────────────────────────────────────────────
         if (!controller.isLoading &&
