@@ -9,6 +9,8 @@ class CartController extends ChangeNotifier {
   final Set<String> _expandedIds = <String>{};
   final Map<int, CartItem> _selectedMainByIndex = <int, CartItem>{};
   final Set<int> _expandedGroups = <int>{};
+  final Map<int, Map<String, String>> _reasonsByIndex =
+      <int, Map<String, String>>{};
 
   bool get isEmpty => (_cart?.items.isEmpty ?? true);
 
@@ -94,6 +96,22 @@ class CartController extends ChangeNotifier {
     if (_cart == null) return null;
     if (index < 0 || index >= _cart!.items.length) return null;
     return _selectedMainByIndex[index] ?? _cart!.items[index].main;
+  }
+
+  /// Returns an explanation for why the displayed main was suggested.
+  String getDisplayedReason(int index) {
+    final group = getGroup(index);
+    if (group == null) return 'Suggested by the agent.';
+    final displayed = getDisplayedMain(index) ?? group.main;
+    final reasons = _reasonsByIndex[index] ?? const {};
+    bool same(CartItem a, CartItem b) => (a.id ?? a.name) == (b.id ?? b.name);
+    if (same(displayed, group.cheapest))
+      return reasons['cheapest'] ?? 'Cheapest available option.';
+    if (same(displayed, group.bestReviewed))
+      return reasons['best'] ?? 'Best reviewed option.';
+    if (same(displayed, group.fastest))
+      return reasons['fastest'] ?? 'Fastest delivery option.';
+    return reasons['main'] ?? 'Recommended main option.';
   }
 
   /// Updates the quantity for a given item (min 1). Recomputes totals.
@@ -209,6 +227,23 @@ class CartController extends ChangeNotifier {
           .map((g) => g.main)
           .fold<double>(0, (sum, it) => sum + it.price * it.amount);
       _cart = CartChunk(items: groups, price: total);
+      // Seed short explanations per category for each group.
+      _reasonsByIndex
+        ..clear()
+        ..addAll({
+          0: {
+            'main': 'Balanced pick with good value and availability.',
+            'cheapest': 'This one saves you the most money.',
+            'best': 'Customers rated this the highest overall.',
+            'fastest': 'This will arrive the soonest.',
+          },
+          1: {
+            'main': 'Solid feature set for the price.',
+            'cheapest': 'Lowest cost among similar models.',
+            'best': 'Top reviews for comfort and sound.',
+            'fastest': 'Quickest delivery window right now.',
+          },
+        });
       errorMessage = null;
     } catch (e) {
       errorMessage =

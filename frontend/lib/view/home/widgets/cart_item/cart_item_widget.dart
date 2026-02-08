@@ -52,7 +52,11 @@ class _CartItemWidgetState extends State<CartItemWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _HeaderRow(item: widget.item, isExpanded: widget.isExpanded),
+                _HeaderRow(
+                  groupIndex: widget.groupIndex,
+                  item: widget.item,
+                  isExpanded: widget.isExpanded,
+                ),
                 if (widget.isExpanded) ...[
                   const SizedBox(height: AppConstants.spacingMd),
                   const Divider(height: 1),
@@ -73,8 +77,13 @@ class _CartItemWidgetState extends State<CartItemWidget> {
 
 /// Header section of a cart item: name, price, retailer and meta.
 class _HeaderRow extends StatelessWidget {
-  const _HeaderRow({required this.item, required this.isExpanded});
+  const _HeaderRow({
+    required this.groupIndex,
+    required this.item,
+    required this.isExpanded,
+  });
 
+  final int groupIndex;
   final CartItem item;
   final bool isExpanded;
 
@@ -91,12 +100,30 @@ class _HeaderRow extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                item.name,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: colorScheme.onSurface,
-                  fontWeight: FontWeight.w600,
-                ),
+              Row(
+                children: [
+                  Text(
+                    item.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onSurface,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: AppConstants.spacingSm),
+                  Tooltip(
+                    message: context.read<CartController>().getDisplayedReason(
+                      groupIndex,
+                    ),
+                    preferBelow: true,
+                    child: Icon(
+                      Icons.info_outline,
+                      size: AppConstants.iconSizeSm,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: AppConstants.spacingXs),
               Row(
