@@ -104,6 +104,51 @@ class ItemsChunk(BaseModel):
     model_config = _model_config
 
 
+class RetailerOfferItem(BaseModel):
+    """Discount detail for a single item from a retailer."""
+
+    id: Optional[str] = Field(default=None, description="Optional item id")
+    item: str = Field(..., description="Item name eligible for discount")
+    percent: int = Field(..., description="Discount percent for this item")
+
+    model_config = _model_config
+
+
+class RetailerOffer(BaseModel):
+    """Retailer sponsorship decision with item discounts."""
+
+    retailer: str = Field(..., description="Retailer or store name")
+    status: Literal["approved", "rejected"] = Field(
+        ...,
+        description="Sponsorship decision",
+    )
+    reason: Optional[str] = Field(
+        default=None,
+        description="Short rationale for approval or rejection",
+    )
+    discount_percent: Optional[int] = Field(
+        default=None,
+        alias="discountPercent",
+        description="Overall discount percent when approved",
+    )
+    discounted_items: list[RetailerOfferItem] = Field(
+        default_factory=list,
+        alias="discountedItems",
+        description="Per-item discount details",
+    )
+
+    model_config = _model_config
+
+
+class RetailerOffersChunk(BaseModel):
+    """Sponsorship decisions and discounts by retailer."""
+
+    type: Literal["retailer_offers"] = "retailer_offers"
+    offers: list[RetailerOffer] = Field(default_factory=list)
+
+    model_config = _model_config
+
+
 class ShoppingList(BaseModel):
     """Internal shopping list generated after form submission."""
 
@@ -188,6 +233,7 @@ OutputItem = Union[
     PlaceTreeTrunk,
     TextFormChunk,
     ItemsChunk,
+    RetailerOffersChunk,
     ChunkShoppingCart,
     ErrorOutput,
 ]

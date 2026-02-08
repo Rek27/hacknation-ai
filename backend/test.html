@@ -50,6 +50,14 @@ body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; 
 #list-section h3 { font-size: 13px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
 #list-items { font-size: 12px; color: #bdbdbd; white-space: pre-wrap; }
 
+#sponsor-section h3 { font-size: 13px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
+.sponsor-item { padding: 8px 10px; border: 1px solid #2a2a2a; border-radius: 8px; margin-bottom: 8px; background: #151515; }
+.sponsor-item.pending { border-left: 4px solid #f59e0b; }
+.sponsor-item.approved { border-left: 4px solid #22c55e; }
+.sponsor-item.rejected { border-left: 4px solid #ef4444; }
+.sponsor-item .name { font-size: 13px; color: #e0e0e0; margin-bottom: 4px; }
+.sponsor-item .meta { font-size: 12px; color: #999; white-space: pre-wrap; }
+
 #cart-section { display: none; }
 #cart-section h3 { font-size: 13px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: .5px; }
 .cart-item { padding: 8px 10px; border: 1px solid #2a2a2a; border-radius: 8px; margin-bottom: 8px; background: #151515; }
@@ -89,6 +97,11 @@ body { font-family: system-ui, sans-serif; background: #0f0f0f; color: #e0e0e0; 
   <div id="list-section">
     <h3>Shopping List</h3>
     <div id="list-items"><span style="color:#555">No list yet</span></div>
+  </div>
+
+  <div id="sponsor-section">
+    <h3>Retailer Sponsorship</h3>
+    <div id="sponsor-items"><span style="color:#555">No sponsor calls yet</span></div>
   </div>
 
   <div id="cart-section">
@@ -331,6 +344,51 @@ function renderList(items) {
   $('list-section').style.display = 'block';
 }
 
+function renderSponsors(offers) {
+  const container = $('sponsor-items');
+  container.innerHTML = '';
+  const list = offers || [];
+  if (!list.length) {
+    container.innerHTML = '<span style="color:#555">No sponsor calls yet</span>';
+    return;
+  }
+  list.forEach(offer => {
+    const div = document.createElement('div');
+    const status = (offer.status || 'pending').toLowerCase();
+    div.className = `sponsor-item ${status}`;
+    const name = document.createElement('div');
+    name.className = 'name';
+    const discount = offer.discountPercent ? ` (${offer.discountPercent}% off)` : '';
+    name.textContent = `${offer.retailer || 'Retailer'}${discount}`;
+    const meta = document.createElement('div');
+    meta.className = 'meta';
+    const reason = offer.reason ? `${offer.reason}\n` : '';
+    const items = (offer.discountedItems || []).map(i => `- ${i.item}: ${i.percent}%`).join('\n');
+    meta.textContent = `${reason}${items}`.trim() || 'No details provided';
+    div.appendChild(name);
+    div.appendChild(meta);
+    container.appendChild(div);
+  });
+}
+
+function addSponsorPending(entry) {
+  const container = $('sponsor-items');
+  if (container.textContent.includes('No sponsor calls yet')) {
+    container.innerHTML = '';
+  }
+  const div = document.createElement('div');
+  div.className = 'sponsor-item pending';
+  const name = document.createElement('div');
+  name.className = 'name';
+  name.textContent = entry.retailer || 'Retailer';
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  meta.textContent = entry.reason || 'Checking sponsorship options...';
+  div.appendChild(name);
+  div.appendChild(meta);
+  container.appendChild(div);
+}
+
 function renderCart(cart) {
   const container = $('cart-items');
   container.innerHTML = '';
@@ -395,6 +453,7 @@ async function submitForm() {
   $('btn-submit-form').style.display = 'none';
   $('list-section').style.display = 'none';
   $('cart-section').style.display = 'none';
+  $('sponsor-items').innerHTML = '<span style="color:#555">No sponsor calls yet</span>';
 
   addBubble('msg-system', 'Form submitted. Building cart...');
 
@@ -419,6 +478,13 @@ async function submitForm() {
         break;
       case 'tool': {
         addBubble('msg-system', `Tool: ${data.name} → ${JSON.stringify(data.arguments || {})}`);
+        if (data.name === 'check_retailer_sponsorship') {
+          const retailer = data.arguments?.retailer || 'Retailer';
+          addSponsorPending({
+            retailer,
+            reason: data.reason || 'Checking sponsorship options...',
+          });
+        }
         break;
       }
       case 'tool_result': {
@@ -431,6 +497,10 @@ async function submitForm() {
         $('phase-text').textContent = 'Phase 3 — Done!';
         $('phase-bar').querySelector('.dot').className = 'dot dot-done';
         addBubble('msg-system', '↑ Cart ready in sidebar');
+        break;
+      case 'retailer_offers':
+        renderSponsors(data.offers || []);
+        addBubble('msg-system', '↑ Retailer sponsorship results updated');
         break;
       case 'error':
         addBubble('msg-error', `Error: ${data.message}`);

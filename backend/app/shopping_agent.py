@@ -4,6 +4,7 @@ ShoppingAgent — builds a ChunkShoppingCart from ShoppingList items.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import math
 import re
@@ -12,6 +13,7 @@ from typing import Any
 
 from app.logger import get_logger
 from app.models import CartItem, CartItemDetail, ChunkShoppingCart
+from app.tools.implementations import check_retailer_sponsorship
 
 logger = get_logger(__name__)
 
@@ -57,6 +59,46 @@ def _parse_review_rating(value: str) -> float | None:
         return float(match.group(1))
     except ValueError:
         return None
+
+
+def _extract_retailer(result: dict[str, Any]) -> str:
+    content = str(result.get("content", "")).strip()
+    fields = _parse_fields_from_content(content)
+    return (
+        fields.get("retailer")
+        or fields.get("store")
+        or fields.get("vendor")
+        or "Unknown retailer"
+    )
+
+
+def _extract_item_id(result: dict[str, Any]) -> str | None:
+    metadata = result.get("metadata")
+    if isinstance(metadata, dict):
+        source = metadata.get("source")
+        row = metadata.get("row")
+        if source is not None and row is not None:
+            return f"{source}:{row}"
+    return None
+
+
+def _format_event_context(form_data: dict[str, str] | None) -> str:
+    if not form_data:
+        return ""
+    parts = []
+    address = form_data.get("address")
+    if address:
+        parts.append(f"Address: {address}")
+    date = form_data.get("date")
+    if date:
+        parts.append(f"Date: {date}")
+    duration = form_data.get("duration")
+    if duration:
+        parts.append(f"Duration: {duration}")
+    attendees = form_data.get("number of attendees")
+    if attendees:
+        parts.append(f"Attendees: {attendees}")
+    return ". ".join(parts)
 
 
 def _delivery_ms(days: int) -> int:
@@ -109,22 +151,26 @@ class ShoppingAgent:
         self.rag_pipeline = rag_pipeline
         logger.info("ShoppingAgent initialized")
 
-    def build_cart(
+    async def build_cart(
         self,
         items: list[str],
         price_ranges: list[dict],
         quantities: dict[str, int],
         form_data: dict[str, str] | None,
-    ) -> tuple[ChunkShoppingCart, list[dict], list[str]]:
+        event_context: str | None = None,
+    ) -> tuple[ChunkShoppingCart, list[dict], list[str], list[dict]]:
         price_fallbacks = _price_range_map(price_ranges)
         attendees = _parse_attendees(form_data or {})
         duration_hours = _parse_duration_hours(form_data or {})
+        context_text = event_context or _format_event_context(form_data)
 
         cart_items: list[CartItem] = []
         total_price = 0.0
         tool_events: list[dict] = []
         missing_items: list[str] = []
+        retailer_items: dict[str, list[dict[str, str | None]]] = {}
 
+        search_entries: list[tuple[str, asyncio.Future]] = []
         for item in items:
             if not item.strip():
                 continue
@@ -136,7 +182,31 @@ class ShoppingAgent:
                     "arguments": {"query": item, "n_results": 5},
                 }
             )
-            results = self.rag_pipeline.search(item, n_results=5)
+            search_entries.append(
+                (item, asyncio.to_thread(self.rag_pipeline.search, item, n_results=5))
+            )
+
+        results_list = []
+        if search_entries:
+            results_list = await asyncio.gather(
+                *(entry[1] for entry in search_entries),
+                return_exceptions=True,
+            )
+
+        for (item, _), results in zip(search_entries, results_list):
+            if isinstance(results, Exception):
+                logger.warning(f"Vector search failed for {item}: {results}")
+                tool_events.append(
+                    {
+                        "type": "tool_result",
+                        "name": "vector_search",
+                        "result": json.dumps({"query": item, "count": 0}),
+                        "success": False,
+                    }
+                )
+                missing_items.append(item)
+                continue
+
             tool_events.append(
                 {
                     "type": "tool_result",
@@ -153,6 +223,7 @@ class ShoppingAgent:
             if not results:
                 missing_items.append(item)
                 continue
+
             candidates: list[_Candidate] = []
             for index, result in enumerate(results):
                 candidate = self._result_to_candidate(
@@ -171,15 +242,115 @@ class ShoppingAgent:
                 continue
             cart_item = _select_cart_item(candidates)
             cart_items.append(cart_item)
+            recommended = cart_item.recommended_item
+            retailer_items.setdefault(recommended.retailer, []).append(
+                {"item": recommended.name, "id": recommended.id}
+            )
             total_price += (
                 cart_item.recommended_item.price
                 * cart_item.recommended_item.amount
             )
 
+        sponsorship_entries: list[tuple[str, asyncio.Future]] = []
+        for retailer, retailer_item_list in retailer_items.items():
+            tool_events.append(
+                {
+                    "type": "tool",
+                    "name": "check_retailer_sponsorship",
+                    "reason": "Request sponsorship/discount from retailer",
+                    "arguments": {
+                        "retailer": retailer,
+                        "items": retailer_item_list,
+                        "event_context": context_text,
+                    },
+                }
+            )
+            sponsorship_entries.append(
+                (
+                    retailer,
+                    asyncio.to_thread(
+                        check_retailer_sponsorship,
+                        retailer=retailer,
+                        items=json.dumps(retailer_item_list),
+                        event_context=context_text,
+                    ),
+                )
+            )
+
+        sponsorship_results: list[dict] = []
+        if sponsorship_entries:
+            raw_results = await asyncio.gather(
+                *(entry[1] for entry in sponsorship_entries),
+                return_exceptions=True,
+            )
+            for (retailer, _), raw in zip(sponsorship_entries, raw_results):
+                if isinstance(raw, Exception):
+                    logger.warning(
+                        f"Sponsorship tool failed for {retailer}: {raw}"
+                    )
+                    tool_events.append(
+                        {
+                            "type": "tool_result",
+                            "name": "check_retailer_sponsorship",
+                            "result": json.dumps(
+                                {
+                                    "retailer": retailer,
+                                    "status": "rejected",
+                                    "reason": "Tool error",
+                                    "discountedItems": [],
+                                }
+                            ),
+                            "success": False,
+                        }
+                    )
+                    sponsorship_results.append(
+                        {
+                            "retailer": retailer,
+                            "status": "rejected",
+                            "reason": "Tool error",
+                            "discountedItems": [],
+                        }
+                    )
+                    continue
+
+                tool_events.append(
+                    {
+                        "type": "tool_result",
+                        "name": "check_retailer_sponsorship",
+                        "result": raw,
+                        "success": True,
+                    }
+                )
+                try:
+                    parsed = json.loads(raw)
+                    if isinstance(parsed, dict):
+                        sponsorship_results.append(parsed)
+                except json.JSONDecodeError:
+                    sponsorship_results.append(
+                        {
+                            "retailer": retailer,
+                            "status": "rejected",
+                            "reason": "Invalid tool response",
+                            "discountedItems": [],
+                        }
+                    )
+
+        if sponsorship_results and all(
+            r.get("status") == "approved" for r in sponsorship_results
+        ):
+            forced = sponsorship_results[0]
+            forced["status"] = "rejected"
+            forced["reason"] = (
+                "Sponsorship budget already committed for this event."
+            )
+            forced["discountPercent"] = None
+            forced["discountedItems"] = []
+
         return (
             ChunkShoppingCart(items=cart_items, price=round(total_price, 2)),
             tool_events,
             missing_items,
+            sponsorship_results,
         )
 
     def _result_to_candidate(

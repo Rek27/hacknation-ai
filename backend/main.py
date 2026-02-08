@@ -7,7 +7,14 @@ import os
 import time
 from dotenv import load_dotenv
 
-from app.models import TreeNode, TextFieldChunk, ErrorOutput, ItemsChunk, TextChunk
+from app.models import (
+    TreeNode,
+    TextFieldChunk,
+    ErrorOutput,
+    ItemsChunk,
+    TextChunk,
+    RetailerOffersChunk,
+)
 from app.models.context import Context
 from app.tree_agent import TreeAgent
 from app.form_agent import FormAgent
@@ -113,6 +120,72 @@ def _get_or_create_session(session_id: str, user_name: str = "User") -> Context:
         sessions[session_id] = Context(user_name=user_name)
     return sessions[session_id]
 
+
+def _collect_selected_labels(nodes: list[TreeNode] | None) -> list[str]:
+    labels: list[str] = []
+    if not nodes:
+        return labels
+    for node in nodes:
+        if node.selected:
+            labels.append(node.label)
+        if node.children:
+            labels.extend(_collect_selected_labels(node.children))
+    return labels
+
+
+def _build_event_context(
+    form_data: dict[str, str],
+    people_tree: list[TreeNode] | None,
+    place_tree: list[TreeNode] | None,
+) -> str:
+    parts: list[str] = []
+    address = form_data.get("address")
+    if address:
+        parts.append(f"Address: {address}")
+    date = form_data.get("date")
+    if date:
+        parts.append(f"Date: {date}")
+    duration = form_data.get("duration")
+    if duration:
+        parts.append(f"Duration: {duration}")
+    attendees = form_data.get("number of attendees")
+    if attendees:
+        parts.append(f"Attendees: {attendees}")
+    people_labels = _collect_selected_labels(people_tree)
+    if people_labels:
+        parts.append(f"People selections: {', '.join(people_labels)}")
+    place_labels = _collect_selected_labels(place_tree)
+    if place_labels:
+        parts.append(f"Place selections: {', '.join(place_labels)}")
+    return ". ".join(parts)
+
+
+async def _summarize_sponsorships(
+    offers: list[dict],
+    event_context: str,
+) -> str | None:
+    if not offers:
+        return None
+    try:
+        prompt = (
+            "Summarize the sponsorship outcomes in 1-2 short sentences. "
+            "Reference approvals, rejections, and any notable discounts. "
+            "Keep it concise and friendly.\n\n"
+            f"Event context: {event_context}\n"
+            f"Offers: {json.dumps(offers, ensure_ascii=False)}"
+        )
+        response = await shopping_list_agent.client.chat.completions.create(
+            model=shopping_list_agent.model,
+            messages=[
+                {"role": "system", "content": "You summarize sponsorship results."},
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logger.warning(f"Sponsorship summary failed: {e}", exc_info=True)
+        return None
 
 
 
@@ -340,15 +413,36 @@ async def submit_form(request: SubmitFormRequest):
             ):
                 yield f"data: {output_json}\n\n"
 
-            if items:
-                yield f"data: {ItemsChunk(items=items).model_dump_json()}\n\n"
-
-            cart, tool_events, missing_items = shopping_agent.build_cart(
+            event_context = _build_event_context(
+                context.form_data,
+                context.people_tree,
+                context.place_tree,
+            )
+            cart, tool_events, missing_items, retailer_offers = await shopping_agent.build_cart(
                 items=items,
                 price_ranges=price_ranges,
                 quantities=quantities,
                 form_data=context.form_data,
+                event_context=event_context,
             )
+            yield (
+                "data: "
+                + RetailerOffersChunk(offers=retailer_offers).model_dump_json(
+                    by_alias=True
+                )
+                + "\n\n"
+            )
+            if retailer_offers:
+                summary = await _summarize_sponsorships(
+                    retailer_offers,
+                    event_context,
+                )
+                if summary:
+                    yield (
+                        "data: "
+                        + TextChunk(content=summary).model_dump_json()
+                        + "\n\n"
+                    )
             if missing_items:
                 missing_text = (
                     "I couldn't find these items in the inventory: "
