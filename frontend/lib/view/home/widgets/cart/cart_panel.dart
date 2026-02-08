@@ -615,9 +615,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                           : _payment == 'paypal'
                           ? const FaIcon(FontAwesomeIcons.paypal, size: 20)
                           : const Icon(Icons.credit_card, size: 20),
-                      label: Text(
-                        'Place order — ${formatPrice(controller.finalTotalPrice)}',
-                      ),
+                      label: Text('Place order'),
                     ),
                   ],
                 ),
