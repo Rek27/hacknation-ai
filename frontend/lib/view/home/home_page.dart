@@ -20,7 +20,7 @@ class HomePage extends StatelessWidget {
     //   flutter run --dart-define=API_BASE_URL=http://localhost:8000  (desktop/web -> local)
     const envBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
     const hostedBaseUrl =
-        'https://0166-2001-4ca0-0-f237-1562-d89a-324c-8866.ngrok-free.app';
+        'https://ca97-2001-4ca0-0-f237-1562-d89a-324c-8866.ngrok-free.app';
 
     final baseUrl = envBaseUrl.isNotEmpty ? envBaseUrl : hostedBaseUrl;
 

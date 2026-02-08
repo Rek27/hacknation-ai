@@ -14,6 +14,10 @@ class CategoryTile extends StatefulWidget {
     required this.isSelected,
     required this.isDisabled,
     required this.onTap,
+    this.width,
+    this.height,
+    this.contentScale = 1.0,
+    this.depth = 0,
   });
 
   final String emoji;
@@ -21,6 +25,10 @@ class CategoryTile extends StatefulWidget {
   final bool isSelected;
   final bool isDisabled;
   final VoidCallback onTap;
+  final double? width;
+  final double? height;
+  final double contentScale;
+  final int depth;
 
   @override
   State<CategoryTile> createState() => _CategoryTileState();
@@ -54,13 +62,20 @@ class _CategoryTileState extends State<CategoryTile>
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
+    final bool isCompact = widget.depth >= 1;
+    final bool isChip = widget.depth >= 2;
 
     Color backgroundColor;
     Color borderColor;
     double borderWidth;
     Color textColor;
 
-    if (widget.isDisabled) {
+    if (widget.isDisabled && widget.isSelected) {
+      backgroundColor = colorScheme.primaryContainer.withValues(alpha: 0.6);
+      borderColor = colorScheme.primary.withValues(alpha: 0.5);
+      borderWidth = isChip ? 1.0 : 2.0;
+      textColor = colorScheme.onPrimaryContainer.withValues(alpha: 0.7);
+    } else if (widget.isDisabled) {
       backgroundColor = colorScheme.surfaceContainerHigh.withValues(alpha: 0.5);
       borderColor = colorScheme.outlineVariant.withValues(alpha: 0.4);
       borderWidth = 1.0;
@@ -68,7 +83,7 @@ class _CategoryTileState extends State<CategoryTile>
     } else if (widget.isSelected) {
       backgroundColor = colorScheme.primaryContainer;
       borderColor = colorScheme.primary;
-      borderWidth = 2.0;
+      borderWidth = isChip ? 1.5 : 2.0;
       textColor = colorScheme.onPrimaryContainer;
     } else if (_isHovered) {
       backgroundColor = colorScheme.surfaceContainerHigh;
@@ -76,11 +91,19 @@ class _CategoryTileState extends State<CategoryTile>
       borderWidth = 1.5;
       textColor = colorScheme.onSurface;
     } else {
-      backgroundColor = colorScheme.surfaceContainerLow;
-      borderColor = colorScheme.outlineVariant;
+      backgroundColor = isCompact
+          ? colorScheme.surfaceContainerHighest.withValues(alpha: 0.6)
+          : colorScheme.surfaceContainerLow;
+      borderColor = isCompact
+          ? colorScheme.outlineVariant.withValues(alpha: 0.6)
+          : colorScheme.outlineVariant;
       borderWidth = 1.0;
       textColor = colorScheme.onSurface;
     }
+
+    final double radius = isChip
+        ? AppConstants.radiusXs
+        : (isCompact ? AppConstants.radiusSm : AppConstants.radiusMd);
 
     return MouseRegion(
       onEnter: widget.isDisabled
@@ -104,13 +127,17 @@ class _CategoryTileState extends State<CategoryTile>
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
-            width: AppConstants.categoryTileMinWidth,
-            height: AppConstants.categoryTileHeight,
+            width: widget.width ?? AppConstants.categoryTileMinWidth,
+            height: widget.height ?? AppConstants.categoryTileHeight,
+            padding: EdgeInsets.symmetric(
+              horizontal: isChip ? AppConstants.spacingXs : (isCompact ? AppConstants.spacingSm : AppConstants.spacingSm),
+              vertical: isChip ? AppConstants.spacingXs : AppConstants.spacingXs,
+            ),
             decoration: BoxDecoration(
               color: backgroundColor,
-              borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+              borderRadius: BorderRadius.circular(radius),
               border: Border.all(color: borderColor, width: borderWidth),
-              boxShadow: widget.isSelected && !widget.isDisabled
+              boxShadow: widget.isSelected && !widget.isDisabled && !isChip
                   ? [
                       BoxShadow(
                         color: colorScheme.primary.withValues(alpha: 0.15),
@@ -120,28 +147,95 @@ class _CategoryTileState extends State<CategoryTile>
                     ]
                   : null,
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(widget.emoji, style: const TextStyle(fontSize: 28)),
-                const SizedBox(height: AppConstants.spacingXs),
-                Text(
-                  widget.label,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: textColor,
-                    fontWeight: widget.isSelected
-                        ? FontWeight.w600
-                        : FontWeight.w400,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+            child: Center(
+              child: isChip
+                  ? _buildChipContent(theme, textColor)
+                  : isCompact
+                      ? _buildCompactContent(theme, textColor)
+                      : _buildCardContent(theme, textColor),
             ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildCardContent(ThemeData theme, Color textColor) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          widget.emoji,
+          style: TextStyle(fontSize: 24 * widget.contentScale),
+        ),
+        SizedBox(height: AppConstants.radiusXxs * widget.contentScale),
+        Text(
+          widget.label,
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: textColor,
+            fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.w400,
+            fontSize: (theme.textTheme.bodySmall?.fontSize ?? 12) *
+                widget.contentScale,
+          ),
+          textAlign: TextAlign.center,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactContent(ThemeData theme, Color textColor) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          widget.emoji,
+          style: TextStyle(fontSize: 18 * widget.contentScale),
+        ),
+        SizedBox(width: AppConstants.spacingXs),
+        Flexible(
+          child: Text(
+            widget.label,
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: textColor,
+              fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.w500,
+              fontSize: (theme.textTheme.bodySmall?.fontSize ?? 12) *
+                  widget.contentScale,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChipContent(ThemeData theme, Color textColor) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          widget.emoji,
+          style: TextStyle(fontSize: 14 * widget.contentScale),
+        ),
+        SizedBox(width: AppConstants.spacingXs),
+        Flexible(
+          child: Text(
+            widget.label,
+            style: theme.textTheme.labelMedium?.copyWith(
+              color: textColor,
+              fontWeight: widget.isSelected ? FontWeight.w600 : FontWeight.w500,
+              fontSize: (theme.textTheme.labelMedium?.fontSize ?? 11) *
+                  widget.contentScale,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
     );
   }
 }

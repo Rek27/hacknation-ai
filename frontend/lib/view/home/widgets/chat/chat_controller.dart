@@ -62,6 +62,16 @@ class ChatController extends ChangeNotifier {
   /// The last user message text, kept for retry.
   String? _lastUserText;
 
+  // -- Sequential tree display ------------------------------------------------
+
+  /// Chunks buffered after a tree, waiting for the user to submit before
+  /// showing more content. Implements the sequential tree display flow.
+  final List<OutputItemBase> _bufferedChunks = [];
+
+  /// Saved tree selections from trees submitted during the current
+  /// buffered flow. Sent to the API once the final tree is submitted.
+  final Map<TreeType, List<Map<String, dynamic>>> _pendingTreeSelections = {};
+
   // -- TextFormChunk pinning --------------------------------------------------
 
   TextFormChunk? _pinnedTextForm;
@@ -76,31 +86,43 @@ class ChatController extends ChangeNotifier {
 
   static const List<SamplePrompt> samplePrompts = [
     SamplePrompt(
-      display: 'Plan a birthday party',
+      display: 'Organize a hackathon',
       hiddenPrompt:
-          'I want to plan a birthday party for about 50 people. '
-          'I need catering, music, and decorations. '
-          'Help me find everything I need.',
+          'I\'m hosting a hackathon for 60 people — figure out what I need '
+          '(snacks, badges, adapters, decorations, prizes) and buy it at the best price.',
     ),
     SamplePrompt(
       display: 'Organize a corporate event',
       hiddenPrompt:
           'I need to organize a corporate networking event for 120 attendees. '
-          'I need audio equipment, catering, a photographer, and furniture rental. '
-          'Help me source everything.',
+          'The event will run for about 3 hours with a mix of presentations and mingling. '
+          'I need professional audio equipment (microphones, speakers) for the main stage and background music in the reception area. '
+          'Catering: buffet or passed appetizers plus drinks—coffee, water, and perhaps wine/beer for the networking portion. '
+          'I need a photographer for candid shots and a few group photos. '
+          'Furniture rental: high-top tables, lounge seating, registration desk. '
+          'The venue will likely be a conference center or similar. Help me source everything.',
     ),
     SamplePrompt(
       display: 'Set up an outdoor wedding',
       hiddenPrompt:
           'I\'m setting up an outdoor wedding for 200 guests. '
-          'I need tents, lighting, a live band, catering, photography, '
-          'and floral decorations. Help me plan it all.',
+          'Ceremony and reception will both be outdoors, so I need weather backup (tents or marquee) and proper flooring. '
+          'Lighting: string lights, uplighting, and adequate illumination for dinner and dancing. '
+          'Entertainment: a live band for the reception (ceremony music as well, if possible). '
+          'Catering: plated or buffet dinner, cocktail hour, wedding cake, plus bar service. '
+          'I need a photographer and videographer for the full day. '
+          'Floral decorations: ceremony arch, centerpieces, bouquets, and boutonnieres. '
+          'Please help me plan and coordinate all vendors.',
     ),
     SamplePrompt(
       display: 'Host a small team meetup',
       hiddenPrompt:
           'I want to host a casual team meetup for 15 people in a rented space. '
-          'I need snacks, drinks, a projector, and some basic furniture. '
+          'Duration: half-day (4–5 hours). Purpose: mix of informal collaboration and team bonding. '
+          'I need light snacks and drinks—coffee, tea, water, plus pastries or finger food. '
+          'Tech: a projector or large screen for presentations, reliable WiFi, and possibly a whiteboard. '
+          'Furniture: flexible seating (chairs, maybe some sofas) and tables for laptops. '
+          'The space should allow for both group discussion and smaller breakout conversations. '
           'Help me get everything organized.',
     ),
   ];
@@ -109,10 +131,10 @@ class ChatController extends ChangeNotifier {
   // Public methods
   // ---------------------------------------------------------------------------
 
-  /// Send a sample prompt. The display text becomes the visible user message.
+  /// Send a sample prompt. The full prompt is shown in the chat and sent to the agent.
   Future<void> sendSamplePrompt(SamplePrompt prompt) async {
     _hasStarted = true;
-    await sendMessage(prompt.hiddenPrompt, displayText: prompt.display);
+    await sendMessage(prompt.hiddenPrompt);
   }
 
   /// Send a free-form user message.
@@ -122,6 +144,8 @@ class ChatController extends ChangeNotifier {
     _hasStarted = true;
     _lastUserText = text;
     _errorMessage = null;
+    _bufferedChunks.clear();
+    _pendingTreeSelections.clear();
 
     // Add user message
     _messages.add(ChatMessage.user(displayText ?? text));
@@ -180,9 +204,21 @@ class ChatController extends ChangeNotifier {
   }
 
   /// Get the state for a single node, creating default if absent.
-  CategoryNodeState getNodeState(String messageId, String labelPath) {
+  /// [initialSelected] is used when creating a new state; it should come from
+  /// the Category's isSelected (parsed from the API JSON).
+  CategoryNodeState getNodeState(
+    String messageId,
+    String labelPath, {
+    bool? initialSelected,
+  }) {
     final Map<String, CategoryNodeState> map = getTreeState(messageId);
-    return map.putIfAbsent(labelPath, () => CategoryNodeState());
+    return map.putIfAbsent(
+      labelPath,
+      () => CategoryNodeState(
+        isSelected: initialSelected ?? false,
+        isExpanded: initialSelected ?? false,
+      ),
+    );
   }
 
   /// Toggle selection of a category node.
@@ -208,44 +244,50 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Submit all tree selections to the backend via /submit-tree.
-  /// Collects every TreeChunk across all messages, applies the user's
-  /// selection state, and sends the reconstructed trees to the API.
+  /// Submit tree selections. If buffered chunks remain (more trees to show),
+  /// the selections are saved in memory and the next tree is revealed.
+  /// Only when the final buffered tree is submitted are all saved selections
+  /// sent to the backend via /submit-tree.
   Future<void> submitTree(String messageId) async {
     if (isMessageDisabled(messageId)) return;
 
-    // Collect all tree chunks grouped by type, applying selections
-    List<Map<String, dynamic>> peopleTree = const [];
-    List<Map<String, dynamic>> placeTree = const [];
+    // Disable the submitted tree message
+    _disabledMessageIds.add(messageId);
 
-    for (final ChatMessage msg in _messages) {
-      for (final OutputItemBase chunk in msg.chunks) {
-        if (chunk is TreeChunk) {
-          _disabledMessageIds.add(msg.id);
-          final List<Map<String, dynamic>> nodes =
-              _buildTreeNodesWithSelections(
-                msg.id,
-                chunk.category.subcategories,
-                <String>[chunk.category.label],
-              );
-          if (chunk.treeType == TreeType.people) {
-            peopleTree = nodes;
-          } else if (chunk.treeType == TreeType.place) {
-            placeTree = nodes;
-          }
-        }
+    // Build and save selections for every tree in this message
+    final ChatMessage message = _messages.firstWhere(
+      (ChatMessage m) => m.id == messageId,
+    );
+    for (final OutputItemBase chunk in message.chunks) {
+      if (chunk is TreeChunk) {
+        final List<Map<String, dynamic>> nodes = _buildTreeNodesWithSelections(
+          messageId,
+          chunk.category.subcategories,
+          <String>[chunk.category.label],
+        );
+        _pendingTreeSelections[chunk.treeType] = nodes;
       }
     }
 
+    // If there are buffered chunks, release the next group without calling API
+    if (_bufferedChunks.isNotEmpty) {
+      _releaseBufferedChunks();
+      _triggerScroll();
+      notifyListeners();
+      return;
+    }
+
+    // No more buffered chunks — final tree, submit all saved selections
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
       final List<OutputItemBase> chunks = await _chatService.submitTree(
-        peopleTree: peopleTree,
-        placeTree: placeTree,
+        peopleTree: _pendingTreeSelections[TreeType.people] ?? const [],
+        placeTree: _pendingTreeSelections[TreeType.place] ?? const [],
       );
+      _pendingTreeSelections.clear();
       _handleAgentResponse(chunks);
     } catch (e) {
       _errorMessage = 'Connection error: $e';
@@ -300,6 +342,7 @@ class ChatController extends ChangeNotifier {
       chunks: [submittedForm],
     );
     _messages.add(formMessage);
+    _disabledMessageIds.add(formMessage.id);
 
     // Clear pinned state
     _pinnedTextForm = null;
@@ -365,17 +408,61 @@ class ChatController extends ChangeNotifier {
       }
     }
 
-    // Extract TextFormChunk to pin instead of putting in scroll list
+    // Split chunks at the first tree boundary.
+    // Everything up to and including the first tree is displayed immediately.
+    // Everything after is buffered until that tree is submitted.
+    final List<OutputItemBase> toDisplay = [];
+    final List<OutputItemBase> toBuffer = [];
+    bool foundTree = false;
+    for (final OutputItemBase chunk in chunks) {
+      if (foundTree) {
+        toBuffer.add(chunk);
+      } else {
+        toDisplay.add(chunk);
+        if (chunk is TreeChunk) {
+          foundTree = true;
+        }
+      }
+    }
+
+    // Process displayable chunks: extract TextFormChunks for pinning
+    _addChunksToMessages(toDisplay);
+    _bufferedChunks.addAll(toBuffer);
+  }
+
+  /// Release buffered chunks up to (and including) the next tree.
+  /// If no tree is found in the buffer, all remaining chunks are released.
+  void _releaseBufferedChunks() {
+    if (_bufferedChunks.isEmpty) return;
+    final List<OutputItemBase> toDisplay = [];
+    final List<OutputItemBase> remaining = [];
+    bool foundTree = false;
+    for (final OutputItemBase chunk in _bufferedChunks) {
+      if (foundTree) {
+        remaining.add(chunk);
+      } else {
+        toDisplay.add(chunk);
+        if (chunk is TreeChunk) {
+          foundTree = true;
+        }
+      }
+    }
+    _bufferedChunks.clear();
+    _bufferedChunks.addAll(remaining);
+    _addChunksToMessages(toDisplay);
+  }
+
+  /// Adds chunks to the message list, extracting TextFormChunks for pinning.
+  void _addChunksToMessages(List<OutputItemBase> chunks) {
     final List<OutputItemBase> scrollChunks = [];
     for (final OutputItemBase chunk in chunks) {
       if (chunk is TextFormChunk) {
         _pinnedTextForm = chunk;
-        _pinnedTextFormMessageId = null; // new, not yet submitted
+        _pinnedTextFormMessageId = null;
       } else {
         scrollChunks.add(chunk);
       }
     }
-
     if (scrollChunks.isNotEmpty) {
       _messages.add(ChatMessage.agent(scrollChunks));
     }

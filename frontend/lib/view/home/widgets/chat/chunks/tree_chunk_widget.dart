@@ -6,6 +6,21 @@ import 'package:frontend/model/chat_models.dart';
 import 'package:frontend/view/home/widgets/chat/chat_controller.dart';
 import 'package:frontend/view/home/widgets/chat/chunks/category_tile.dart';
 
+double _tileScaleForDepth(int depth) {
+  final scales = AppConstants.categoryTileDepthScales;
+  if (depth < scales.length) return scales[depth];
+  return scales.last;
+}
+
+double _tileHeightForDepth(int depth) {
+  final scale = _tileScaleForDepth(depth);
+  if (depth >= 2) {
+    return AppConstants.categoryTileHeight *
+        AppConstants.categoryTileLevel2HeightScale;
+  }
+  return AppConstants.categoryTileHeight * scale;
+}
+
 /// Renders a TreeChunk as a grid of selectable/expandable categories.
 class TreeChunkWidget extends StatelessWidget {
   const TreeChunkWidget({
@@ -27,7 +42,7 @@ class TreeChunkWidget extends StatelessWidget {
     context.watch<ChatController>();
     return Container(
       margin: const EdgeInsets.only(top: AppConstants.spacingSm),
-      padding: const EdgeInsets.all(AppConstants.spacingMd),
+      padding: const EdgeInsets.all(AppConstants.spacingSm),
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerLow,
         borderRadius: BorderRadius.circular(AppConstants.radiusMd),
@@ -36,9 +51,12 @@ class TreeChunkWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCategoryLevel(context, chunk.category.subcategories, <String>[
-            chunk.category.label,
-          ]),
+          _buildCategoryLevel(
+            context,
+            chunk.category.subcategories,
+            <String>[chunk.category.label],
+            0,
+          ),
           if (!isDisabled) ...[
             const SizedBox(height: AppConstants.spacingMd),
             _SubmitTreeButton(
@@ -58,17 +76,23 @@ class TreeChunkWidget extends StatelessWidget {
     BuildContext context,
     List<Category> categories,
     List<String> ancestors,
+    int depth,
   ) {
     final ChatController controller = context.read<ChatController>();
+    final double scale = _tileScaleForDepth(depth);
+    final double tileWidth = AppConstants.categoryTileMinWidth * scale;
+    final double tileHeight = _tileHeightForDepth(depth);
+    final double wrapSpacing = depth >= 1 ? AppConstants.spacingXs : AppConstants.spacingSm;
     return Wrap(
-      spacing: AppConstants.spacingSm,
-      runSpacing: AppConstants.spacingSm,
+      spacing: wrapSpacing,
+      runSpacing: wrapSpacing,
       crossAxisAlignment: WrapCrossAlignment.start,
       children: categories.map((Category cat) {
         final String path = controller.buildLabelPath(ancestors, cat.label);
         final CategoryNodeState state = controller.getNodeState(
           messageId,
           path,
+          initialSelected: cat.isSelected,
         );
         final bool shouldExpand =
             state.isSelected && cat.subcategories.isNotEmpty;
@@ -81,18 +105,22 @@ class TreeChunkWidget extends StatelessWidget {
             onTap: () {
               controller.toggleCategorySelection(messageId, path);
             },
+            width: tileWidth,
+            height: tileHeight,
+            contentScale: scale,
+            depth: depth,
           ),
           isExpanded: shouldExpand,
           subcategories: Padding(
-            padding: const EdgeInsets.only(
-              left: AppConstants.spacingSm,
-              top: AppConstants.spacingSm,
-              bottom: AppConstants.spacingSm,
+            padding: EdgeInsets.only(
+              left: AppConstants.spacingSm + depth * AppConstants.spacingXs,
+              top: AppConstants.spacingXs,
+              bottom: AppConstants.spacingXs,
             ),
             child: _buildCategoryLevel(context, cat.subcategories, [
               ...ancestors,
               cat.label,
-            ]),
+            ], depth + 1),
           ),
         );
       }).toList(),
@@ -127,7 +155,7 @@ class _CategoryColumn extends StatelessWidget {
           tile,
           if (isExpanded)
             Container(
-              margin: const EdgeInsets.only(top: AppConstants.spacingXs),
+              margin: const EdgeInsets.only(top: AppConstants.radiusXxs),
               padding: const EdgeInsets.only(left: AppConstants.spacingXs),
               decoration: BoxDecoration(
                 border: Border(

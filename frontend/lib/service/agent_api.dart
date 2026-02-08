@@ -27,7 +27,12 @@ class AgentApi {
     if (res.statusCode != 200) {
       throw HttpException('Health failed: ${res.statusCode}');
     }
-    return HealthStatus.fromJson(jsonDecode(res.body));
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    if (kDebugMode) {
+      // ignore: avoid_print
+      print('[AgentApi] getHealth() response JSON:\n${const JsonEncoder.withIndent('  ').convert(json)}');
+    }
+    return HealthStatus.fromJson(json);
   }
 
   /// Stream OutputItemBase from POST /chat (SSE-esque text/event-stream).
@@ -49,7 +54,12 @@ class AgentApi {
     if (res.statusCode != 200) {
       throw HttpException('Submit form failed: ${res.statusCode}');
     }
-    return SubmitFormResponse.fromJson(jsonDecode(res.body));
+    final json = jsonDecode(res.body) as Map<String, dynamic>;
+    if (kDebugMode) {
+      // ignore: avoid_print
+      print('[AgentApi] submitForm() response JSON:\n${const JsonEncoder.withIndent('  ').convert(json)}');
+    }
+    return SubmitFormResponse.fromJson(json);
   }
 
   /// Shared SSE stream parser for streaming endpoints.
@@ -85,6 +95,10 @@ class AgentApi {
         if (data.isEmpty) continue;
         try {
           final json = jsonDecode(data) as Map<String, dynamic>;
+          if (kDebugMode) {
+            // ignore: avoid_print
+            print('[AgentApi] $tag() response JSON:\n${const JsonEncoder.withIndent('  ').convert(json)}');
+          }
           final item = parseOutputItem(json);
           _log('$tag() item type=${item.type}');
           yield item;
@@ -173,7 +187,22 @@ class MockChatService implements ChatService {
     required List<Map<String, dynamic>> placeTree,
   }) async {
     await Future.delayed(const Duration(milliseconds: 1200));
-    return _responseForStep(2);
+    return [
+      TextChunk(
+        type: OutputItemType.text,
+        content:
+            'Perfect choices! Now let\'s finalize the event details. '
+            'Please fill in the information below so I can find the '
+            'best options for you.',
+      ),
+      TextFormChunk(
+        address: TextFieldChunk(label: 'Event Address'),
+        budget: TextFieldChunk(label: 'Budget (\$)'),
+        date: TextFieldChunk(label: 'Event Date'),
+        durationOfEvent: TextFieldChunk(label: 'Duration'),
+        numberOfAttendees: TextFieldChunk(label: 'Number of Attendees'),
+      ),
+    ];
   }
 
   @override
@@ -187,6 +216,8 @@ class MockChatService implements ChatService {
     );
   }
 
+  /// Returns both trees in a single response so the controller can
+  /// buffer the second tree until the user submits the first.
   List<OutputItemBase> _responseForStep(int step) {
     switch (step) {
       case 0:
@@ -277,9 +308,6 @@ class MockChatService implements ChatService {
               ],
             ),
           ),
-        ];
-      case 1:
-        return [
           TextChunk(
             type: OutputItemType.text,
             content:
@@ -364,23 +392,6 @@ class MockChatService implements ChatService {
                 ),
               ],
             ),
-          ),
-        ];
-      case 2:
-        return [
-          TextChunk(
-            type: OutputItemType.text,
-            content:
-                'Perfect choices! Now let\'s finalize the event details. '
-                'Please fill in the information below so I can find the '
-                'best options for you.',
-          ),
-          TextFormChunk(
-            address: TextFieldChunk(label: 'Event Address'),
-            budget: TextFieldChunk(label: 'Budget (\$)'),
-            date: TextFieldChunk(label: 'Event Date'),
-            durationOfEvent: TextFieldChunk(label: 'Duration'),
-            numberOfAttendees: TextFieldChunk(label: 'Number of Attendees'),
           ),
         ];
       default:

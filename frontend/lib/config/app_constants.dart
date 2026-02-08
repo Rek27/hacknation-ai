@@ -39,11 +39,18 @@ abstract final class AppConstants {
   /// Size of the sender avatar circle.
   static const double chatAvatarSize = 32.0;
 
-  /// Minimum width of a category tile in the tree selector.
-  static const double categoryTileMinWidth = 110.0;
+  /// Minimum width of a category tile in the tree selector (level 0).
+  static const double categoryTileMinWidth = 100.0;
 
-  /// Fixed height for category tiles to keep them equal.
-  static const double categoryTileHeight = 90.0;
+  /// Fixed height for category tiles at level 0.
+  static const double categoryTileHeight = 76.0;
+
+  /// Fixed scales for the 3-level hierarchy: categories > subcategories > sub-subcategories.
+  /// Level 0 (categories): 1.0, Level 1: 0.60, Level 2: 0.42.
+  static const List<double> categoryTileDepthScales = [1.0, 0.60, 0.42];
+
+  /// Height scale for level 2 (chip style) - shorter than proportional.
+  static const double categoryTileLevel2HeightScale = 0.38;
 
   /// Maximum width of the pinned text form.
   static const double textFormMaxWidth = 680.0;

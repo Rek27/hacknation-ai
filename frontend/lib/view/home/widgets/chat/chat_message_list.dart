@@ -37,7 +37,12 @@ class _ChatMessageListState extends State<ChatMessageList> {
     final double maxScroll = _scrollController.position.maxScrollExtent;
     final double currentScroll = _scrollController.offset;
     // Consider "at bottom" if within 80px of max scroll
-    _isUserScrolledUp = (maxScroll - currentScroll) > 80.0;
+    final bool scrolledUp = (maxScroll - currentScroll) > 80.0;
+    if (scrolledUp != _isUserScrolledUp) {
+      setState(() {
+        _isUserScrolledUp = scrolledUp;
+      });
+    }
   }
 
   void _scrollToBottom() {
@@ -88,7 +93,9 @@ class _ChatMessageListState extends State<ChatMessageList> {
             right: AppConstants.spacingMd,
             child: _ScrollToBottomButton(
               onPressed: () {
-                _isUserScrolledUp = false;
+                setState(() {
+                  _isUserScrolledUp = false;
+                });
                 _scrollToBottom();
               },
             ),

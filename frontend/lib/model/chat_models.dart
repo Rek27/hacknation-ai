@@ -194,6 +194,18 @@ class TextFormChunk implements OutputItemBase {
   };
 }
 
+/// Parses selected/boolean from JSON (bool, int, or string).
+bool _parseBool(dynamic value) {
+  if (value == null) return false;
+  if (value is bool) return value;
+  if (value is int) return value != 0;
+  if (value is String) {
+    final lower = value.toLowerCase();
+    return lower == 'true' || lower == '1';
+  }
+  return false;
+}
+
 /// Root type for the category tree: people or place.
 enum TreeType { people, place }
 
@@ -215,7 +227,7 @@ class Category {
   factory Category.fromJson(Map<String, dynamic> json) => Category(
     emoji: json['emoji'] as String,
     label: json['label'] as String,
-    isSelected: (json['selected'] as bool?) ?? false,
+    isSelected: _parseBool(json['selected']),
     subcategories:
         (json['children'] as List<dynamic>?)
             ?.map((e) => Category.fromJson(e as Map<String, dynamic>))

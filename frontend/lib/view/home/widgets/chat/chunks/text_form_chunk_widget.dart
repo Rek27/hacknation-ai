@@ -72,10 +72,6 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget> {
     });
   }
 
-  void _handleEdit() {
-    context.read<ChatController>().editSubmittedForm(widget.messageId);
-  }
-
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
@@ -177,8 +173,10 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget> {
                     ),
                   ],
                 ),
-                const SizedBox(height: AppConstants.spacingLg),
-                _buildActions(theme, colorScheme),
+                if (!widget.isDisabled) ...[
+                  const SizedBox(height: AppConstants.spacingLg),
+                  _buildActions(theme, colorScheme),
+                ],
               ],
             ),
           ),
@@ -243,25 +241,6 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget> {
   }
 
   Widget _buildActions(ThemeData theme, ColorScheme colorScheme) {
-    if (widget.isDisabled) {
-      return Align(
-        alignment: Alignment.centerRight,
-        child: TextButton.icon(
-          onPressed: _handleEdit,
-          icon: Icon(
-            Icons.edit_rounded,
-            size: AppConstants.iconSizeXs,
-            color: colorScheme.primary,
-          ),
-          label: Text(
-            'Edit',
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: colorScheme.primary,
-            ),
-          ),
-        ),
-      );
-    }
     return Align(
       alignment: Alignment.centerRight,
       child: ElevatedButton.icon(
