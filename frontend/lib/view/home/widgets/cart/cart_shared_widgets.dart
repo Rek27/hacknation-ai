@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/app_constants.dart';
+import 'package:frontend/model/chat_models.dart';
+import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_empty_animation.dart';
-import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_utils.dart';
+import 'package:frontend/view/home/home_controller.dart';
 import 'package:provider/provider.dart';
 
 /// Displays a 5-star rating with optional numeric label.
@@ -147,6 +149,109 @@ class CartRetailerChip extends StatelessWidget {
   }
 }
 
+/// Price with optional discount badge, strikethrough original and new price.
+/// Used in cart item (desktop and mobile).
+class CartItemPriceWithDiscount extends StatelessWidget {
+  const CartItemPriceWithDiscount({super.key, required this.item});
+  final CartItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    final CartController controller = context.watch<CartController>();
+    final int? discountPercent = controller.getDiscountPercentForItem(item);
+    final bool hasDiscount = discountPercent != null && discountPercent > 0;
+    final double finalPrice = controller.discountedUnitPrice(item);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (hasDiscount) ...[
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppConstants.spacingSm,
+              vertical: AppConstants.spacingXs,
+            ),
+            decoration: BoxDecoration(
+              color: colorScheme.tertiaryContainer,
+              borderRadius: BorderRadius.circular(AppConstants.radiusXs),
+              border: Border.all(
+                color: colorScheme.tertiary,
+                width: 1,
+              ),
+            ),
+            child: Text(
+              '-$discountPercent%',
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: colorScheme.onTertiaryContainer,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppConstants.spacingSm),
+          Text(
+            formatPrice(item.price),
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+              decoration: TextDecoration.lineThrough,
+              decorationColor: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: AppConstants.spacingSm),
+        ],
+        Text(
+          formatPrice(finalPrice),
+          style: theme.textTheme.titleMedium?.copyWith(
+            color: colorScheme.primary,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Line total with optional strikethrough original and discounted total.
+class CartItemTotalWithDiscount extends StatelessWidget {
+  const CartItemTotalWithDiscount({super.key, required this.item});
+  final CartItem item;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final ColorScheme colorScheme = theme.colorScheme;
+    final CartController controller = context.watch<CartController>();
+    final int? discountPercent = controller.getDiscountPercentForItem(item);
+    final bool hasDiscount = discountPercent != null && discountPercent > 0;
+    final double lineTotal = controller.discountedLineTotal(item);
+    final double originalTotal = item.price * item.amount;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (hasDiscount) ...[
+          Text(
+            'Item total: ${formatPrice(originalTotal)}',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+              decoration: TextDecoration.lineThrough,
+              decorationColor: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(width: AppConstants.spacingSm),
+        ],
+        Text(
+          hasDiscount ? formatPrice(lineTotal) : 'Item total: ${formatPrice(lineTotal)}',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: colorScheme.primary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 /// Square image placeholder used for product thumbnails and summary cards.
 /// When [imageUrl] (a relative path like "/images/42") is provided the widget
 /// loads the image from the backend. Otherwise it shows a grey placeholder icon.
@@ -259,48 +364,82 @@ class CartEmptyState extends StatelessWidget {
 }
 
 /// Fixed bottom checkout bar with confirm CTA and helper text.
+/// When [finalTotalPrice] is less than [totalPrice], shows original crossed
+/// and final price on the right.
 class CartCheckoutBar extends StatelessWidget {
   const CartCheckoutBar({
     super.key,
     required this.totalPrice,
     required this.retailerCount,
     required this.onCheckout,
+    this.finalTotalPrice,
   });
 
   final double totalPrice;
   final int retailerCount;
   final VoidCallback onCheckout;
+  final double? finalTotalPrice;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
+    final double displayTotal = finalTotalPrice ?? totalPrice;
+    final bool showDiscount = finalTotalPrice != null && finalTotalPrice! < totalPrice;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingMd),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  vertical: AppConstants.spacingSm + 4,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: FilledButton.icon(
+                  style: FilledButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      vertical: AppConstants.spacingSm + 4,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+                    ),
+                  ),
+                  onPressed: onCheckout,
+                  icon: const Icon(Icons.bolt),
+                  label: Text(
+                    'Checkout All — ${formatPrice(displayTotal)}',
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: colorScheme.onPrimary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
               ),
-              onPressed: onCheckout,
-              icon: const Icon(Icons.bolt),
-              label: Text(
-                'Checkout All — ${formatPrice(totalPrice)}',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: colorScheme.onPrimary,
-                  fontWeight: FontWeight.w700,
+              if (showDiscount) ...[
+                const SizedBox(width: AppConstants.spacingMd),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      formatPrice(totalPrice),
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        decoration: TextDecoration.lineThrough,
+                        decorationColor: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      formatPrice(finalTotalPrice!),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
-              ),
-            ),
+              ],
+            ],
           ),
           const SizedBox(height: AppConstants.spacingSm),
           Text(

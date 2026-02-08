@@ -116,13 +116,7 @@ class _MobileHeaderRow extends StatelessWidget {
               const SizedBox(height: AppConstants.spacingXs),
               Row(
                 children: [
-                  Text(
-                    formatPrice(item.price),
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  CartItemPriceWithDiscount(item: item),
                   const SizedBox(width: AppConstants.spacingSm),
                   CartRetailerChip(text: item.retailer),
                 ],
@@ -291,13 +285,7 @@ class _MobileExpandedDetails extends StatelessWidget {
                     color: colorScheme.primary,
                   ),
                   const SizedBox(width: AppConstants.metaIconGap),
-                  Text(
-                    'Item total: ${formatPrice(item.price * item.amount)}',
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  CartItemTotalWithDiscount(item: item),
                 ],
               ),
             ],

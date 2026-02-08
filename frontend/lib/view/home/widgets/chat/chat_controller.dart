@@ -72,6 +72,10 @@ class ChatController extends ChangeNotifier {
   /// showing more content. Implements the sequential tree display flow.
   final List<OutputItemBase> _bufferedChunks = [];
 
+  /// True when we have seen a TreeChunk and should buffer subsequent chunks
+  /// until the user submits the tree.
+  bool _isBufferingAfterTree = false;
+
   /// Saved tree selections from trees submitted during the current
   /// buffered flow. Sent to the API once the final tree is submitted.
   final Map<TreeType, List<Map<String, dynamic>>> _pendingTreeSelections = {};
@@ -150,6 +154,7 @@ class ChatController extends ChangeNotifier {
     _errorMessage = null;
     _bufferedChunks.clear();
     _pendingTreeSelections.clear();
+    _isBufferingAfterTree = false;
 
     // Add user message
     _messages.add(ChatMessage.user(displayText ?? text));
@@ -158,8 +163,12 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final List<OutputItemBase> chunks = await _chatService.sendMessage(text);
-      _handleAgentResponse(chunks);
+      await for (final OutputItemBase chunk
+          in _chatService.sendMessage(text)) {
+        _handleStreamedChunk(chunk);
+        _triggerScroll();
+        notifyListeners();
+      }
     } catch (e) {
       _errorMessage = 'Connection error: $e';
       _messages.add(
@@ -408,6 +417,81 @@ class ChatController extends ChangeNotifier {
   // ---------------------------------------------------------------------------
   // Private helpers
   // ---------------------------------------------------------------------------
+
+  /// Process a single chunk as it arrives from the stream. Text chunks are
+  /// displayed immediately; tree and subsequent chunks are buffered per flow.
+  void _handleStreamedChunk(OutputItemBase chunk) {
+    if (_isBufferingAfterTree) {
+      _bufferedChunks.add(chunk);
+      return;
+    }
+    if (chunk is TextFormChunk) {
+      _pinnedTextForm = chunk;
+      _pinnedTextFormMessageId = null;
+      return;
+    }
+    if (chunk is CartChunk) {
+      _cartController?.setCartFromChunk(chunk);
+      return;
+    }
+    if (chunk is RetailerOffersChunk) {
+      _cartController?.setRetailerOffers(chunk.offers);
+      return;
+    }
+    if (chunk is ItemsChunk) {
+      return;
+    }
+    if (chunk is TreeChunk) {
+      _disablePreviousTreeMessages();
+      _appendScrollChunk(chunk);
+      _isBufferingAfterTree = true;
+      return;
+    }
+    if (chunk is TextChunk) {
+      _appendOrMergeTextChunk(chunk);
+      return;
+    }
+    _appendScrollChunk(chunk);
+  }
+
+  void _disablePreviousTreeMessages() {
+    for (final ChatMessage msg in _messages) {
+      if (msg.sender == ChatMessageSender.agent &&
+          msg.chunks.any((OutputItemBase c) => c is TreeChunk)) {
+        _disabledMessageIds.add(msg.id);
+      }
+    }
+  }
+
+  /// Appends a TextChunk, merging with the last TextChunk in the current
+  /// agent message if present for seamless streaming display.
+  void _appendOrMergeTextChunk(TextChunk chunk) {
+    if (_messages.isEmpty || _messages.last.sender != ChatMessageSender.agent) {
+      _messages.add(ChatMessage.agent([chunk]));
+      return;
+    }
+    final ChatMessage lastMsg = _messages.last;
+    final List<OutputItemBase> chunks = lastMsg.chunks;
+    if (chunks.isNotEmpty && chunks.last is TextChunk) {
+      final TextChunk lastText = chunks.last as TextChunk;
+      chunks[chunks.length - 1] = TextChunk(
+        type: OutputItemType.text,
+        content: lastText.content + chunk.content,
+      );
+    } else {
+      chunks.add(chunk);
+    }
+  }
+
+  /// Appends a non-text scroll chunk to the current agent message or creates
+  /// a new one.
+  void _appendScrollChunk(OutputItemBase chunk) {
+    if (_messages.isEmpty || _messages.last.sender != ChatMessageSender.agent) {
+      _messages.add(ChatMessage.agent([chunk]));
+      return;
+    }
+    _messages.last.chunks.add(chunk);
+  }
 
   void _handleAgentResponse(List<OutputItemBase> chunks) {
     // Disable previous TreeChunks when a new one arrives
