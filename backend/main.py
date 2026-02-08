@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request, UploadFile, File, Form as FastAPIForm
 from fastapi.responses import StreamingResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import json
 import os
