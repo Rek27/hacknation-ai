@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:math';
-
 import 'package:flutter/material.dart';
 import 'package:frontend/model/chat_models.dart';
 import 'package:frontend/service/agent_api.dart';

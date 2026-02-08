@@ -412,6 +412,7 @@ class ChatController extends ChangeNotifier {
     _isBufferingAfterTree = false;
     _triggerScroll();
     _isLoading = true;
+    _cartController?.setLoading(true); // Cart may be generated from response
     notifyListeners();
 
     try {
@@ -458,6 +459,7 @@ class ChatController extends ChangeNotifier {
       );
     } finally {
       _isLoading = false;
+      _cartController?.setLoading(false);
       _triggerScroll();
       notifyListeners();
     }
