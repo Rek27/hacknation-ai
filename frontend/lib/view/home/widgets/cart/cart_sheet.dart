@@ -21,12 +21,24 @@ class CartSheet extends StatelessWidget {
           tooltip: 'Close',
         ),
         title: const Text('Cart'),
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(1),
-          child: Container(height: 1, color: colorScheme.outlineVariant),
-        ),
       ),
-      body: const CartMobilePanel(),
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              colorScheme.surface,
+              colorScheme.surfaceContainerLow,
+              colorScheme.surface,
+            ],
+            stops: const [0.0, 0.5, 1.0],
+          ),
+        ),
+        child: const CartMobilePanel(),
+      ),
     );
   }
 }

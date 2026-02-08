@@ -55,7 +55,9 @@ dependencies:
 
   # macOS-style swipe-to-delete for cart items
   flutter_slidable: ^4.0.3
-  
+
+  # Calendar widget for date selection in forms
+  table_calendar: ^3.2.0
 
 dev_dependencies:
   flutter_test:
@@ -82,6 +84,12 @@ flutter:
 
   assets:
     - assets/wave_hear_talk.riv
+    - assets/empty_cart.riv
+    - assets/empty_cart_search_icon.riv
+    - assets/empty_cart_little_fella.riv
+    - assets/empty_cart_facial_character.riv
+    - assets/empty_cart_avatar_pack.riv
+    - assets/empty_cart_sad_blob.riv
 
   # To add assets to your application, add an assets section, like this:
   # assets:

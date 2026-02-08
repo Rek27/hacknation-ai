@@ -57,6 +57,10 @@ abstract final class AppConstants {
   /// Size of the sender avatar circle.
   static const double chatAvatarSize = 32.0;
 
+  /// Horizontal padding for chat bubbles (avatar size + spacing).
+  static const double chatBubbleHorizontalPadding =
+      chatAvatarSize + spacingSm;
+
   // ── Tree pill constants (per depth level) ───────────────────────────
   /// Padding for level-0 category pills.
   static const EdgeInsets treePillPaddingL0 = EdgeInsets.symmetric(
@@ -104,12 +108,19 @@ abstract final class AppConstants {
   /// Delay between each word appearing in the typing animation.
   static const Duration textWordDelay = Duration(milliseconds: 30);
 
+  // ── Chunk stagger animation ───────────────────────────────────────────
+  /// Delay before revealing the next non-text chunk in a staggered sequence.
+  static const Duration chunkStaggerDelay = Duration(milliseconds: 500);
+
   // ── Form entrance animation ────────────────────────────────────────────
   /// Total duration for the form field-by-field entrance animation.
   static const Duration formEntranceDuration = Duration(milliseconds: 1200);
 
   /// Maximum width of the pinned text form.
   static const double textFormMaxWidth = 680.0;
+
+  /// Minimum height of form input fields (text and date) for consistent layout.
+  static const double formFieldMinHeight = 40.0;
 
   /// Width of sample prompt cards.
   static const double samplePromptWidth = 260.0;
@@ -129,6 +140,9 @@ abstract final class AppConstants {
 
   /// Size of the error icon container.
   static const double errorIconSize = 75.0;
+
+  /// Size of the Rive animation in the cart empty state.
+  static const double cartEmptyAnimationSize = 180.0;
 
   // ── Skeleton loading ──────────────────────────────────────────────────
   static const double skeletonImageSize = 80.0;

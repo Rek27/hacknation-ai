@@ -96,7 +96,6 @@ class CartPanel extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: AppConstants.spacingMd),
-              const Divider(height: 1),
               Expanded(
                 child: controller.isLoading
                     ? const CartLoadingList()

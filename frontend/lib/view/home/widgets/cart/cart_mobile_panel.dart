@@ -30,157 +30,174 @@ class CartMobilePanel extends StatelessWidget {
             AppConstants.spacingMd,
             AppConstants.spacingMd,
             AppConstants.spacingMd,
-            AppConstants.spacingSm,
+            AppConstants.spacingMd,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Line 1: icon + title + count chip
-              Row(
-                children: [
-                  Icon(
-                    Icons.shopping_cart_outlined,
-                    size: AppConstants.iconSizeSm,
-                    color: colorScheme.onSurface,
-                  ),
-                  const SizedBox(width: AppConstants.spacingSm),
-                  Text(
-                    'Smart Cart',
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
+              // Left: icon + title + count chip
+              Expanded(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.shopping_cart_outlined,
+                      size: AppConstants.iconSizeSm,
                       color: colorScheme.onSurface,
                     ),
-                  ),
-                  const SizedBox(width: AppConstants.spacingSm),
-                  if (!controller.isLoading)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: colorScheme.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(
-                          AppConstants.radiusFull,
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppConstants.spacingSm,
-                        vertical: AppConstants.spacingXs,
-                      ),
+                    const SizedBox(width: AppConstants.spacingSm),
+                    Flexible(
                       child: Text(
-                        '${controller.itemCount} items',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colorScheme.primary,
+                        'Smart Cart',
+                        style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.w600,
+                          color: colorScheme.onSurface,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                ],
-              ),
-              // Line 2: estimated total, right-aligned
-              if (!controller.isLoading)
-                Padding(
-                  padding: const EdgeInsets.only(top: AppConstants.spacingXs),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Estimated total',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                      ),
+                    if (!controller.isLoading) ...[
                       const SizedBox(width: AppConstants.spacingSm),
-                      Text(
-                        formatPrice(controller.totalPrice),
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.w700,
+                      Container(
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(
+                            AppConstants.radiusFull,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppConstants.spacingSm,
+                          vertical: AppConstants.spacingXs,
+                        ),
+                        child: Text(
+                          '${controller.itemCount} items',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
-                  ),
+                  ],
+                ),
+              ),
+              // Right: estimated total + price (same baseline as left)
+              if (!controller.isLoading)
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Estimated total',
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: AppConstants.spacingSm),
+                    Text(
+                      formatPrice(controller.totalPrice),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
             ],
           ),
         ),
-        const Divider(height: 1),
         // ── Content ───────────────────────────────────────────────────
         Expanded(
           child: controller.isLoading
               ? const CartLoadingList()
               : (controller.errorMessage != null)
-              ? CartErrorWidget(
-                  title: 'Something went wrong',
-                  subtitle: controller.errorMessage!,
-                  onRetry: () => controller.clearError(),
-                )
-              : controller.isEmpty
-              ? const CartEmptyState()
-              : ListView.separated(
-                  padding: EdgeInsets.only(
-                    top: AppConstants.spacingSm,
-                    left: AppConstants.spacingMd,
-                    right: AppConstants.spacingMd,
-                    bottom: controller.items.isNotEmpty
-                        ? AppConstants.bottomBarHeight
-                        : AppConstants.spacingSm,
-                  ),
-                  itemCount: controller.items.length,
-                  separatorBuilder: (BuildContext context, int index) =>
-                      const SizedBox(height: AppConstants.spacingSm),
-                  itemBuilder: (BuildContext context, int index) {
-                    final CartItem item = controller.items[index];
-                    final String key = item.id ?? item.name;
-                    final bool expanded = controller.isExpandedGroup(index);
-                    return Slidable(
-                      key: ValueKey<String>(key),
-                      endActionPane: ActionPane(
-                        motion: const DrawerMotion(),
-                        extentRatio: AppConstants.cartActionExtentRatio,
-                        dismissible: DismissiblePane(
-                          onDismissed: () => controller.deleteItem(key),
-                        ),
-                        children: [
-                          SlidableAction(
-                            onPressed: (_) => controller.deleteItem(key),
-                            backgroundColor: AppConstants.cartDeleteColor,
-                            foregroundColor: Colors.white,
-                            icon: Icons.delete_outline,
-                            label: 'Delete',
-                            borderRadius: BorderRadius.only(
-                              topRight: Radius.circular(AppConstants.radiusLg),
-                              bottomRight: Radius.circular(
-                                AppConstants.radiusLg,
-                              ),
-                            ),
+                  ? CartErrorWidget(
+                      title: 'Something went wrong',
+                      subtitle: controller.errorMessage!,
+                      onRetry: () => controller.clearError(),
+                    )
+                  : controller.isEmpty
+                      ? const CartEmptyState()
+                      : ListView.separated(
+                          padding: EdgeInsets.only(
+                            top: AppConstants.spacingMd,
+                            left: AppConstants.spacingMd,
+                            right: AppConstants.spacingMd,
+                            bottom: controller.items.isNotEmpty
+                                ? AppConstants.bottomBarHeight
+                                : AppConstants.spacingMd,
                           ),
-                        ],
-                      ),
-                      child: ChangeNotifierProvider<CartItemController>(
-                        create: (_) => CartItemController(item: item),
-                        child: CartItemMobileWidget(
-                          groupIndex: index,
-                          item: item,
-                          isExpanded: expanded,
-                          onToggle: () => controller.toggleExpandedGroup(index),
+                          itemCount: controller.items.length,
+                          separatorBuilder:
+                              (BuildContext context, int index) =>
+                                  const SizedBox(
+                                      height: AppConstants.spacingSm),
+                          itemBuilder:
+                              (BuildContext context, int index) {
+                            final CartItem item =
+                                controller.items[index];
+                            final String key = item.id ?? item.name;
+                            final bool expanded =
+                                controller.isExpandedGroup(index);
+                            return Slidable(
+                              key: ValueKey<String>(key),
+                              endActionPane: ActionPane(
+                                motion: const DrawerMotion(),
+                                extentRatio:
+                                    AppConstants.cartActionExtentRatio,
+                                dismissible: DismissiblePane(
+                                  onDismissed: () =>
+                                      controller.deleteItem(key),
+                                ),
+                                children: [
+                                  SlidableAction(
+                                    onPressed: (_) =>
+                                        controller.deleteItem(key),
+                                    backgroundColor:
+                                        AppConstants.cartDeleteColor,
+                                    foregroundColor: Colors.white,
+                                    icon: Icons.delete_outline,
+                                    label: 'Delete',
+                                    borderRadius: BorderRadius.only(
+                                      topRight: Radius.circular(
+                                        AppConstants.radiusLg,
+                                      ),
+                                      bottomRight: Radius.circular(
+                                        AppConstants.radiusLg,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              child: ChangeNotifierProvider<
+                                  CartItemController>(
+                                create: (_) =>
+                                    CartItemController(item: item),
+                                child: CartItemMobileWidget(
+                                  groupIndex: index,
+                                  item: item,
+                                  isExpanded: expanded,
+                                  onToggle: () => controller
+                                      .toggleExpandedGroup(index),
+                                ),
+                              ),
+                            );
+                          },
                         ),
-                      ),
-                    );
-                  },
-                ),
         ),
         // ── Checkout bar ──────────────────────────────────────────────
         if (!controller.isLoading &&
             controller.errorMessage == null &&
             !controller.isEmpty)
           Container(
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              border: Border(
-                top: BorderSide(color: colorScheme.outlineVariant, width: 1),
-              ),
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(
+              AppConstants.spacingMd,
+              AppConstants.spacingLg,
+              AppConstants.spacingMd,
+              AppConstants.spacingMd,
             ),
-            padding: const EdgeInsets.only(
-              top: AppConstants.spacingSm,
-              bottom: AppConstants.spacingSm,
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerLow.withValues(alpha: 0.5),
             ),
             child: SafeArea(
               top: false,

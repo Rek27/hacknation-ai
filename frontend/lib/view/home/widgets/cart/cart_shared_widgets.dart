@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/app_constants.dart';
+import 'package:frontend/view/home/widgets/cart/cart_empty_animation.dart';
 import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_utils.dart';
 import 'package:provider/provider.dart';
@@ -231,18 +232,8 @@ class CartEmptyState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              width: AppConstants.errorIconSize,
-              height: AppConstants.errorIconSize,
-              decoration: BoxDecoration(
-                color: colorScheme.surfaceContainerHigh,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.shopping_cart_outlined,
-                size: AppConstants.iconSizeSm + 8,
-                color: colorScheme.onSurfaceVariant,
-              ),
+            const CartEmptyAnimation(
+              size: AppConstants.cartEmptyAnimationSize,
             ),
             const SizedBox(height: AppConstants.spacingLg),
             Text(

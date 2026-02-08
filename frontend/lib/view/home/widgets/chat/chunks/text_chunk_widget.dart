@@ -6,9 +6,14 @@ import 'package:frontend/model/chat_models.dart';
 /// Renders a text chunk with a word-by-word typing animation that gives the
 /// impression the content is being generated in real time.
 class TextChunkWidget extends StatefulWidget {
-  const TextChunkWidget({super.key, required this.chunk});
+  const TextChunkWidget({
+    super.key,
+    required this.chunk,
+    this.onTypingComplete,
+  });
 
   final TextChunk chunk;
+  final VoidCallback? onTypingComplete;
 
   @override
   State<TextChunkWidget> createState() => _TextChunkWidgetState();
@@ -39,6 +44,7 @@ class _TextChunkWidgetState extends State<TextChunkWidget> {
       setState(() {
         _isComplete = true;
       });
+      widget.onTypingComplete?.call();
     }
   }
 
