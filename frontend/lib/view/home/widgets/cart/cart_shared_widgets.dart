@@ -100,7 +100,7 @@ class _StarIcon extends StatelessWidget {
   }
 }
 
-/// Small chip showing a retailer name. Used in cart items and summary cards.
+/// Small chip showing a retailer logo + name. Used in cart items and summary cards.
 class CartRetailerChip extends StatelessWidget {
   const CartRetailerChip({super.key, required this.text});
 
@@ -110,6 +110,9 @@ class CartRetailerChip extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
+    final String baseUrl = context.read<HomeController>().api.baseUrl;
+    final String logoFullUrl = '$baseUrl${retailerLogoUrl(text)}';
+
     return Container(
       decoration: BoxDecoration(
         color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
@@ -119,11 +122,26 @@ class CartRetailerChip extends StatelessWidget {
         horizontal: AppConstants.spacingSm,
         vertical: AppConstants.spacingXs / 2,
       ),
-      child: Text(
-        text,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: colorScheme.onSurfaceVariant,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ClipOval(
+            child: Image.network(
+              logoFullUrl,
+              width: 16,
+              height: 16,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+          const SizedBox(width: AppConstants.spacingXs),
+          Text(
+            text,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -151,12 +169,17 @@ class CartImagePlaceholder extends StatelessWidget {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final bgColor = color ?? colorScheme.surfaceContainerHighest;
 
-    // Resolve full URL from relative path.
+    // Resolve full URL — extract the path portion and prepend the app base URL
+    // so images always route through the correct host (e.g. ngrok tunnel).
     String? fullUrl;
     if (imageUrl != null && imageUrl!.isNotEmpty) {
-      final baseUrl =
-          context.read<HomeController>().api.baseUrl;
-      fullUrl = '$baseUrl$imageUrl';
+      final baseUrl = context.read<HomeController>().api.baseUrl;
+      String path = imageUrl!;
+      // If the backend returned an absolute URL, extract just the path.
+      if (path.startsWith('http://') || path.startsWith('https://')) {
+        path = Uri.parse(path).path;
+      }
+      fullUrl = '$baseUrl$path';
     }
 
     return ClipRRect(
@@ -171,10 +194,8 @@ class CartImagePlaceholder extends StatelessWidget {
                 width: size,
                 height: size,
                 fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _PlaceholderIcon(
-                  size: size,
-                  colorScheme: colorScheme,
-                ),
+                errorBuilder: (_, __, ___) =>
+                    _PlaceholderIcon(size: size, colorScheme: colorScheme),
               )
             : _PlaceholderIcon(size: size, colorScheme: colorScheme),
       ),
