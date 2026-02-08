@@ -103,6 +103,9 @@ flutter:
     - assets/7552-15074-loading-indicator-remix.riv
     - assets/1658-3268-flag-animation.riv
     - assets/7552-15074-loading-indicator-remix copy.riv
+    - assets/2569-5232-calling-animation.riv
+    - assets/11929-22748-simple-loading.riv
+    - assets/4207-8735-success.riv
 
   # To add assets to your application, add an assets section, like this:
   # assets:
