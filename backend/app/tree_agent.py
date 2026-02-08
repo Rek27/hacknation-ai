@@ -261,6 +261,23 @@ class TreeAgent:
                                         emitted_text = True
                                         inserted_preface = True
 
+                                # Bridge text between the two trees
+                                if (
+                                    tc["name"] == "emit_place_tree"
+                                    and emitted_people
+                                ):
+                                    bridge = {
+                                        "type": "text",
+                                        "content": (
+                                            "Now let's look at what the venue "
+                                            "itself will need:"
+                                        ),
+                                    }
+                                    yield json.dumps(bridge)
+                                    collected_text_for_context.append(
+                                        bridge["content"]
+                                    )
+
                                 yield output_json
                                 logger.info(f"Emitted {tc['name']}")
 
