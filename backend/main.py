@@ -1,31 +1,63 @@
-from fastapi import FastAPI, HTTPException, Request, UploadFile, File
-from fastapi.responses import StreamingResponse
+from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse, HTMLResponse
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field
 import os
 import time
 from dotenv import load_dotenv
+
+from app.models import TreeNode, TextFieldChunk, ErrorOutput
 from app.models.context import Context
-from app.agent_manager import AgentManager
-from app.rag_pipeline import RAGPipeline
-from app.tools import tools
+from app.tree_agent import TreeAgent
+from app.form_agent import FormAgent
 from app.logger import setup_logging, get_logger
 
 load_dotenv()
 
-# Setup logging
+# ── Logging ────────────────────────────────────────────────────────────────
 setup_logging(
     log_level=os.getenv("LOG_LEVEL", "INFO"),
     log_to_file=True,
     log_to_console=True,
-    json_logs=os.getenv("JSON_LOGS", "false").lower() == "true"
+    json_logs=os.getenv("JSON_LOGS", "false").lower() == "true",
 )
 
 logger = get_logger(__name__)
 
-app = FastAPI(title="Agent MVP API", version="1.0.0")
+# ── App ────────────────────────────────────────────────────────────────────
+_tags_metadata = [
+    {
+        "name": "Meta",
+        "description": "Service metadata and health checks.",
+    },
+    {
+        "name": "Chat",
+        "description": "TreeAgent streaming conversation endpoints.",
+    },
+    {
+        "name": "Tree",
+        "description": "Submit confirmed trees and generate a form.",
+    },
+    {
+        "name": "Form",
+        "description": "Submit the structured form data.",
+    },
+    {
+        "name": "UI",
+        "description": "Local test UI for manual verification.",
+    },
+]
 
+app = FastAPI(
+    title="Event Shopping Agent API",
+    version="2.0.0",
+    description=(
+        "API for generating event shopping trees and structured forms. "
+        "Streaming endpoints emit Server-Sent Events (SSE) with JSON-encoded "
+        "payloads derived from the output models."
+    ),
+    openapi_tags=_tags_metadata,
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -39,222 +71,146 @@ app.add_middleware(
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
-
     logger.info(
-        f"Incoming request: {request.method} {request.url.path}",
+        f"Incoming: {request.method} {request.url.path}",
         extra={
             "method": request.method,
             "path": request.url.path,
-            "client": request.client.host if request.client else "unknown"
-        }
+            "client": request.client.host if request.client else "unknown",
+        },
     )
-
     response = await call_next(request)
-
     duration = (time.time() - start_time) * 1000
-
     logger.info(
-        f"Request completed: {request.method} {request.url.path} - {response.status_code}",
-        extra={
-            "method": request.method,
-            "path": request.url.path,
-            "status_code": response.status_code,
-            "duration": round(duration, 2)
-        }
+        f"Done: {request.method} {request.url.path} → {response.status_code} "
+        f"({duration:.0f}ms)",
     )
-
     return response
 
 
-# Initialize RAG pipeline and connect to tools
-logger.info("Initializing RAG pipeline...")
-rag_pipeline = RAGPipeline()
-tools.set_rag_pipeline(rag_pipeline)
-logger.info("RAG pipeline initialized successfully")
+# ── Agents & sessions ─────────────────────────────────────────────────────
+api_key = os.getenv("OPENAI_API_KEY", "")
+tree_agent = TreeAgent(api_key=api_key)
+form_agent = FormAgent(api_key=api_key)
 
-# Initialize agent manager
-logger.info("Initializing agent manager...")
-agent_manager = AgentManager(api_key=os.getenv("OPENAI_API_KEY"))
-logger.info("Agent manager initialized successfully")
-
-contexts = {}
+# In-memory session store (swap for DB in production)
+sessions: dict[str, Context] = {}
 
 
+def _get_or_create_session(session_id: str, user_name: str = "User") -> Context:
+    if session_id not in sessions:
+        logger.info(f"New session: {session_id}")
+        sessions[session_id] = Context(user_name=user_name)
+    return sessions[session_id]
+
+
+# ── Request models ─────────────────────────────────────────────────────────
 class ChatRequest(BaseModel):
-    user_name: str
+    session_id: str
+    message: str
+    user_name: str = "User"
+
+
+class SubmitTreeRequest(BaseModel):
+    session_id: str
+    people_tree: list[TreeNode]
+    place_tree: list[TreeNode]
+
+
+class SubmitFormRequest(BaseModel):
+    session_id: str
+    address: TextFieldChunk
+    budget: TextFieldChunk
+    date: TextFieldChunk
+    duration: TextFieldChunk
+    number_of_attendees: TextFieldChunk = Field(
+        ...,
+        alias="numberOfAttendees",
+    )
+
+
+class RootResponse(BaseModel):
+    service: str
+    version: str
+    endpoints: list[str]
+
+
+class SubmitFormResponse(BaseModel):
+    success: bool
     message: str
     session_id: str
-    page_context: Optional[str] = None
+    items_summary: list[str]
 
 
-class IngestRequest(BaseModel):
-    filepath: str
+class HealthResponse(BaseModel):
+    status: str
+    active_sessions: int
 
 
-@app.on_event("startup")
-async def startup_event():
-    """Initialize services on startup"""
-    logger.info("Starting application...")
-
-    if os.path.exists("documents"):
-        try:
-            logger.info("Ingesting documents from 'documents' directory...")
-            count = rag_pipeline.ingest_directory("documents")
-            logger.info(f"Successfully ingested {count} chunks from documents directory")
-        except Exception as e:
-            logger.error(f"Failed to ingest documents: {e}", exc_info=True)
-    else:
-        logger.warning("Documents directory not found, skipping auto-ingestion")
-
-    logger.info("Application started successfully")
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Cleanup on shutdown"""
-    logger.info("Shutting down application...")
-    logger.info(f"Active sessions: {len(contexts)}")
-
-
-@app.get("/")
+# ── Endpoints ──────────────────────────────────────────────────────────────
+@app.get(
+    "/",
+    response_model=RootResponse,
+    tags=["Meta"],
+    summary="API metadata",
+    description="Returns service metadata and available endpoints.",
+)
 async def root():
-    logger.debug("Root endpoint accessed")
-    doc_count = rag_pipeline.collection.count()
     return {
-        "message": "Agent MVP API",
-        "version": "1.0.0",
-        "tools": tools.get_tool_names(),
-        "rag_status": "initialized" if tools.rag_pipeline else "not initialized",
-        "documents_count": doc_count
+        "service": "Event Shopping Agent API",
+        "version": "2.0.0",
+        "endpoints": ["/chat", "/submit-tree", "/submit-form", "/health", "/test"],
     }
 
 
-@app.post("/upload")
-async def upload_document(file: UploadFile = File(...)):
-    """Upload a document to the RAG pipeline"""
-    logger.info(f"Receiving file upload: {file.filename}")
+@app.get(
+    "/test",
+    response_class=HTMLResponse,
+    tags=["UI"],
+    summary="Serve local test UI",
+    description="Returns the bundled HTML test page.",
+)
+async def test_page():
+    html_path = os.path.join(os.path.dirname(__file__), "test.html")
+    with open(html_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(f.read())
 
-    # Validate file type
-    allowed_extensions = ['.txt', '.pdf']
-    file_ext = os.path.splitext(file.filename)[1].lower()
 
-    if file_ext not in allowed_extensions:
-        logger.warning(f"Unsupported file type: {file_ext}")
-        raise HTTPException(
-            status_code=400, 
-            detail=f"Unsupported file type. Allowed: {', '.join(allowed_extensions)}"
-        )
-
-    try:
-        # Read file content
-        content = await file.read()
-        logger.info(f"File read: {len(content)} bytes")
-
-        # Ingest the document
-        chunks_added = rag_pipeline.ingest_from_bytes(
-            content, 
-            file.filename,
-            metadata={"uploaded": True}
-        )
-
-        total_chunks = rag_pipeline.collection.count()
-
-        return {
-            "success": True,
-            "filename": file.filename,
-            "chunks_added": chunks_added,
-            "total_chunks": total_chunks
+@app.post(
+    "/chat",
+    tags=["Chat"],
+    summary="Stream TreeAgent output",
+    description=(
+        "Streams Server-Sent Events (SSE). Each event is a JSON-encoded "
+        "OutputItem such as TextChunk, PeopleTreeTrunk, PlaceTreeTrunk, or ErrorOutput."
+    ),
+    responses={
+        200: {
+            "description": "SSE stream of JSON-encoded OutputItem events.",
+            "content": {
+                "text/event-stream": {
+                    "schema": {"type": "string"},
+                    "example": 'data: {"type":"text","content":"Hello"}\\n\\n',
+                }
+            },
         }
-    except Exception as e:
-        logger.error(f"Failed to upload document: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.get("/documents")
-async def list_documents():
-    """List all documents in the RAG pipeline"""
-    logger.info("Listing documents")
-
-    try:
-        documents = rag_pipeline.list_documents()
-        total_chunks = rag_pipeline.collection.count()
-
-        return {
-            "success": True,
-            "documents": documents,
-            "total_chunks": total_chunks
-        }
-    except Exception as e:
-        logger.error(f"Failed to list documents: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.delete("/documents/{filename}")
-async def delete_document(filename: str):
-    """Delete a document from the RAG pipeline"""
-    logger.info(f"Deleting document: {filename}")
-
-    try:
-        chunks_deleted = rag_pipeline.delete_document(filename)
-
-        if chunks_deleted == 0:
-            raise HTTPException(status_code=404, detail="Document not found")
-
-        return {
-            "success": True,
-            "filename": filename,
-            "chunks_deleted": chunks_deleted
-        }
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Failed to delete document: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@app.post("/chat")
+    },
+)
 async def chat_stream(request: ChatRequest):
-    """
-    Streaming endpoint with structured outputs.
-
-    Returns Server-Sent Events with JSON objects:
-    - ToolOutput: Tool invocation signal
-    - ToolResultOutput: Tool execution result
-    - TextChunk: Streaming text from model
-    - ApiAnswerOutput: Final complete answer
-    - ErrorOutput: Error information
-    """
     logger.info(
-        f"Chat request from user: {request.user_name}",
-        extra={
-            "session_id": request.session_id,
-            "user_name": request.user_name,
-            "message_length": len(request.message)
-        }
+        f"/chat from {request.user_name} (session={request.session_id}): "
+        f"{request.message[:80]!r}"
     )
-
-    if request.session_id not in contexts:
-        logger.info(f"Creating new context for session: {request.session_id}")
-        contexts[request.session_id] = Context(user_name=request.user_name)
-
-    context = contexts[request.session_id]
-
-    if request.page_context:
-        context.update_page_context(request.page_context)
-        logger.debug(f"Updated page context: {request.page_context}")
+    context = _get_or_create_session(request.session_id, request.user_name)
 
     async def generate():
         try:
-            async for output_json in agent_manager.stream_response(context, request.message):
-                # Each output_json is already a JSON string of an OutputItem
+            async for output_json in tree_agent.stream_response(
+                context, request.message
+            ):
                 yield f"data: {output_json}\n\n"
         except Exception as e:
-            logger.error(
-                f"Error during chat streaming: {e}",
-                exc_info=True,
-                extra={"session_id": request.session_id}
-            )
-            from app.models import ErrorOutput
+            logger.error(f"/chat stream error: {e}", exc_info=True)
             error = ErrorOutput(message=str(e), code="STREAM_ERROR")
             yield f"data: {error.model_dump_json()}\n\n"
 
@@ -265,42 +221,110 @@ async def chat_stream(request: ChatRequest):
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
-        }
+        },
     )
 
 
-@app.post("/rag-search")
-async def rag_search(query: str, n_results: int = 3):
-    """Search RAG pipeline for relevant chunks"""
-    logger.info(f"RAG search query: '{query}' (n_results={n_results})")
-
-    try:
-        results = rag_pipeline.search(query, n_results)
-
-        logger.info(f"RAG search returned {len(results)} results")
-        logger.debug(f"Search results: {results}")
-
-        return {
-            "success": True,
-            "query": query,
-            "results": results
+@app.post(
+    "/submit-tree",
+    tags=["Tree"],
+    summary="Submit trees and stream form",
+    description=(
+        "Persists the confirmed people/place trees and streams an intro TextChunk "
+        "followed by a TextFormChunk via SSE."
+    ),
+    responses={
+        200: {
+            "description": "SSE stream containing TextChunk and TextFormChunk.",
+            "content": {
+                "text/event-stream": {
+                    "schema": {"type": "string"},
+                    "example": 'data: {"type":"text_form","address":{"label":"Address","content":""}}\\n\\n',
+                }
+            },
         }
-    except Exception as e:
-        logger.error(f"RAG search failed: {e}", exc_info=True)
-        raise HTTPException(status_code=500, detail=str(e))
+    },
+)
+async def submit_tree(request: SubmitTreeRequest):
+    logger.info(
+        f"/submit-tree session={request.session_id} "
+        f"people_nodes={len(request.people_tree)} "
+        f"place_nodes={len(request.place_tree)}"
+    )
+    context = _get_or_create_session(request.session_id)
+    context.save_trees(request.people_tree, request.place_tree)
+
+    async def generate():
+        try:
+            async for output_json in form_agent.stream_form(
+                context,
+                request.people_tree,
+                request.place_tree,
+                context.form_data,
+            ):
+                yield f"data: {output_json}\n\n"
+        except Exception as e:
+            logger.error(f"/submit-tree stream error: {e}", exc_info=True)
+            error = ErrorOutput(message=str(e), code="FORM_ERROR")
+            yield f"data: {error.model_dump_json()}\n\n"
+
+    return StreamingResponse(
+        generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
-@app.get("/health")
-async def health():
-    doc_count = rag_pipeline.collection.count() if rag_pipeline else 0
+@app.post(
+    "/submit-form",
+    response_model=SubmitFormResponse,
+    tags=["Form"],
+    summary="Submit form data",
+    description="Persists confirmed form data and returns a summary.",
+)
+async def submit_form(request: SubmitFormRequest):
+    fields = [
+        request.address,
+        request.budget,
+        request.date,
+        request.duration,
+        request.number_of_attendees,
+    ]
+    logger.info(
+        f"/submit-form session={request.session_id} "
+        f"fields={len(fields)}"
+    )
+    context = _get_or_create_session(request.session_id)
+    context.save_form(fields)
+
+    items_summary = [
+        f"{f.label}: {f.content}" for f in fields if f.content
+    ]
+
     return {
-        "status": "healthy",
-        "rag_pipeline": "initialized" if rag_pipeline else "not initialized",
-        "tools_available": len(tools.get_tool_names()),
-        "documents_count": doc_count
+        "success": True,
+        "message": "Form submitted. BuyerAgent will process your request.",
+        "session_id": request.session_id,
+        "items_summary": items_summary,
     }
+
+
+@app.get(
+    "/health",
+    response_model=HealthResponse,
+    tags=["Meta"],
+    summary="Health check",
+    description="Returns service health and active session count.",
+)
+async def health():
+    return {"status": "healthy", "active_sessions": len(sessions)}
 
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="0.0.0.0", port=8000, log_config=None)
