@@ -21,8 +21,11 @@ class TextChunkWidget extends StatefulWidget {
 class _TextChunkWidgetState extends State<TextChunkWidget> {
   /// Number of words currently visible.
   int _visibleWordCount = 0;
-  late final List<String> _words;
+  late List<String> _words;
   bool _isComplete = false;
+
+  /// Incremented when new content arrives; old typing loops abort.
+  int _typingGeneration = 0;
 
   @override
   void initState() {
@@ -31,15 +34,33 @@ class _TextChunkWidgetState extends State<TextChunkWidget> {
     _startTyping();
   }
 
+  @override
+  void didUpdateWidget(TextChunkWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.chunk.content != oldWidget.chunk.content) {
+      final List<String> newWords =
+          widget.chunk.content.split(RegExp(r'(\s+)'));
+      if (newWords.length > _words.length) {
+        _words = newWords;
+        _typingGeneration++;
+        _startTyping();
+      }
+    }
+  }
+
   Future<void> _startTyping() async {
-    for (int i = 1; i <= _words.length; i++) {
+    final int myGen = _typingGeneration;
+    for (int i = _visibleWordCount + 1; i <= _words.length; i++) {
       await Future<void>.delayed(AppConstants.textWordDelay);
-      if (!mounted) return;
+      if (!mounted || myGen != _typingGeneration) return;
       setState(() {
         _visibleWordCount = i;
       });
     }
-    if (mounted) {
+    if (mounted &&
+        myGen == _typingGeneration &&
+        _visibleWordCount >= _words.length &&
+        !_isComplete) {
       setState(() {
         _isComplete = true;
       });

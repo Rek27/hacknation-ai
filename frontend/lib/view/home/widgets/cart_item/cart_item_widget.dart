@@ -135,13 +135,7 @@ class _HeaderRow extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    formatPrice(item.price),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: colorScheme.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
+                  CartItemPriceWithDiscount(item: item),
                   const SizedBox(width: AppConstants.spacingSm),
                   CartRetailerChip(text: item.retailer),
                 ],
@@ -244,13 +238,7 @@ class _ExpandedDetails extends StatelessWidget {
               const SizedBox(width: AppConstants.spacingMd),
               const Icon(Icons.attach_money, size: AppConstants.iconSizeXs),
               const SizedBox(width: AppConstants.spacingSm),
-              Text(
-                'Item total: ${formatPrice(item.price * item.amount)}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.primary,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
+              CartItemTotalWithDiscount(item: item),
             ],
           ),
         ),

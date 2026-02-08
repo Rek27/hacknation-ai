@@ -111,6 +111,11 @@ abstract final class AppConstants {
   /// Delay before revealing the next non-text chunk in a staggered sequence.
   static const Duration chunkStaggerDelay = Duration(milliseconds: 500);
 
+  // ── Retailer call chunk ────────────────────────────────────────────────
+  /// Interval between rotating reassurance sentences while the retailer call is in progress.
+  static const Duration retailerCallSentenceRotationDuration =
+      Duration(milliseconds: 2500);
+
   // ── Form entrance animation ────────────────────────────────────────────
   /// Total duration for the form field-by-field entrance animation.
   static const Duration formEntranceDuration = Duration(milliseconds: 1200);
@@ -146,6 +151,12 @@ abstract final class AppConstants {
 
   /// Size of the Rive animation in the cart empty state.
   static const double cartEmptyAnimationSize = 180.0;
+
+  /// Size of the Rive animation in the checkout ordering state.
+  static const double checkoutLoadingAnimationSize = 120.0;
+
+  /// Size of the Rive animation in the order-confirmed state.
+  static const double orderDoneAnimationSize = 100.0;
 
   // ── Skeleton loading ──────────────────────────────────────────────────
   static const double skeletonImageSize = 80.0;

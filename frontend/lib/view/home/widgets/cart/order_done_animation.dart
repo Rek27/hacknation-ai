@@ -4,38 +4,36 @@ import 'package:rive/rive.dart' as rive;
 // ─── Switch the active animation here ──────────────────────────────────
 // Uncomment ONE line below to try each animation, then hot-restart:
 //
-// 1) Search Icon by JcToon — cute dog with magnifying glass (search theme)
-// const String _activeAssetPath = 'assets/empty_cart_search_icon.riv';
+// 1) Checkmark Icon by jpereira — clean animated checkmark circle
+// const String _activeOrderDoneAssetPath = 'assets/order_done_checkmark.riv';
 //
-// 2) Little Fella by selleslaghbert — idle character with cursor tracking
-// const String _activeAssetPath = 'assets/empty_cart_little_fella.riv';
+// 2) Success by devf — success icon with fill animation
+// const String _activeOrderDoneAssetPath = 'assets/order_done_success.riv';
 //
-// 3) Character Facial Animation by Ryuhei — random facial expressions
-// const String _activeAssetPath = 'assets/empty_cart_facial_character.riv';
+// 3) Success-Done-Completed by Artvier — checkmark with expanding circle
+const String _activeOrderDoneAssetPath = 'assets/order_done_success_v2.riv';
 //
-// 4) Avatar Pack by drawsgood — 3 avatars with idle, happy, sad states
-const String _activeAssetPath = 'assets/empty_cart_avatar_pack.riv';
+// 4) Donecheck by Codywhy — minimal done check state machine
+// const String _activeOrderDoneAssetPath = 'assets/order_done_donecheck.riv';
 //
-// 5) Sad Blob by MiniCubeVR — simple sad character
-// const String _activeAssetPath = 'assets/empty_cart_sad_blob.riv';
+// 5) Confetti Animation by sergeyz — festive confetti burst
+// const String _activeOrderDoneAssetPath = 'assets/order_done_confetti.riv';
 // ────────────────────────────────────────────────────────────────────────
 
-/// Animated Rive illustration shown in the empty cart state.
+/// Animated Rive illustration shown on the order-confirmed screen.
 ///
 /// Loads the selected `.riv` asset and plays its first state machine.
-/// Uses [StateMachineAtIndex] to avoid failures on files without a
-/// default state machine marker.
-/// Falls back to an [Icons.shopping_cart_outlined] icon if loading fails.
-class CartEmptyAnimation extends StatefulWidget {
-  const CartEmptyAnimation({super.key, required this.size});
+/// Falls back to a green checkmark icon if loading fails.
+class OrderDoneAnimation extends StatefulWidget {
+  const OrderDoneAnimation({super.key, required this.size});
 
   final double size;
 
   @override
-  State<CartEmptyAnimation> createState() => _CartEmptyAnimationState();
+  State<OrderDoneAnimation> createState() => _OrderDoneAnimationState();
 }
 
-class _CartEmptyAnimationState extends State<CartEmptyAnimation> {
+class _OrderDoneAnimationState extends State<OrderDoneAnimation> {
   rive.File? _riveFile;
   rive.RiveWidgetController? _controller;
   bool _isInitialized = false;
@@ -49,7 +47,7 @@ class _CartEmptyAnimationState extends State<CartEmptyAnimation> {
   Future<void> _initRive() async {
     try {
       _riveFile = await rive.File.asset(
-        _activeAssetPath,
+        _activeOrderDoneAssetPath,
         riveFactory: rive.Factory.rive,
       );
       if (_riveFile == null) return;
@@ -61,7 +59,7 @@ class _CartEmptyAnimationState extends State<CartEmptyAnimation> {
         setState(() => _isInitialized = true);
       }
     } catch (e) {
-      print('CartEmptyAnimation._initRive error: $e');
+      print('OrderDoneAnimation._initRive error: $e');
     }
   }
 
@@ -75,7 +73,7 @@ class _CartEmptyAnimationState extends State<CartEmptyAnimation> {
   @override
   Widget build(BuildContext context) {
     if (!_isInitialized || _controller == null) {
-      return _buildFallback(context);
+      return _buildFallback();
     }
     return SizedBox(
       width: widget.size,
@@ -84,15 +82,18 @@ class _CartEmptyAnimationState extends State<CartEmptyAnimation> {
     );
   }
 
-  Widget _buildFallback(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    return SizedBox(
+  Widget _buildFallback() {
+    return Container(
       width: widget.size,
       height: widget.size,
+      decoration: const BoxDecoration(
+        color: Color(0xFF34C759),
+        shape: BoxShape.circle,
+      ),
       child: Icon(
-        Icons.shopping_cart_outlined,
-        size: widget.size * 0.4,
-        color: colorScheme.onSurfaceVariant,
+        Icons.check_rounded,
+        size: widget.size * 0.55,
+        color: Colors.white,
       ),
     );
   }

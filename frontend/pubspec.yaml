@@ -58,6 +58,7 @@ dependencies:
 
   # Calendar widget for date selection in forms
   table_calendar: ^3.2.0
+  loading_animation_widget: ^1.3.0
 
 dev_dependencies:
   flutter_test:
@@ -90,6 +91,14 @@ flutter:
     - assets/empty_cart_facial_character.riv
     - assets/empty_cart_avatar_pack.riv
     - assets/empty_cart_sad_blob.riv
+    - assets/checkout_vehicle_loader.riv
+    - assets/checkout_loading_success.riv
+    - assets/checkout_spinner.riv
+    - assets/order_done_checkmark.riv
+    - assets/order_done_success.riv
+    - assets/order_done_success_v2.riv
+    - assets/order_done_donecheck.riv
+    - assets/order_done_confetti.riv
 
   # To add assets to your application, add an assets section, like this:
   # assets:

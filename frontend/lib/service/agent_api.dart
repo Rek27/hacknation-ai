@@ -214,7 +214,9 @@ class AgentApi {
 
 /// Contract for chat operations: messaging, tree submission, and form submission.
 abstract class ChatService {
-  Future<List<OutputItemBase>> sendMessage(String message);
+  /// Streams chunks as they arrive from the backend. Text chunks are yielded
+  /// incrementally for real-time display.
+  Stream<OutputItemBase> sendMessage(String message);
   Future<List<OutputItemBase>> submitTree({
     required List<Map<String, dynamic>> peopleTree,
     required List<Map<String, dynamic>> placeTree,
@@ -230,13 +232,13 @@ class RealChatService implements ChatService {
   RealChatService(this._api, this._sessionId);
 
   @override
-  Future<List<OutputItemBase>> sendMessage(String message) async {
+  Stream<OutputItemBase> sendMessage(String message) {
     final ChatRequestBody body = ChatRequestBody(
       userName: 'User',
       message: message,
       sessionId: _sessionId,
     );
-    return await _api.streamChat(body).toList();
+    return _api.streamChat(body);
   }
 
   @override
@@ -272,11 +274,16 @@ class MockChatService implements ChatService {
   int _step = 0;
 
   @override
-  Future<List<OutputItemBase>> sendMessage(String message) async {
+  Stream<OutputItemBase> sendMessage(String message) async* {
     await Future.delayed(const Duration(milliseconds: 1200));
     final List<OutputItemBase> response = _responseForStep(_step);
     _step++;
-    return response;
+    for (final OutputItemBase chunk in response) {
+      yield chunk;
+      if (chunk is TextChunk) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+    }
   }
 
   @override
