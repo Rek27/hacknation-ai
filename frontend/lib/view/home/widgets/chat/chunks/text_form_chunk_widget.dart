@@ -7,6 +7,9 @@ import 'package:frontend/view/home/widgets/chat/chat_controller.dart';
 
 /// Renders the TextFormChunk as an Apple-inspired grouped form.
 /// Supports pinned, history, and disabled modes.
+///
+/// On first mount the form builds up field-by-field with a sequential
+/// fade + slide entrance animation.
 class TextFormChunkWidget extends StatefulWidget {
   const TextFormChunkWidget({
     super.key,
@@ -25,12 +28,19 @@ class TextFormChunkWidget extends StatefulWidget {
   State<TextFormChunkWidget> createState() => _TextFormChunkWidgetState();
 }
 
-class _TextFormChunkWidgetState extends State<TextFormChunkWidget> {
+class _TextFormChunkWidgetState extends State<TextFormChunkWidget>
+    with SingleTickerProviderStateMixin {
   late final TextEditingController _addressController;
   late final TextEditingController _budgetController;
   late final TextEditingController _dateController;
   late final TextEditingController _durationController;
   late final TextEditingController _attendeesController;
+
+  late final AnimationController _entranceController;
+
+  /// Animated items: header, address, budget+date row, duration+attendees row,
+  /// and (when not disabled) the action button.
+  int get _totalItems => widget.isDisabled ? 4 : 5;
 
   @override
   void initState() {
@@ -50,6 +60,14 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget> {
     _attendeesController = TextEditingController(
       text: widget.chunk.numberOfAttendees.content ?? '',
     );
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: AppConstants.formEntranceDuration,
+      value: widget.isDisabled ? 1.0 : 0.0,
+    );
+    if (!widget.isDisabled) {
+      _entranceController.forward();
+    }
   }
 
   @override
@@ -59,6 +77,7 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget> {
     _dateController.dispose();
     _durationController.dispose();
     _attendeesController.dispose();
+    _entranceController.dispose();
     super.dispose();
   }
 
@@ -70,6 +89,29 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget> {
       'duration': _durationController.text.trim(),
       'numberOfAttendees': _attendeesController.text.trim(),
     });
+  }
+
+  /// Wraps [child] in a sequential fade + slide for the entrance animation.
+  Widget _animateItem(int index, Widget child) {
+    final int total = _totalItems;
+    if (total <= 1) return child;
+    final double start = index / total;
+    final double end = (index + 1) / total;
+    final Animation<double> opacity = CurvedAnimation(
+      parent: _entranceController,
+      curve: Interval(start, end, curve: Curves.easeOut),
+    );
+    final Animation<Offset> slide = Tween<Offset>(
+      begin: const Offset(0, 0.12),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _entranceController,
+      curve: Interval(start, end, curve: Curves.easeOutCubic),
+    ));
+    return SlideTransition(
+      position: slide,
+      child: FadeTransition(opacity: opacity, child: child),
+    );
   }
 
   @override
@@ -106,81 +148,102 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget> {
               ]
             : null,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildHeader(theme, colorScheme),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppConstants.spacingLg,
-              AppConstants.spacingSm,
-              AppConstants.spacingLg,
-              AppConstants.spacingLg,
-            ),
-            child: Column(
-              children: [
-                // Full-width address field
-                _FormField(
-                  label: widget.chunk.address.label,
-                  controller: _addressController,
-                  isReadOnly: isReadOnly,
-                  icon: Icons.location_on_outlined,
+      child: AnimatedBuilder(
+        animation: _entranceController,
+        builder: (BuildContext context, Widget? _) {
+          int itemIndex = 0;
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _animateItem(
+                itemIndex++,
+                _buildHeader(theme, colorScheme),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppConstants.spacingLg,
+                  AppConstants.spacingSm,
+                  AppConstants.spacingLg,
+                  AppConstants.spacingLg,
                 ),
-                const SizedBox(height: AppConstants.spacingMd),
-                // Two-column row: budget + date
-                Row(
+                child: Column(
                   children: [
-                    Expanded(
-                      child: _FormField(
-                        label: widget.chunk.budget.label,
-                        controller: _budgetController,
+                    // Full-width address field
+                    _animateItem(
+                      itemIndex++,
+                      _FormField(
+                        label: widget.chunk.address.label,
+                        controller: _addressController,
                         isReadOnly: isReadOnly,
-                        icon: Icons.attach_money_rounded,
+                        icon: Icons.location_on_outlined,
                       ),
                     ),
-                    const SizedBox(width: AppConstants.spacingMd),
-                    Expanded(
-                      child: _FormField(
-                        label: widget.chunk.date.label,
-                        controller: _dateController,
-                        isReadOnly: isReadOnly,
-                        icon: Icons.calendar_today_rounded,
+                    const SizedBox(height: AppConstants.spacingMd),
+                    // Two-column row: budget + date
+                    _animateItem(
+                      itemIndex++,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _FormField(
+                              label: widget.chunk.budget.label,
+                              controller: _budgetController,
+                              isReadOnly: isReadOnly,
+                              icon: Icons.attach_money_rounded,
+                            ),
+                          ),
+                          const SizedBox(width: AppConstants.spacingMd),
+                          Expanded(
+                            child: _FormField(
+                              label: widget.chunk.date.label,
+                              controller: _dateController,
+                              isReadOnly: isReadOnly,
+                              icon: Icons.calendar_today_rounded,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
+                    const SizedBox(height: AppConstants.spacingMd),
+                    // Two-column row: duration + attendees
+                    _animateItem(
+                      itemIndex++,
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _FormField(
+                              label: widget.chunk.durationOfEvent.label,
+                              controller: _durationController,
+                              isReadOnly: isReadOnly,
+                              icon: Icons.timer_outlined,
+                            ),
+                          ),
+                          const SizedBox(width: AppConstants.spacingMd),
+                          Expanded(
+                            child: _FormField(
+                              label: widget.chunk.numberOfAttendees.label,
+                              controller: _attendeesController,
+                              isReadOnly: isReadOnly,
+                              icon: Icons.group_outlined,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (!widget.isDisabled) ...[
+                      const SizedBox(height: AppConstants.spacingLg),
+                      _animateItem(
+                        itemIndex++,
+                        _buildActions(theme, colorScheme),
+                      ),
+                    ],
                   ],
                 ),
-                const SizedBox(height: AppConstants.spacingMd),
-                // Two-column row: duration + attendees
-                Row(
-                  children: [
-                    Expanded(
-                      child: _FormField(
-                        label: widget.chunk.durationOfEvent.label,
-                        controller: _durationController,
-                        isReadOnly: isReadOnly,
-                        icon: Icons.timer_outlined,
-                      ),
-                    ),
-                    const SizedBox(width: AppConstants.spacingMd),
-                    Expanded(
-                      child: _FormField(
-                        label: widget.chunk.numberOfAttendees.label,
-                        controller: _attendeesController,
-                        isReadOnly: isReadOnly,
-                        icon: Icons.group_outlined,
-                      ),
-                    ),
-                  ],
-                ),
-                if (!widget.isDisabled) ...[
-                  const SizedBox(height: AppConstants.spacingLg),
-                  _buildActions(theme, colorScheme),
-                ],
-              ],
-            ),
-          ),
-        ],
+              ),
+            ],
+          );
+        },
       ),
     );
   }

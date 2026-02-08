@@ -171,7 +171,7 @@ class _CategoryPillState extends State<CategoryPill>
             padding: padding,
             decoration: BoxDecoration(
               color: colors.background,
-              borderRadius: BorderRadius.circular(AppConstants.radiusFull),
+              borderRadius: BorderRadius.circular(AppConstants.radiusMd),
               border: Border.all(
                 color: colors.border,
                 width: colors.borderWidth,

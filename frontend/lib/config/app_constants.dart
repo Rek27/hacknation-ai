@@ -91,6 +91,17 @@ abstract final class AppConstants {
   /// Disabled-state opacity for submitted trees.
   static const double treeDisabledOpacity = 0.5;
 
+  /// Total duration of the sequential build-up entrance animation.
+  static const Duration treeEntranceDuration = Duration(milliseconds: 2400);
+
+  // ── Text typing animation ──────────────────────────────────────────────
+  /// Delay between each word appearing in the typing animation.
+  static const Duration textWordDelay = Duration(milliseconds: 30);
+
+  // ── Form entrance animation ────────────────────────────────────────────
+  /// Total duration for the form field-by-field entrance animation.
+  static const Duration formEntranceDuration = Duration(milliseconds: 1200);
+
   /// Maximum width of the pinned text form.
   static const double textFormMaxWidth = 680.0;
 

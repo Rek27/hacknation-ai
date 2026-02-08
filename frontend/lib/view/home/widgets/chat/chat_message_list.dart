@@ -5,6 +5,7 @@ import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/model/chat_message.dart';
 import 'package:frontend/view/home/widgets/chat/chat_bubble.dart';
 import 'package:frontend/view/home/widgets/chat/chat_controller.dart';
+import 'package:frontend/view/home/widgets/chat/thinking_bubble.dart';
 
 /// Scrollable message list with auto-scroll and consecutive sender grouping.
 class ChatMessageList extends StatefulWidget {
@@ -69,13 +70,19 @@ class _ChatMessageListState extends State<ChatMessageList> {
       });
     }
 
+    final bool isLoading = controller.isLoading;
+    final int totalItems = messages.length + (isLoading ? 1 : 0);
     return Stack(
       children: [
         ListView.builder(
           controller: _scrollController,
           padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingSm),
-          itemCount: messages.length,
+          itemCount: totalItems,
           itemBuilder: (BuildContext context, int index) {
+            // Last item is the thinking bubble when loading
+            if (isLoading && index == messages.length) {
+              return const ThinkingBubble();
+            }
             final ChatMessage message = messages[index];
             final bool showAvatar = _shouldShowAvatar(messages, index);
             final bool isDisabled = controller.isMessageDisabled(message.id);

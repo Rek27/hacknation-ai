@@ -54,78 +54,38 @@ class _ChatInputBarState extends State<ChatInputBar> {
         horizontal: AppConstants.spacingMd,
         vertical: AppConstants.spacingSm,
       ),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        border: Border(
-          top: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
+      color: colorScheme.surface,
+      child: Focus(
+        onKeyEvent: _handleKeyEvent,
+        child: TextField(
+          controller: _textController,
+          focusNode: _focusNode,
+          minLines: 3,
+          maxLines: 8,
+          enabled: !isLoading,
+          textInputAction: TextInputAction.newline,
+          decoration: InputDecoration(
+            hintText: 'Type a message...  (Enter to send)',
+            filled: true,
+            fillColor: colorScheme.surfaceContainerHigh,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: AppConstants.spacingLg,
+              vertical: AppConstants.spacingMd,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppConstants.radiusXl),
+              borderSide: BorderSide.none,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppConstants.radiusXl),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppConstants.radiusXl),
+              borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
+            ),
+          ),
         ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Expanded(
-            child: Focus(
-              onKeyEvent: _handleKeyEvent,
-              child: TextField(
-                controller: _textController,
-                focusNode: _focusNode,
-                minLines: 1,
-                maxLines: 5,
-                enabled: !isLoading,
-                textInputAction: TextInputAction.newline,
-                decoration: InputDecoration(
-                  hintText: 'Type a message...',
-                  filled: true,
-                  fillColor: colorScheme.surfaceContainerHigh,
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: AppConstants.spacingLg,
-                    vertical: AppConstants.spacingSm + 2,
-                  ),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.radiusXl),
-                    borderSide: BorderSide.none,
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.radiusXl),
-                    borderSide: BorderSide.none,
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(AppConstants.radiusXl),
-                    borderSide: BorderSide(
-                      color: colorScheme.primary,
-                      width: 1.5,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: AppConstants.spacingSm),
-          AnimatedContainer(
-            duration: AppConstants.durationMedium,
-            child: IconButton(
-              onPressed: isLoading ? null : _handleSend,
-              icon: AnimatedSwitcher(
-                duration: AppConstants.durationFast,
-                child: Icon(
-                  Icons.send_rounded,
-                  key: ValueKey<bool>(isLoading),
-                  color: isLoading
-                      ? colorScheme.onSurface.withValues(alpha: 0.38)
-                      : colorScheme.onPrimary,
-                ),
-              ),
-              tooltip: 'Send message',
-              style: IconButton.styleFrom(
-                backgroundColor: isLoading
-                    ? colorScheme.surfaceContainerHigh
-                    : colorScheme.primary,
-                shape: const CircleBorder(),
-                padding: const EdgeInsets.all(AppConstants.spacingSm + 2),
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }
