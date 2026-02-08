@@ -88,14 +88,14 @@ class CartPanel extends StatelessWidget {
                           controller.hasAnyDiscount
                               ? 'Final total'
                               : 'Estimated total',
-                          style: theme.textTheme.labelSmall?.copyWith(
+                          style: theme.textTheme.labelMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
                         ),
                         if (controller.hasAnyDiscount) ...[
                           Text(
                             formatPrice(controller.totalPrice),
-                            style: theme.textTheme.bodySmall?.copyWith(
+                            style: theme.textTheme.bodyMedium?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                               decoration: TextDecoration.lineThrough,
                               decorationColor: colorScheme.onSurfaceVariant,
@@ -510,7 +510,80 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                     ],
                   ),
                 ],
-                const SizedBox(height: AppConstants.spacingXl),
+                const SizedBox(height: AppConstants.spacingLg),
+                // Savings display
+                if (controller.hasAnyDiscount) ...[
+                  Container(
+                    padding: const EdgeInsets.all(AppConstants.spacingMd),
+                    decoration: BoxDecoration(
+                      color: cs.tertiaryContainer.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.radiusMd,
+                      ),
+                      border: Border.all(
+                        color: cs.tertiary.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.savings_outlined,
+                          color: cs.tertiary,
+                          size: 28,
+                        ),
+                        const SizedBox(width: AppConstants.spacingMd),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Total savings from negotiations',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(
+                                height: AppConstants.spacingXs / 2,
+                              ),
+                              Text(
+                                formatPrice(
+                                  controller.totalPrice -
+                                      controller.finalTotalPrice,
+                                ),
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  color: cs.tertiary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppConstants.spacingMd,
+                            vertical: AppConstants.spacingSm,
+                          ),
+                          decoration: BoxDecoration(
+                            color: cs.tertiary,
+                            borderRadius: BorderRadius.circular(
+                              AppConstants.radiusFull,
+                            ),
+                          ),
+                          child: Text(
+                            '${((controller.totalPrice - controller.finalTotalPrice) / controller.totalPrice * 100).round()}% off',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: cs.onTertiary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppConstants.spacingLg),
+                ],
                 Row(
                   children: [
                     OutlinedButton(
@@ -543,7 +616,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                           ? const FaIcon(FontAwesomeIcons.paypal, size: 20)
                           : const Icon(Icons.credit_card, size: 20),
                       label: Text(
-                        'Place order — ${formatPrice(controller.totalPrice)}',
+                        'Place order — ${formatPrice(controller.finalTotalPrice)}',
                       ),
                     ),
                   ],

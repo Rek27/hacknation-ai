@@ -70,7 +70,8 @@ class _CartLoadingListState extends State<CartLoadingList> {
     int nextIndex;
     do {
       nextIndex = _random.nextInt(_loadingSentences.length);
-    } while (nextIndex == _currentSentenceIndex && _loadingSentences.length > 1);
+    } while (nextIndex == _currentSentenceIndex &&
+        _loadingSentences.length > 1);
     setState(() => _currentSentenceIndex = nextIndex);
   }
 
@@ -87,9 +88,7 @@ class _CartLoadingListState extends State<CartLoadingList> {
     final ThemeData theme = Theme.of(context);
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppConstants.spacingXl,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingXl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
