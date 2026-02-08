@@ -103,8 +103,12 @@ class CartPanel extends StatelessWidget {
                     ? CartErrorWidget(
                         title: 'Something went wrong',
                         subtitle: controller.errorMessage!,
-                        onRetry: () => controller.loadDummyData(),
+                        onRetry: () => controller.clearError(),
                       )
+                    : controller.phase == CheckoutPhase.ordering
+                    ? const _RetailerOrderingScreen()
+                    : controller.phase == CheckoutPhase.complete
+                    ? const _OrderCompleteSummary()
                     : controller.showSummary
                     ? const _CartSummaryPanel()
                     : controller.isEmpty
@@ -173,7 +177,8 @@ class CartPanel extends StatelessWidget {
         // Edge-to-edge fixed bottom confirm bar (outside page padding)
         if (!controller.isLoading &&
             controller.errorMessage == null &&
-            !controller.showSummary)
+            controller.phase == CheckoutPhase.cart &&
+            !controller.isEmpty)
           Positioned(
             left: 0,
             right: 0,
@@ -205,7 +210,6 @@ class CartPanel extends StatelessWidget {
     );
   }
 }
-
 
 class _CartSummaryPanel extends StatefulWidget {
   const _CartSummaryPanel();
@@ -250,7 +254,10 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
     final cs = theme.colorScheme;
     final controller = context.watch<CartController>();
     return Padding(
-      padding: const EdgeInsets.only(top: AppConstants.spacingMd, bottom: AppConstants.bottomBarHeight),
+      padding: const EdgeInsets.only(
+        top: AppConstants.spacingMd,
+        bottom: AppConstants.bottomBarHeight,
+      ),
       child: ListView(
         children: [
           // Header with back
@@ -360,16 +367,20 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                         const SizedBox(height: AppConstants.spacingXs),
                         Row(
                           children: [
-                            const Icon(Icons.calendar_today_outlined, size: AppConstants.metaIconSize),
+                            const Icon(
+                              Icons.calendar_today_outlined,
+                              size: AppConstants.metaIconSize,
+                            ),
                             const SizedBox(width: AppConstants.metaIconGap),
                             Text(
-                              formatEstimatedDateFromNow(
-                                item.deliveryTime,
-                              ),
+                              formatEstimatedDateFromNow(item.deliveryTime),
                               style: theme.textTheme.bodySmall,
                             ),
                             const SizedBox(width: AppConstants.spacingMd),
-                            const Icon(Icons.shopping_bag_outlined, size: AppConstants.metaIconSize),
+                            const Icon(
+                              Icons.shopping_bag_outlined,
+                              size: AppConstants.metaIconSize,
+                            ),
                             const SizedBox(width: AppConstants.metaIconGap),
                             Text(
                               'Qty: ${item.amount}',
@@ -508,12 +519,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                           ),
                         ),
                       ),
-                      onPressed: () {
-                        // no-op for now
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Order placed (mock).')),
-                        );
-                      },
+                      onPressed: () => controller.placeOrder(),
                       child: Text(
                         'Place order — ${formatPrice(controller.totalPrice)}',
                       ),
@@ -567,3 +573,412 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Retailer ordering animation screen
+// ---------------------------------------------------------------------------
+
+/// Mock retailer logo colours (deterministic per retailer name).
+Color _retailerColor(String name) {
+  final colors = [
+    const Color(0xFF1565C0), // blue
+    const Color(0xFFE65100), // orange
+    const Color(0xFF2E7D32), // green
+    const Color(0xFF6A1B9A), // purple
+    const Color(0xFFC62828), // red
+    const Color(0xFF00838F), // teal
+    const Color(0xFF4E342E), // brown
+    const Color(0xFF283593), // indigo
+  ];
+  return colors[name.hashCode.abs() % colors.length];
+}
+
+/// First two letters of the retailer name, used as a mock logo.
+String _retailerInitials(String name) {
+  final trimmed = name.trim();
+  if (trimmed.length <= 2) return trimmed.toUpperCase();
+  return trimmed.substring(0, 2).toUpperCase();
+}
+
+class _RetailerOrderingScreen extends StatelessWidget {
+  const _RetailerOrderingScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final controller = context.watch<CartController>();
+    final retailers = controller.uniqueRetailers;
+    final confirmed = controller.confirmedRetailers;
+    final allDone = confirmed.length == retailers.length;
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppConstants.spacingMd),
+      child: Column(
+        children: [
+          // Title
+          Icon(
+            allDone ? Icons.check_circle_rounded : Icons.sync_rounded,
+            size: AppConstants.iconSizeMd,
+            color: allDone ? const Color(0xFF34C759) : cs.primary,
+          ),
+          const SizedBox(height: AppConstants.spacingMd),
+          Text(
+            allDone ? 'All orders placed!' : 'Placing orders...',
+            style: theme.textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              color: cs.onSurface,
+            ),
+          ),
+          const SizedBox(height: AppConstants.spacingSm),
+          Text(
+            allDone
+                ? 'Every retailer has confirmed your order.'
+                : 'Contacting ${retailers.length} retailers. This won\'t take long.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: cs.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppConstants.spacingXl),
+          // Retailer grid
+          Expanded(
+            child: GridView.builder(
+              padding: const EdgeInsets.only(
+                bottom: AppConstants.spacingXl,
+              ),
+              gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                maxCrossAxisExtent: 200,
+                mainAxisSpacing: AppConstants.spacingMd,
+                crossAxisSpacing: AppConstants.spacingMd,
+                childAspectRatio: 1.0,
+              ),
+              itemCount: retailers.length,
+              itemBuilder: (context, index) {
+                final name = retailers[index];
+                final done = confirmed.contains(name);
+                return _RetailerCard(name: name, confirmed: done);
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RetailerCard extends StatelessWidget {
+  const _RetailerCard({required this.name, required this.confirmed});
+  final String name;
+  final bool confirmed;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final color = _retailerColor(name);
+
+    return AnimatedContainer(
+      duration: AppConstants.durationSlow,
+      curve: Curves.easeOut,
+      decoration: BoxDecoration(
+        color: cs.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+        border: Border.all(
+          color: confirmed ? const Color(0xFF34C759) : cs.outlineVariant,
+          width: confirmed ? 2 : 1,
+        ),
+      ),
+      child: Stack(
+        children: [
+          // Main content
+          Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Mock logo
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    _retailerInitials(name),
+                    style: theme.textTheme.headlineSmall?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingSm),
+                Text(
+                  name,
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: cs.onSurface,
+                  ),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: AppConstants.spacingXs),
+                // Status indicator
+                AnimatedSwitcher(
+                  duration: AppConstants.durationMedium,
+                  child: confirmed
+                      ? Row(
+                          key: const ValueKey('done'),
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.check_circle,
+                              size: 16,
+                              color: Color(0xFF34C759),
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Confirmed',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: const Color(0xFF34C759),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        )
+                      : SizedBox(
+                          key: const ValueKey('loading'),
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: cs.primary,
+                          ),
+                        ),
+                ),
+              ],
+            ),
+          ),
+          // Overlay green checkmark badge (top-right)
+          if (confirmed)
+            Positioned(
+              top: AppConstants.spacingSm,
+              right: AppConstants.spacingSm,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF34C759),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.check, size: 18, color: Colors.white),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Order complete summary
+// ---------------------------------------------------------------------------
+
+class _OrderCompleteSummary extends StatelessWidget {
+  const _OrderCompleteSummary();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final controller = context.watch<CartController>();
+    final items = controller.items;
+    final retailers = controller.uniqueRetailers;
+
+    // Group items by retailer
+    final Map<String, List<CartItem>> byRetailer = {};
+    for (final item in items) {
+      byRetailer.putIfAbsent(item.retailer, () => []).add(item);
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: AppConstants.spacingMd),
+      child: ListView(
+        padding: const EdgeInsets.only(bottom: AppConstants.spacingXl),
+        children: [
+          // Success header
+          Center(
+            child: Column(
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF34C759),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.check_rounded,
+                    size: 40,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingMd),
+                Text(
+                  'Order confirmed!',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: cs.onSurface,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingSm),
+                Text(
+                  '${items.length} items from ${retailers.length} retailers',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: cs.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppConstants.spacingXl),
+          const Divider(),
+          const SizedBox(height: AppConstants.spacingMd),
+
+          // Per-retailer breakdown
+          ...byRetailer.entries.expand((entry) {
+            final retailer = entry.key;
+            final retailerItems = entry.value;
+            final retailerTotal = retailerItems.fold<double>(
+              0.0,
+              (sum, it) => sum + it.price * it.amount,
+            );
+            return [
+              // Retailer header
+              Row(
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: _retailerColor(retailer).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.radiusSm,
+                      ),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      _retailerInitials(retailer),
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: _retailerColor(retailer),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: AppConstants.spacingSm),
+                  Expanded(
+                    child: Text(
+                      retailer,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: cs.onSurface,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    formatPrice(retailerTotal),
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      color: cs.primary,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppConstants.spacingSm),
+              // Items under this retailer
+              ...retailerItems.map((item) => Padding(
+                padding: const EdgeInsets.only(
+                  left: AppConstants.spacingXl + AppConstants.spacingSm,
+                  bottom: AppConstants.spacingSm,
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.check_circle_outline,
+                      size: 16,
+                      color: Color(0xFF34C759),
+                    ),
+                    const SizedBox(width: AppConstants.spacingSm),
+                    Expanded(
+                      child: Text(
+                        '${item.name} x${item.amount}',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: cs.onSurface,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    Text(
+                      formatPrice(item.price * item.amount),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              )),
+              const SizedBox(height: AppConstants.spacingSm),
+              const Divider(),
+              const SizedBox(height: AppConstants.spacingMd),
+            ];
+          }),
+
+          // Grand total
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Total',
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: cs.onSurface,
+                ),
+              ),
+              Text(
+                formatPrice(controller.totalPrice),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: cs.primary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppConstants.spacingXl),
+
+          // Action buttons
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.all(AppConstants.spacingMd),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.radiusSm,
+                      ),
+                    ),
+                    side: BorderSide(color: cs.primary),
+                  ),
+                  onPressed: () => controller.resetToCart(),
+                  icon: const Icon(Icons.arrow_back),
+                  label: const Text('Back to cart'),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}

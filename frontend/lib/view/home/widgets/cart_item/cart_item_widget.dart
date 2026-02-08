@@ -529,4 +529,3 @@ class _RecommendationTileState extends State<_RecommendationTile> {
     );
   }
 }
-

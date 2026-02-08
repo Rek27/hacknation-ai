@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart' as http_parser;
 
 import 'package:frontend/model/api_models.dart';
 import 'package:frontend/model/chat_models.dart';
@@ -30,7 +31,9 @@ class AgentApi {
     final json = jsonDecode(res.body) as Map<String, dynamic>;
     if (kDebugMode) {
       // ignore: avoid_print
-      print('[AgentApi] getHealth() response JSON:\n${const JsonEncoder.withIndent('  ').convert(json)}');
+      print(
+        '[AgentApi] getHealth() response JSON:\n${const JsonEncoder.withIndent('  ').convert(json)}',
+      );
     }
     return HealthStatus.fromJson(json);
   }
@@ -47,19 +50,82 @@ class AgentApi {
     yield* _streamSse('/submit-tree', body.toJson(), 'streamSubmitTree');
   }
 
-  /// Submit form data via POST /submit-form (regular JSON response).
-  Future<SubmitFormResponse> submitForm(SubmitFormRequestBody body) async {
-    _log('submitForm(sessionId=${body.sessionId})');
-    final res = await _client.postJson('/submit-form', body.toJson());
+  /// Stream OutputItemBase from POST /submit-form (SSE text/event-stream).
+  /// The backend streams text reasoning, retailer_offers, and cart events.
+  Stream<OutputItemBase> streamSubmitForm(SubmitFormRequestBody body) async* {
+    _log('streamSubmitForm(sessionId=${body.sessionId})');
+    yield* _streamSse('/submit-form', body.toJson(), 'streamSubmitForm');
+  }
+
+  /// Start a voice session via POST /start-voice
+  Future<StartVoiceResponse> startVoice(String sessionId) async {
+    _log('startVoice(sessionId=$sessionId)');
+    final body = {
+      'session_id': sessionId,
+      'message': 'Hello, please tell me what you are building today so I can help you with the organization.',
+      'user_name': 'User',
+    };
+    final res = await _client.postJson('/start-voice', body);
     if (res.statusCode != 200) {
-      throw HttpException('Submit form failed: ${res.statusCode}');
+      throw HttpException('Start voice failed: ${res.statusCode}');
     }
     final json = jsonDecode(res.body) as Map<String, dynamic>;
     if (kDebugMode) {
       // ignore: avoid_print
-      print('[AgentApi] submitForm() response JSON:\n${const JsonEncoder.withIndent('  ').convert(json)}');
+      print('[AgentApi] startVoice() response JSON:\n${const JsonEncoder.withIndent('  ').convert(json)}');
     }
-    return SubmitFormResponse.fromJson(json);
+    return StartVoiceResponse.fromJson(json);
+  }
+
+  /// Send voice input via POST /voice-input (multipart/form-data)
+  Future<VoiceInputResponse> sendVoiceInput(
+    String sessionId,
+    File audioFile,
+  ) async {
+    _log('sendVoiceInput(sessionId=$sessionId, audioFile=${audioFile.path})');
+    final uri = Uri.parse('${_client.baseUrl}/voice-input');
+    final request = http.MultipartRequest('POST', uri);
+    
+    // Add headers
+    if (_client.baseUrl.contains('ngrok-free.app')) {
+      request.headers['ngrok-skip-browser-warning'] = 'true';
+    }
+    
+    // Add fields
+    request.fields['session_id'] = sessionId;
+    
+    // Add audio file with explicit content type
+    // Use audio/wav for WAV files (more universally compatible)
+    request.files.add(await http.MultipartFile.fromPath(
+      'audio',
+      audioFile.path,
+      contentType: http_parser.MediaType('audio', 'wav'),
+    ));
+    
+    try {
+      final streamedResponse = await request.send();
+      final res = await http.Response.fromStream(streamedResponse);
+      
+      if (res.statusCode != 200) {
+        throw HttpException('Voice input failed: ${res.statusCode}');
+      }
+      
+      final json = jsonDecode(res.body) as Map<String, dynamic>;
+      if (kDebugMode) {
+        // ignore: avoid_print
+        print('[AgentApi] sendVoiceInput() response JSON:\n${const JsonEncoder.withIndent('  ').convert(json)}');
+      }
+      
+      return VoiceInputResponse.fromJson(json);
+    } catch (e) {
+      _log('sendVoiceInput() failed: $e');
+      rethrow;
+    }
+  }
+
+  /// Get TTS audio URL for the given audio_id
+  String getTtsAudioUrl(String audioId) {
+    return '${_client.baseUrl}/tts-audio/$audioId';
   }
 
   /// Shared SSE stream parser for streaming endpoints.
@@ -97,7 +163,9 @@ class AgentApi {
           final json = jsonDecode(data) as Map<String, dynamic>;
           if (kDebugMode) {
             // ignore: avoid_print
-            print('[AgentApi] $tag() response JSON:\n${const JsonEncoder.withIndent('  ').convert(json)}');
+            print(
+              '[AgentApi] $tag() response JSON:\n${const JsonEncoder.withIndent('  ').convert(json)}',
+            );
           }
           final item = parseOutputItem(json);
           _log('$tag() item type=${item.type}');
@@ -121,7 +189,7 @@ abstract class ChatService {
     required List<Map<String, dynamic>> peopleTree,
     required List<Map<String, dynamic>> placeTree,
   });
-  Future<SubmitFormResponse> submitForm(TextFormChunk form);
+  Future<List<OutputItemBase>> submitForm(TextFormChunk form);
 }
 
 /// Real implementation that delegates to [AgentApi] over HTTP.
@@ -155,7 +223,7 @@ class RealChatService implements ChatService {
   }
 
   @override
-  Future<SubmitFormResponse> submitForm(TextFormChunk form) async {
+  Future<List<OutputItemBase>> submitForm(TextFormChunk form) async {
     final SubmitFormRequestBody body = SubmitFormRequestBody(
       sessionId: _sessionId,
       address: form.address.toJson(),
@@ -164,7 +232,7 @@ class RealChatService implements ChatService {
       duration: form.durationOfEvent.toJson(),
       numberOfAttendees: form.numberOfAttendees.toJson(),
     );
-    return await _api.submitForm(body);
+    return await _api.streamSubmitForm(body).toList();
   }
 }
 
@@ -206,14 +274,14 @@ class MockChatService implements ChatService {
   }
 
   @override
-  Future<SubmitFormResponse> submitForm(TextFormChunk form) async {
+  Future<List<OutputItemBase>> submitForm(TextFormChunk form) async {
     await Future.delayed(const Duration(milliseconds: 1200));
-    return SubmitFormResponse(
-      success: true,
-      message: 'Form submitted successfully.',
-      sessionId: 'mock-session',
-      itemsSummary: const [],
-    );
+    return [
+      TextChunk(
+        type: OutputItemType.text,
+        content: 'Form submitted successfully. Building your cart...',
+      ),
+    ];
   }
 
   /// Returns both trees in a single response so the controller can

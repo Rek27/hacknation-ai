@@ -1,10 +1,10 @@
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/widgets.dart';
 
-import 'package:frontend/model/api_models.dart';
 import 'package:frontend/model/chat_message.dart';
 import 'package:frontend/model/chat_models.dart';
 import 'package:frontend/service/agent_api.dart';
+import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
 
 /// Sample prompt shown before the conversation begins.
 class SamplePrompt {
@@ -27,9 +27,11 @@ class CategoryNodeState {
 /// Manages messages, tree interactions, form pinning, and agent communication.
 class ChatController extends ChangeNotifier {
   final ChatService _chatService;
+  final CartController? _cartController;
 
-  ChatController({required ChatService chatService})
-    : _chatService = chatService;
+  ChatController({required ChatService chatService, CartController? cartController})
+    : _chatService = chatService,
+      _cartController = cartController;
 
   // ---------------------------------------------------------------------------
   // State
@@ -365,14 +367,10 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final SubmitFormResponse response = await _chatService.submitForm(
+      final List<OutputItemBase> chunks = await _chatService.submitForm(
         submittedForm,
       );
-      _messages.add(
-        ChatMessage.agent([
-          TextChunk(type: OutputItemType.text, content: response.message),
-        ]),
-      );
+      _handleAgentResponse(chunks);
     } catch (e) {
       _errorMessage = 'Connection error: $e';
       _messages.add(
@@ -465,13 +463,24 @@ class ChatController extends ChangeNotifier {
     _addChunksToMessages(toDisplay);
   }
 
-  /// Adds chunks to the message list, extracting TextFormChunks for pinning.
+  /// Adds chunks to the message list, extracting TextFormChunks for pinning
+  /// and forwarding CartChunk / RetailerOffersChunk to the CartController.
   void _addChunksToMessages(List<OutputItemBase> chunks) {
     final List<OutputItemBase> scrollChunks = [];
     for (final OutputItemBase chunk in chunks) {
       if (chunk is TextFormChunk) {
         _pinnedTextForm = chunk;
         _pinnedTextFormMessageId = null;
+      } else if (chunk is CartChunk) {
+        // Forward cart data to the CartController.
+        _cartController?.setCartFromChunk(chunk);
+        // Don't add cart to chat messages — it's rendered in the cart panel.
+      } else if (chunk is RetailerOffersChunk) {
+        // Forward retailer offers to the CartController.
+        _cartController?.setRetailerOffers(chunk.offers);
+        // Don't add to chat messages — handled by the cart panel.
+      } else if (chunk is ItemsChunk) {
+        // Items list is intermediate; skip in chat messages.
       } else {
         scrollChunks.add(chunk);
       }

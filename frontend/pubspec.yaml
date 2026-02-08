@@ -35,6 +35,7 @@ dependencies:
 
   # HTTP client (REST + streaming)
   http: ^1.2.2
+  http_parser: ^4.1.1
 
   # File picker for document upload (.txt, .pdf)
   file_picker: ^8.0.0
@@ -45,6 +46,12 @@ dependencies:
   # Rive animated avatar for the call screen
   rive: ^0.14.2
   record: ^6.2.0
+
+  # Audio playback for TTS responses
+  audioplayers: ^6.1.0
+
+  # Path provider for temporary audio files
+  path_provider: ^2.1.5
 
   # macOS-style swipe-to-delete for cart items
   flutter_slidable: ^4.0.3
