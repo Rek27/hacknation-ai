@@ -20,8 +20,7 @@ class HomePage extends StatelessWidget {
     //   flutter run --dart-define=API_BASE_URL=http://10.0.2.2:8000   (Android emulator -> local PC)
     //   flutter run --dart-define=API_BASE_URL=http://localhost:8000  (desktop/web -> local)
     const envBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
-    const hostedBaseUrl =
-        'https://ca97-2001-4ca0-0-f237-1562-d89a-324c-8866.ngrok-free.app';
+    const hostedBaseUrl = 'http://localhost:8000';
 
     final baseUrl = envBaseUrl.isNotEmpty ? envBaseUrl : hostedBaseUrl;
 
@@ -58,10 +57,7 @@ class _HomeViewState extends State<_HomeView> {
               actions: [_AppBarActions(baseUrl: widget.baseUrl)],
               bottom: PreferredSize(
                 preferredSize: const Size.fromHeight(1),
-                child: Container(
-                  height: 1,
-                  color: colorScheme.outlineVariant,
-                ),
+                child: Container(height: 1, color: colorScheme.outlineVariant),
               ),
             ),
       drawer: null,

@@ -11,7 +11,9 @@ enum OutputItemType {
   tree('tree'),
   peopleTree('people_tree'),
   placeTree('place_tree'),
-  cart('cart');
+  cart('cart'),
+  items('items'),
+  retailerOffers('retailer_offers');
 
   const OutputItemType(this.jsonValue);
   final String jsonValue;
@@ -194,6 +196,94 @@ class TreeChunk implements OutputItemBase {
   };
 }
 
+/// type: "items" — list of item names from the shopping list agent.
+class ItemsChunk implements OutputItemBase {
+  @override
+  final OutputItemType type;
+  final List<String> items;
+
+  ItemsChunk({OutputItemType? type, required this.items})
+    : type = type ?? OutputItemType.items;
+
+  factory ItemsChunk.fromJson(Map<String, dynamic> json) => ItemsChunk(
+    type: OutputItemType.items,
+    items:
+        (json['items'] as List<dynamic>?)
+            ?.map((e) => e as String)
+            .toList() ??
+        const [],
+  );
+}
+
+/// A single discounted item within a retailer offer.
+class RetailerOfferItem {
+  final String? id;
+  final String item;
+  final int percent;
+
+  RetailerOfferItem({this.id, required this.item, required this.percent});
+
+  factory RetailerOfferItem.fromJson(Map<String, dynamic> json) =>
+      RetailerOfferItem(
+        id: json['id'] as String?,
+        item: json['item'] as String,
+        percent: (json['percent'] as num).toInt(),
+      );
+}
+
+/// A retailer sponsorship decision with item-level discounts.
+class RetailerOffer {
+  final String retailer;
+  final String status; // "approved" or "rejected"
+  final String? reason;
+  final int? discountPercent;
+  final List<RetailerOfferItem> discountedItems;
+
+  RetailerOffer({
+    required this.retailer,
+    required this.status,
+    this.reason,
+    this.discountPercent,
+    required this.discountedItems,
+  });
+
+  factory RetailerOffer.fromJson(Map<String, dynamic> json) => RetailerOffer(
+    retailer: json['retailer'] as String,
+    status: json['status'] as String,
+    reason: json['reason'] as String?,
+    discountPercent: (json['discountPercent'] as num?)?.toInt(),
+    discountedItems:
+        (json['discountedItems'] as List<dynamic>?)
+            ?.map(
+              (e) => RetailerOfferItem.fromJson(e as Map<String, dynamic>),
+            )
+            .toList() ??
+        const [],
+  );
+}
+
+/// type: "retailer_offers" — sponsorship decisions and discounts by retailer.
+class RetailerOffersChunk implements OutputItemBase {
+  @override
+  final OutputItemType type;
+  final List<RetailerOffer> offers;
+
+  RetailerOffersChunk({OutputItemType? type, required this.offers})
+    : type = type ?? OutputItemType.retailerOffers;
+
+  factory RetailerOffersChunk.fromJson(Map<String, dynamic> json) =>
+      RetailerOffersChunk(
+        type: OutputItemType.retailerOffers,
+        offers:
+            (json['offers'] as List<dynamic>?)
+                ?.map(
+                  (e) => RetailerOffer.fromJson(e as Map<String, dynamic>),
+                )
+                .toList() ??
+            const [],
+      );
+}
+
 Duration _parseDeliveryTime(Map<String, dynamic> json) {
   final ms = json['deliveryTimeMs'] as int?;
   if (ms != null) return Duration(milliseconds: ms);
@@ -202,14 +292,18 @@ Duration _parseDeliveryTime(Map<String, dynamic> json) {
   return Duration(milliseconds: innerMs ?? 0);
 }
 
+final RegExp _quantitySuffix = RegExp(r'\s*\(x(\d+)\)\s*$', caseSensitive: false);
+
 class CartItem {
   final String? id;
   final String name;
   final double price;
   final int amount;
   final String retailer;
-  final Duration deliveryTime;
   final double? reviewRating;
+  final int reviewsCount;
+  final Duration deliveryTime;
+  final String? imageUrl;
 
   CartItem({
     this.id,
@@ -217,19 +311,26 @@ class CartItem {
     required this.price,
     required this.amount,
     required this.retailer,
-    required this.deliveryTime,
     this.reviewRating,
+    this.reviewsCount = 0,
+    required this.deliveryTime,
+    this.imageUrl,
   });
 
-  factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
-    id: json['id'] as String?,
-    name: json['name'] as String,
-    price: (json['price'] as num).toDouble(),
-    amount: json['amount'] as int,
-    retailer: json['retailer'] as String,
-    deliveryTime: _parseDeliveryTime(json),
-    reviewRating: (json['reviewRating'] as num?)?.toDouble(),
-  );
+  factory CartItem.fromJson(Map<String, dynamic> json) {
+    final normalized = _normalizeNameAndAmount(json);
+    return CartItem(
+      id: json['id'] as String?,
+      name: normalized.name,
+      price: (json['price'] as num).toDouble(),
+      amount: normalized.amount,
+      retailer: json['retailer'] as String,
+      reviewRating: (json['reviewRating'] as num?)?.toDouble(),
+      reviewsCount: (json['reviewsCount'] as num?)?.toInt() ?? 0,
+      deliveryTime: _parseDeliveryTime(json),
+      imageUrl: json['imageUrl'] as String?,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     if (id != null) 'id': id,
@@ -237,9 +338,33 @@ class CartItem {
     'price': price,
     'amount': amount,
     'retailer': retailer,
-    'deliveryTimeMs': deliveryTime.inMilliseconds,
     if (reviewRating != null) 'reviewRating': reviewRating,
+    'reviewsCount': reviewsCount,
+    'deliveryTimeMs': deliveryTime.inMilliseconds,
+    if (imageUrl != null) 'imageUrl': imageUrl,
   };
+}
+
+_CartItemNormalized _normalizeNameAndAmount(Map<String, dynamic> json) {
+  final rawName = json['name'] as String;
+  final int rawAmount = json['amount'] as int;
+  final match = _quantitySuffix.firstMatch(rawName);
+  if (match == null) {
+    return _CartItemNormalized(name: rawName, amount: rawAmount);
+  }
+  final parsed = int.tryParse(match.group(1) ?? '');
+  final cleaned = rawName.replaceAll(_quantitySuffix, '').trim();
+  if (parsed == null) {
+    return _CartItemNormalized(name: rawName, amount: rawAmount);
+  }
+  final int nextAmount = rawAmount <= 1 ? parsed : rawAmount;
+  return _CartItemNormalized(name: cleaned, amount: nextAmount);
+}
+
+class _CartItemNormalized {
+  const _CartItemNormalized({required this.name, required this.amount});
+  final String name;
+  final int amount;
 }
 
 /// Single item in the cart.
@@ -256,15 +381,24 @@ class RecommendedItem {
     required this.fastest,
   });
 
-  factory RecommendedItem.fromJson(Map<String, dynamic> json) =>
-      RecommendedItem(
-        main: CartItem.fromJson(json['main'] as Map<String, dynamic>),
-        cheapest: CartItem.fromJson(json['cheapest'] as Map<String, dynamic>),
-        bestReviewed: CartItem.fromJson(
-          json['bestReviewed'] as Map<String, dynamic>,
-        ),
-        fastest: CartItem.fromJson(json['fastest'] as Map<String, dynamic>),
-      );
+  factory RecommendedItem.fromJson(Map<String, dynamic> json) {
+    final Map<String, dynamic> mainJson =
+        (json['recommendedItem'] ?? json['main']) as Map<String, dynamic>;
+    final Map<String, dynamic> cheapestJson =
+        (json['cheapestItem'] ?? json['cheapest']) as Map<String, dynamic>;
+    final Map<String, dynamic> bestJson =
+        (json['bestRatingItem'] ?? json['bestReviewed'])
+            as Map<String, dynamic>;
+    final Map<String, dynamic> fastestJson =
+        (json['fastestDeliveryItem'] ?? json['fastest'])
+            as Map<String, dynamic>;
+    return RecommendedItem(
+      main: CartItem.fromJson(mainJson),
+      cheapest: CartItem.fromJson(cheapestJson),
+      bestReviewed: CartItem.fromJson(bestJson),
+      fastest: CartItem.fromJson(fastestJson),
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'main': main.toJson(),
@@ -339,6 +473,10 @@ OutputItemBase parseOutputItem(Map<String, dynamic> json) {
       return _parseTreeTrunk(json, TreeType.place);
     case OutputItemType.cart:
       return CartChunk.fromJson(json);
+    case OutputItemType.items:
+      return ItemsChunk.fromJson(json);
+    case OutputItemType.retailerOffers:
+      return RetailerOffersChunk.fromJson(json);
   }
 }
 

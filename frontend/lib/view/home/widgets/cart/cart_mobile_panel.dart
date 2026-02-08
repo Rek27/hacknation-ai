@@ -110,7 +110,7 @@ class CartMobilePanel extends StatelessWidget {
                   ? CartErrorWidget(
                       title: 'Something went wrong',
                       subtitle: controller.errorMessage!,
-                      onRetry: () => controller.loadDummyData(),
+                      onRetry: () => controller.clearError(),
                     )
                   : controller.isEmpty
                       ? const CartEmptyState()

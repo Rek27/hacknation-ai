@@ -20,24 +20,32 @@ class HomeMobileLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final HomeController homeController = context.watch<HomeController>();
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider<ChatController>(
-          create: (_) => ChatController(
-            chatService: RealChatService(
-              homeController.api,
-              homeController.sessionId,
-            ),
-          ),
-        ),
-        ChangeNotifierProvider<CartController>(
-          create: (_) => CartController(),
-        ),
-        ChangeNotifierProvider<MicrophoneController>(
-          create: (_) => MicrophoneController(),
-        ),
-      ],
-      child: const _MobileCallBody(),
+    // CartController must be created first so ChatController can reference it.
+    return ChangeNotifierProvider<CartController>(
+      create: (_) => CartController(),
+      child: Builder(
+        builder: (cartContext) {
+          final CartController cartController =
+              cartContext.read<CartController>();
+          return MultiProvider(
+            providers: [
+              ChangeNotifierProvider<ChatController>(
+                create: (_) => ChatController(
+                  chatService: RealChatService(
+                    homeController.api,
+                    homeController.sessionId,
+                  ),
+                  cartController: cartController,
+                ),
+              ),
+              ChangeNotifierProvider<MicrophoneController>(
+                create: (_) => MicrophoneController(),
+              ),
+            ],
+            child: const _MobileCallBody(),
+          );
+        },
+      ),
     );
   }
 }
@@ -70,7 +78,9 @@ class _MobileCallBodyState extends State<_MobileCallBody> {
 
   @override
   Widget build(BuildContext context) {
-    return _isInCall ? _InCallView(onOpenCart: _openCart, onEndCall: _onEndCall) : _PreCallView(onStartCall: _onStartCall, onOpenCart: _openCart);
+    return _isInCall
+        ? _InCallView(onOpenCart: _openCart, onEndCall: _onEndCall)
+        : _PreCallView(onStartCall: _onStartCall, onOpenCart: _openCart);
   }
 
   void _onStartCall() {
@@ -87,10 +97,7 @@ class _MobileCallBodyState extends State<_MobileCallBody> {
 
 /// Pre-call screen: assistant info and "Start call" button.
 class _PreCallView extends StatelessWidget {
-  const _PreCallView({
-    required this.onStartCall,
-    required this.onOpenCart,
-  });
+  const _PreCallView({required this.onStartCall, required this.onOpenCart});
 
   final VoidCallback onStartCall;
   final void Function(BuildContext context) onOpenCart;
@@ -196,10 +203,7 @@ class _PreCallBottomButton extends StatelessWidget {
 
 /// In-call view: current call UI with controls and input.
 class _InCallView extends StatelessWidget {
-  const _InCallView({
-    required this.onOpenCart,
-    required this.onEndCall,
-  });
+  const _InCallView({required this.onOpenCart, required this.onEndCall});
 
   final void Function(BuildContext context) onOpenCart;
   final VoidCallback onEndCall;
@@ -287,7 +291,8 @@ class _CallCenterContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ChatController chatController = context.watch<ChatController>();
-    final MicrophoneController micController = context.watch<MicrophoneController>();
+    final MicrophoneController micController = context
+        .watch<MicrophoneController>();
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingXl),
@@ -389,9 +394,7 @@ class _CallBottomControls extends StatelessWidget {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        children: [
-          _CallControlRow(onEndCall: onEndCall),
-        ],
+        children: [_CallControlRow(onEndCall: onEndCall)],
       ),
     );
   }
