@@ -14,14 +14,6 @@ class CartSheet extends StatelessWidget {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       backgroundColor: colorScheme.surface,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.close),
-          onPressed: () => Navigator.of(context).pop(),
-          tooltip: 'Close',
-        ),
-        title: const Text('Cart'),
-      ),
       body: Container(
         width: double.infinity,
         height: double.infinity,
