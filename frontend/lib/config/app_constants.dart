@@ -57,18 +57,39 @@ abstract final class AppConstants {
   /// Size of the sender avatar circle.
   static const double chatAvatarSize = 32.0;
 
-  /// Minimum width of a category tile in the tree selector (level 0).
-  static const double categoryTileMinWidth = 100.0;
+  // ── Tree pill constants (per depth level) ───────────────────────────
+  /// Padding for level-0 category pills.
+  static const EdgeInsets treePillPaddingL0 =
+      EdgeInsets.symmetric(horizontal: 12, vertical: 8);
 
-  /// Fixed height for category tiles at level 0.
-  static const double categoryTileHeight = 76.0;
+  /// Padding for level-1 subcategory pills.
+  static const EdgeInsets treePillPaddingL1 =
+      EdgeInsets.symmetric(horizontal: 8, vertical: 5);
 
-  /// Fixed scales for the 3-level hierarchy: categories > subcategories > sub-subcategories.
-  /// Level 0 (categories): 1.0, Level 1: 0.60, Level 2: 0.42.
-  static const List<double> categoryTileDepthScales = [1.0, 0.60, 0.42];
+  /// Padding for level-2 leaf pills.
+  static const EdgeInsets treePillPaddingL2 =
+      EdgeInsets.symmetric(horizontal: 6, vertical: 3);
 
-  /// Height scale for level 2 (chip style) - shorter than proportional.
-  static const double categoryTileLevel2HeightScale = 0.38;
+  /// Emoji size inside level-0 pills.
+  static const double treePillEmojiSizeL0 = 20.0;
+
+  /// Emoji size inside level-1 pills.
+  static const double treePillEmojiSizeL1 = 16.0;
+
+  /// Emoji size inside level-2 pills.
+  static const double treePillEmojiSizeL2 = 13.0;
+
+  /// Width of the vertical indent bar next to subcategory groups.
+  static const double treeIndentBarWidth = 1.5;
+
+  /// Duration for tree expand / collapse animations.
+  static const Duration treeExpandDuration = Duration(milliseconds: 300);
+
+  /// Per-item stagger delay for subcategory entrance animation.
+  static const Duration treeStaggerDelay = Duration(milliseconds: 30);
+
+  /// Disabled-state opacity for submitted trees.
+  static const double treeDisabledOpacity = 0.5;
 
   /// Maximum width of the pinned text form.
   static const double textFormMaxWidth = 680.0;
@@ -144,10 +165,26 @@ abstract final class AppConstants {
   /// Opacity of wave bars in the active (animating) state.
   static const double waveBarActiveOpacity = 0.85;
 
-  // ── Category tile icon sizes (per depth level) ────────────────────────
-  static const double categoryEmojiSizeLg = 24.0;
-  static const double categoryEmojiSizeMd = 18.0;
-  static const double categoryEmojiSizeSm = 14.0;
+  // ── Tree pill scale ─────────────────────────────────────────────────
+  /// Scale factor applied on tap-down for press feedback.
+  static const double treePillPressScale = 0.97;
+
+  // ── Cart swipe-to-delete ─────────────────────────────────────────────
+  /// Background colour of the swipe-to-delete action (macOS destructive red).
+  static const Color cartDeleteColor = Color(0xFFEB2D2D);
+
+  /// How far the user must drag before auto-dismiss triggers (0–1).
+  static const double cartDismissThreshold = 0.4;
+
+  /// Fraction of the item width occupied by the revealed action pane.
+  static const double cartActionExtentRatio = 0.25;
+
+  // ── Star rating ──────────────────────────────────────────────────────
+  /// Number of stars in the rating display.
+  static const int starCount = 5;
+
+  /// Horizontal gap between individual star icons.
+  static const double starSpacing = 1.0;
 
   // ── Small metadata icon size ──────────────────────────────────────────
   static const double metaIconSize = 14.0;

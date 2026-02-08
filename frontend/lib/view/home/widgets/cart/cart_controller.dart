@@ -131,6 +131,7 @@ class CartController extends ChangeNotifier {
       amount: q,
       retailer: prev.retailer,
       deliveryTime: prev.deliveryTime,
+      reviewRating: prev.reviewRating,
     );
     notifyListeners();
   }
@@ -143,6 +144,22 @@ class CartController extends ChangeNotifier {
     // Do not mutate group buckets; only override displayed main.
     _selectedMainByIndex[groupIndex] = chosen;
     notifyListeners();
+  }
+
+  /// Resets the displayed item for a group back to the original recommendation.
+  void resetToMain(int groupIndex) {
+    _selectedMainByIndex.remove(groupIndex);
+    notifyListeners();
+  }
+
+  /// Whether the user has overridden the main with an alternative for [index].
+  bool isAlternativeActive(int index) {
+    if (_cart == null) return false;
+    if (index < 0 || index >= _cart!.items.length) return false;
+    final CartItem? override = _selectedMainByIndex[index];
+    if (override == null) return false;
+    final CartItem original = _cart!.items[index].main;
+    return (override.id ?? override.name) != (original.id ?? original.name);
   }
 
   /// Begin checkout flow (switch panel to summary).
@@ -202,6 +219,7 @@ class CartController extends ChangeNotifier {
             amount: 2,
             retailer: 'Amazon',
             deliveryTime: const Duration(days: 3),
+            reviewRating: 4.3,
           ),
           cheapest: CartItem(
             id: '1a',
@@ -210,6 +228,7 @@ class CartController extends ChangeNotifier {
             amount: 1,
             retailer: 'Walmart',
             deliveryTime: const Duration(days: 4),
+            reviewRating: 3.8,
           ),
           bestReviewed: CartItem(
             id: '1b',
@@ -218,6 +237,7 @@ class CartController extends ChangeNotifier {
             amount: 1,
             retailer: 'Costco',
             deliveryTime: const Duration(days: 2),
+            reviewRating: 4.7,
           ),
           fastest: CartItem(
             id: '1c',
@@ -226,6 +246,7 @@ class CartController extends ChangeNotifier {
             amount: 1,
             retailer: 'Target',
             deliveryTime: const Duration(days: 1),
+            reviewRating: 4.1,
           ),
         ),
         RecommendedItem(
@@ -236,6 +257,7 @@ class CartController extends ChangeNotifier {
             amount: 1,
             retailer: 'BestBuy',
             deliveryTime: const Duration(days: 5),
+            reviewRating: 4.5,
           ),
           cheapest: CartItem(
             id: '2a',
@@ -244,6 +266,7 @@ class CartController extends ChangeNotifier {
             amount: 1,
             retailer: 'Amazon',
             deliveryTime: const Duration(days: 3),
+            reviewRating: 4.2,
           ),
           bestReviewed: CartItem(
             id: '2b',
@@ -252,6 +275,7 @@ class CartController extends ChangeNotifier {
             amount: 1,
             retailer: 'Bose',
             deliveryTime: const Duration(days: 2),
+            reviewRating: 4.8,
           ),
           fastest: CartItem(
             id: '2c',
@@ -260,6 +284,7 @@ class CartController extends ChangeNotifier {
             amount: 1,
             retailer: 'Apple',
             deliveryTime: const Duration(days: 1),
+            reviewRating: 4.0,
           ),
         ),
       ];

@@ -28,53 +28,6 @@ abstract class OutputItemBase {
   OutputItemType get type;
 }
 
-/// type: "tool"
-// class ToolOutput implements OutputItemBase {
-//   @override
-//   final OutputItemType type;
-//   final String name;
-//   final String? reason;
-//   final Map<String, dynamic>? arguments;
-
-//   ToolOutput({
-//     required this.type,
-//     required this.name,
-//     this.reason,
-//     this.arguments,
-//   });
-
-//   factory ToolOutput.fromJson(Map<String, dynamic> json) => ToolOutput(
-//     type: OutputItemType.tool,
-//     name: json['name'] as String,
-//     reason: json['reason'] as String?,
-//     arguments: json['arguments'] as Map<String, dynamic>?,
-//   );
-// }
-
-/// type: "tool_result"
-// class ToolResultOutput implements OutputItemBase {
-//   @override
-//   final OutputItemType type;
-//   final String name;
-//   final String result;
-//   final bool success;
-
-//   ToolResultOutput({
-//     required this.type,
-//     required this.name,
-//     required this.result,
-//     required this.success,
-//   });
-
-//   factory ToolResultOutput.fromJson(Map<String, dynamic> json) =>
-//       ToolResultOutput(
-//         type: OutputItemType.toolResult,
-//         name: json['name'] as String,
-//         result: json['result'] as String,
-//         success: (json['success'] as bool?) ?? true,
-//       );
-// }
-
 /// type: "text"
 class TextChunk implements OutputItemBase {
   @override
@@ -86,37 +39,6 @@ class TextChunk implements OutputItemBase {
   factory TextChunk.fromJson(Map<String, dynamic> json) =>
       TextChunk(type: OutputItemType.text, content: json['content'] as String);
 }
-
-/// type: "thinking"
-// class ThinkingChunk implements OutputItemBase {
-//   @override
-//   final OutputItemType type;
-//   final String content;
-
-//   ThinkingChunk({required this.type, required this.content});
-
-//   factory ThinkingChunk.fromJson(Map<String, dynamic> json) => ThinkingChunk(
-//     type: OutputItemType.thinking,
-//     content: json['content'] as String,
-//   );
-// }
-
-/// type: "answer"
-// class ApiAnswerOutput implements OutputItemBase {
-//   @override
-//   final OutputItemType type;
-//   final String content;
-//   final Map<String, dynamic>? metadata;
-
-//   ApiAnswerOutput({required this.type, required this.content, this.metadata});
-
-//   factory ApiAnswerOutput.fromJson(Map<String, dynamic> json) =>
-//       ApiAnswerOutput(
-//         type: OutputItemType.answer,
-//         content: json['content'] as String,
-//         metadata: json['metadata'] as Map<String, dynamic>?,
-//       );
-// }
 
 /// type: "error"
 class ErrorOutput implements OutputItemBase {
@@ -287,6 +209,7 @@ class CartItem {
   final int amount;
   final String retailer;
   final Duration deliveryTime;
+  final double? reviewRating;
 
   CartItem({
     this.id,
@@ -295,6 +218,7 @@ class CartItem {
     required this.amount,
     required this.retailer,
     required this.deliveryTime,
+    this.reviewRating,
   });
 
   factory CartItem.fromJson(Map<String, dynamic> json) => CartItem(
@@ -304,6 +228,7 @@ class CartItem {
     amount: json['amount'] as int,
     retailer: json['retailer'] as String,
     deliveryTime: _parseDeliveryTime(json),
+    reviewRating: (json['reviewRating'] as num?)?.toDouble(),
   );
 
   Map<String, dynamic> toJson() => {
@@ -313,6 +238,7 @@ class CartItem {
     'amount': amount,
     'retailer': retailer,
     'deliveryTimeMs': deliveryTime.inMilliseconds,
+    if (reviewRating != null) 'reviewRating': reviewRating,
   };
 }
 

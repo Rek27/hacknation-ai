@@ -7,6 +7,7 @@ import 'package:frontend/view/home/widgets/cart_item/cart_item_widget.dart';
 import 'package:frontend/view/home/widgets/cart_item/cart_item_controller.dart';
 import 'package:frontend/model/chat_models.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:frontend/view/home/widgets/cart/cart_loading_list.dart';
 import 'package:frontend/view/home/widgets/cart/cart_error_widget.dart';
 
@@ -118,15 +119,49 @@ class CartPanel extends StatelessWidget {
                             const SizedBox(height: AppConstants.spacingMd),
                         itemBuilder: (context, index) {
                           final CartItem item = controller.items[index];
+                          final String key = item.id ?? item.name;
                           final expanded = controller.isExpandedGroup(index);
-                          return ChangeNotifierProvider<CartItemController>(
-                            create: (_) => CartItemController(item: item),
-                            child: CartItemWidget(
-                              groupIndex: index,
-                              item: item,
-                              isExpanded: expanded,
-                              onToggle: () =>
-                                  controller.toggleExpandedGroup(index),
+                          return Slidable(
+                            key: ValueKey<String>(key),
+                            endActionPane: ActionPane(
+                              motion: const DrawerMotion(),
+                              extentRatio:
+                                  AppConstants.cartActionExtentRatio,
+                              dismissible: DismissiblePane(
+                                onDismissed: () =>
+                                    controller.deleteItem(key),
+                              ),
+                              children: [
+                                SlidableAction(
+                                  onPressed: (_) =>
+                                      controller.deleteItem(key),
+                                  backgroundColor:
+                                      AppConstants.cartDeleteColor,
+                                  foregroundColor: Colors.white,
+                                  icon: Icons.delete_outline,
+                                  label: 'Delete',
+                                  borderRadius: BorderRadius.only(
+                                    topRight: Radius.circular(
+                                      AppConstants.radiusMd,
+                                    ),
+                                    bottomRight: Radius.circular(
+                                      AppConstants.radiusMd,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            child:
+                                ChangeNotifierProvider<CartItemController>(
+                              create: (_) =>
+                                  CartItemController(item: item),
+                              child: CartItemWidget(
+                                groupIndex: index,
+                                item: item,
+                                isExpanded: expanded,
+                                onToggle: () =>
+                                    controller.toggleExpandedGroup(index),
+                              ),
                             ),
                           );
                         },

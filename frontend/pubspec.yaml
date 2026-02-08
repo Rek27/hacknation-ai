@@ -45,6 +45,9 @@ dependencies:
   # Rive animated avatar for the call screen
   rive: ^0.14.2
   record: ^6.2.0
+
+  # macOS-style swipe-to-delete for cart items
+  flutter_slidable: ^4.0.3
   
 
 dev_dependencies:

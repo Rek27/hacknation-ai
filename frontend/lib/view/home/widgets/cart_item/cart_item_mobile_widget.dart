@@ -131,6 +131,10 @@ class _MobileHeaderRow extends StatelessWidget {
                   CartRetailerChip(text: item.retailer),
                 ],
               ),
+              if (item.reviewRating != null) ...[
+                const SizedBox(height: AppConstants.spacingXs),
+                StarRatingDisplay(rating: item.reviewRating!),
+              ],
               const SizedBox(height: AppConstants.spacingXs),
               Row(
                 children: [
@@ -234,32 +238,10 @@ class _MobileActionIcons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ColorScheme colorScheme = Theme.of(context).colorScheme;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          tooltip: 'Remove',
-          icon: Icon(
-            Icons.delete_outline,
-            size: AppConstants.iconSizeXs,
-            color: colorScheme.onSurfaceVariant,
-          ),
-          onPressed: () {
-            final String key = item.id ?? item.name;
-            context.read<CartController>().deleteItem(key);
-          },
-          style: IconButton.styleFrom(
-            padding: EdgeInsets.zero,
-            minimumSize: Size.zero,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-        ),
-        Icon(
-          isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-          size: AppConstants.iconSizeXs,
-          color: colorScheme.onSurfaceVariant,
-        ),
-      ],
+    return Icon(
+      isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
+      size: AppConstants.iconSizeXs,
+      color: colorScheme.onSurfaceVariant,
     );
   }
 }
@@ -333,6 +315,55 @@ class _MobileExpandedDetails extends StatelessWidget {
         ),
         if (group != null) ...[
           const SizedBox(height: AppConstants.spacingSm),
+          Row(
+            children: [
+              Icon(
+                Icons.swap_horiz_rounded,
+                size: AppConstants.metaIconSize,
+                color: colorScheme.onSurfaceVariant,
+              ),
+              const SizedBox(width: AppConstants.metaIconGap),
+              Text(
+                'Alternatives',
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const Spacer(),
+              if (controller.isAlternativeActive(groupIndex))
+                InkWell(
+                  onTap: () => controller.resetToMain(groupIndex),
+                  borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppConstants.spacingSm,
+                      vertical: AppConstants.spacingXs,
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.restart_alt_rounded,
+                          size: AppConstants.metaIconSize,
+                          color: colorScheme.primary,
+                        ),
+                        const SizedBox(width: AppConstants.spacingXs),
+                        Text(
+                          'Use recommended',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: AppConstants.spacingSm),
           _MobileRecommendationsGrid(groupIndex: groupIndex, group: group),
         ],
       ],
@@ -340,7 +371,8 @@ class _MobileExpandedDetails extends StatelessWidget {
   }
 }
 
-/// 2x2 grid of recommendation tiles optimised for mobile screens.
+/// Column of 3 alternative recommendation tiles optimised for mobile screens.
+/// Uses a vertical full-width layout for better readability and tap targets.
 class _MobileRecommendationsGrid extends StatelessWidget {
   const _MobileRecommendationsGrid({
     required this.groupIndex,
@@ -354,142 +386,185 @@ class _MobileRecommendationsGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     final CartController controller = context.read<CartController>();
     final CartItem displayedMain =
         controller.getDisplayedMain(groupIndex) ?? group.main;
     final bool selectCheapest = _same(displayedMain, group.cheapest);
     final bool selectBest = _same(displayedMain, group.bestReviewed);
     final bool selectFastest = _same(displayedMain, group.fastest);
-    final bool selectMain = !(selectCheapest || selectBest || selectFastest);
-    final Color tint = colorScheme.primary;
-    final Color c1 = tint.withValues(alpha: 0.08);
-    final Color c2 = tint.withValues(alpha: 0.05);
-    final Color c3 = tint.withValues(alpha: 0.06);
-    final Color c4 = tint.withValues(alpha: 0.04);
-    return LayoutBuilder(
-      builder: (BuildContext context, BoxConstraints constraints) {
-        final double tileWidth =
-            (constraints.maxWidth - AppConstants.spacingSm) / 2;
-        return Wrap(
-          spacing: AppConstants.spacingSm,
-          runSpacing: AppConstants.spacingSm,
-          children: [
-            _MobileRecommendationTile(
-              width: tileWidth,
-              label: 'Main',
-              item: group.main,
-              bg: c1,
-              selected: selectMain,
-              onTap: () =>
-                  controller.selectRecommendation(groupIndex, group.main),
-            ),
-            _MobileRecommendationTile(
-              width: tileWidth,
-              label: 'Cheapest',
-              item: group.cheapest,
-              bg: c2,
-              selected: selectCheapest,
-              onTap: () =>
-                  controller.selectRecommendation(groupIndex, group.cheapest),
-            ),
-            _MobileRecommendationTile(
-              width: tileWidth,
-              label: 'Best reviewed',
-              item: group.bestReviewed,
-              bg: c3,
-              selected: selectBest,
-              onTap: () => controller.selectRecommendation(
-                  groupIndex, group.bestReviewed),
-            ),
-            _MobileRecommendationTile(
-              width: tileWidth,
-              label: 'Fastest',
-              item: group.fastest,
-              bg: c4,
-              selected: selectFastest,
-              onTap: () =>
-                  controller.selectRecommendation(groupIndex, group.fastest),
-            ),
-          ],
-        );
-      },
+
+    return Column(
+      children: [
+        _MobileRecommendationTile(
+          categoryKey: 'cheapest',
+          label: 'Cheapest',
+          item: group.cheapest,
+          isSelected: selectCheapest,
+          onTap: () =>
+              controller.selectRecommendation(groupIndex, group.cheapest),
+        ),
+        const SizedBox(height: AppConstants.spacingSm),
+        _MobileRecommendationTile(
+          categoryKey: 'best',
+          label: 'Best reviewed',
+          item: group.bestReviewed,
+          isSelected: selectBest,
+          onTap: () => controller.selectRecommendation(
+            groupIndex,
+            group.bestReviewed,
+          ),
+        ),
+        const SizedBox(height: AppConstants.spacingSm),
+        _MobileRecommendationTile(
+          categoryKey: 'fastest',
+          label: 'Fastest',
+          item: group.fastest,
+          isSelected: selectFastest,
+          onTap: () =>
+              controller.selectRecommendation(groupIndex, group.fastest),
+        ),
+      ],
     );
   }
 }
 
-/// Single recommendation tile used inside the 2x2 grid.
+/// Single full-width recommendation tile for mobile with category-specific
+/// accent styling. Horizontal layout: icon badge | details | price.
 class _MobileRecommendationTile extends StatelessWidget {
   const _MobileRecommendationTile({
-    required this.width,
+    required this.categoryKey,
     required this.label,
     required this.item,
-    required this.bg,
-    required this.selected,
+    required this.isSelected,
     required this.onTap,
   });
 
-  final double width;
+  final String categoryKey;
   final String label;
   final CartItem item;
-  final Color bg;
-  final bool selected;
+  final bool isSelected;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final Color borderColor =
-        selected ? colorScheme.primary : colorScheme.outlineVariant.withValues(alpha: 0.4);
-    final double borderWidth = selected ? 2 : 0.5;
-    return SizedBox(
-      width: width,
-      child: Material(
-        color: bg,
+    final Color accent = categoryAccentColor(context, categoryKey);
+    final Color bg = categorySoftTint(
+      context,
+      categoryKey,
+      isSelected: isSelected,
+    );
+    final Color borderColor = isSelected
+        ? accent
+        : colorScheme.outlineVariant.withValues(alpha: 0.3);
+    final double borderWidth = isSelected ? 1.5 : 0.5;
+
+    return Material(
+      color: bg,
+      borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+      child: InkWell(
         borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-          onTap: onTap,
-          child: AnimatedContainer(
-            duration: AppConstants.durationFast,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-              border: Border.all(color: borderColor, width: borderWidth),
-            ),
-            padding: const EdgeInsets.all(AppConstants.spacingSm),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: AppConstants.durationFast,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppConstants.radiusMd),
+            border: Border.all(color: borderColor, width: borderWidth),
+          ),
+          padding: const EdgeInsets.all(AppConstants.spacingSm + 2),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(AppConstants.spacingSm),
+                decoration: BoxDecoration(
+                  color: accent.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppConstants.radiusSm),
                 ),
-                const SizedBox(height: AppConstants.spacingXs),
-                Text(
-                  item.name,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Icon(
+                  iconForCategoryKey(categoryKey),
+                  size: AppConstants.iconSizeXs,
+                  color: accent,
                 ),
-                const SizedBox(height: AppConstants.spacingXs),
-                Text(
-                  formatPrice(item.price),
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
+              ),
+              const SizedBox(width: AppConstants.spacingSm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          label,
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: accent,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        if (isSelected) ...[
+                          const SizedBox(width: AppConstants.spacingXs),
+                          Icon(
+                            Icons.check_circle_rounded,
+                            size: AppConstants.metaIconSize,
+                            color: accent,
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: AppConstants.spacingXs / 2),
+                    Text(
+                      item.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (item.reviewRating != null) ...[
+                      const SizedBox(height: AppConstants.spacingXs / 2),
+                      StarRatingDisplay(
+                        rating: item.reviewRating!,
+                        starSize: AppConstants.metaIconSize - 2,
+                      ),
+                    ],
+                    const SizedBox(height: AppConstants.spacingXs / 2),
+                    Row(
+                      children: [
+                        CartRetailerChip(text: item.retailer),
+                        const SizedBox(width: AppConstants.spacingSm),
+                        Icon(
+                          Icons.local_shipping_outlined,
+                          size: AppConstants.metaIconSize - 2,
+                          color: categoryKey == 'fastest'
+                              ? accent
+                              : colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: AppConstants.spacingXs),
+                        Text(
+                          '~${formatEstimatedDurationLabel(item.deliveryTime)}',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: categoryKey == 'fastest'
+                                ? accent
+                                : colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-                const SizedBox(height: AppConstants.spacingXs / 2),
-                CartRetailerChip(text: item.retailer),
-              ],
-            ),
+              ),
+              const SizedBox(width: AppConstants.spacingSm),
+              Text(
+                formatPrice(item.price),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  color: categoryKey == 'cheapest'
+                      ? accent
+                      : colorScheme.onSurface,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ),
         ),
       ),

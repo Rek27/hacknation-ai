@@ -2,6 +2,101 @@ import 'package:flutter/material.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/widgets/cart/cart_utils.dart';
 
+/// Displays a 5-star rating with optional numeric label.
+/// Stars fill proportionally based on [rating] (0.0–5.0).
+class StarRatingDisplay extends StatelessWidget {
+  const StarRatingDisplay({
+    super.key,
+    required this.rating,
+    this.starSize = AppConstants.metaIconSize,
+    this.showLabel = true,
+  });
+
+  final double rating;
+  final double starSize;
+  final bool showLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final Color filledColor = categoryAccentColor(context, 'best');
+    final Color emptyColor = theme.colorScheme.onSurfaceVariant.withValues(
+      alpha: 0.25,
+    );
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        ...List<Widget>.generate(AppConstants.starCount, (int index) {
+          final double fillLevel = (rating - index).clamp(0.0, 1.0);
+          return Padding(
+            padding: EdgeInsets.only(
+              right: index < AppConstants.starCount - 1
+                  ? AppConstants.starSpacing
+                  : 0,
+            ),
+            child: _StarIcon(
+              fillLevel: fillLevel,
+              size: starSize,
+              filledColor: filledColor,
+              emptyColor: emptyColor,
+            ),
+          );
+        }),
+        if (showLabel) ...[
+          const SizedBox(width: AppConstants.spacingXs),
+          Text(
+            rating.toStringAsFixed(1),
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+/// Renders a single star with partial fill support.
+/// [fillLevel] ranges from 0.0 (empty) to 1.0 (fully filled).
+class _StarIcon extends StatelessWidget {
+  const _StarIcon({
+    required this.fillLevel,
+    required this.size,
+    required this.filledColor,
+    required this.emptyColor,
+  });
+
+  final double fillLevel;
+  final double size;
+  final Color filledColor;
+  final Color emptyColor;
+
+  @override
+  Widget build(BuildContext context) {
+    if (fillLevel >= 1.0) {
+      return Icon(Icons.star_rounded, size: size, color: filledColor);
+    }
+    if (fillLevel <= 0.0) {
+      return Icon(Icons.star_rounded, size: size, color: emptyColor);
+    }
+    return SizedBox(
+      width: size,
+      height: size,
+      child: ShaderMask(
+        blendMode: BlendMode.srcIn,
+        shaderCallback: (Rect bounds) {
+          return LinearGradient(
+            stops: <double>[fillLevel, fillLevel],
+            colors: <Color>[filledColor, emptyColor],
+          ).createShader(bounds);
+        },
+        child: Icon(Icons.star_rounded, size: size),
+      ),
+    );
+  }
+}
+
 /// Small chip showing a retailer name. Used in cart items and summary cards.
 class CartRetailerChip extends StatelessWidget {
   const CartRetailerChip({super.key, required this.text});

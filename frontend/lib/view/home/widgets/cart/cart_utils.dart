@@ -80,3 +80,50 @@ String labelForCategoryKey(String key) {
       return 'Main';
   }
 }
+
+/// Returns a category-specific icon for alternative recommendation tiles.
+IconData iconForCategoryKey(String key) {
+  switch (key) {
+    case 'cheapest':
+      return Icons.savings_outlined;
+    case 'best':
+      return Icons.star_rounded;
+    case 'fastest':
+      return Icons.bolt_rounded;
+    case 'main':
+    default:
+      return Icons.auto_awesome_outlined;
+  }
+}
+
+/// Returns a semantic accent color for a recommendation category.
+/// Green for cheapest, amber for best reviewed, blue for fastest.
+Color categoryAccentColor(BuildContext context, String key) {
+  final bool isDark = Theme.of(context).brightness == Brightness.dark;
+  switch (key) {
+    case 'cheapest':
+      return isDark ? const Color(0xFF4ADE80) : const Color(0xFF16A34A);
+    case 'best':
+      return isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706);
+    case 'fastest':
+      return isDark ? const Color(0xFF60A5FA) : const Color(0xFF2563EB);
+    case 'main':
+    default:
+      return Theme.of(context).colorScheme.primary;
+  }
+}
+
+/// Returns a soft tinted background for a recommendation category tile.
+/// When [isSelected] is true the tint is stronger to reinforce the selection.
+Color categorySoftTint(
+  BuildContext context,
+  String key, {
+  bool isSelected = false,
+}) {
+  final Color accent = categoryAccentColor(context, key);
+  final bool isDark = Theme.of(context).brightness == Brightness.dark;
+  if (isSelected) {
+    return accent.withValues(alpha: isDark ? 0.18 : 0.12);
+  }
+  return accent.withValues(alpha: isDark ? 0.08 : 0.05);
+}

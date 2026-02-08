@@ -55,22 +55,24 @@ class HomeDesktopLayout extends StatelessWidget {
         // ── Cart panel (right) ───────────────────────────────────────
         Expanded(
           flex: 5,
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  colorScheme.surface,
-                  colorScheme.surfaceContainerLow,
-                  colorScheme.surface,
-                ],
-                stops: const [0.0, 0.5, 1.0],
+          child: ClipRect(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    colorScheme.surface,
+                    colorScheme.surfaceContainerLow,
+                    colorScheme.surface,
+                  ],
+                  stops: const [0.0, 0.5, 1.0],
+                ),
               ),
-            ),
-            child: ChangeNotifierProvider<CartController>(
-              create: (_) => CartController(),
-              child: CartPanel(),
+              child: ChangeNotifierProvider<CartController>(
+                create: (_) => CartController(),
+                child: CartPanel(),
+              ),
             ),
           ),
         ),
