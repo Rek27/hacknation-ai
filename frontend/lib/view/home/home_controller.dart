@@ -116,30 +116,9 @@ class HomeController extends ChangeNotifier {
   }
 
   void _handleOutputItem(OutputItemBase item) {
-    if (item is ToolOutput) {
-      activeTools[item.name] = true;
-      chatItems.add(
-        ChatItem.tool(
-          name: item.name,
-          status: 'executing',
-          reason: item.reason,
-        ),
-      );
-    } else if (item is ToolResultOutput) {
-      activeTools[item.name] = false;
-      chatItems.add(
-        ChatItem.tool(
-          name: item.name,
-          status: item.success ? 'completed' : 'failed',
-        ),
-      );
-    } else if (item is TextChunk) {
+    if (item is TextChunk) {
       currentAssistantText += item.content;
       _updateLastAssistant(currentAssistantText);
-    } else if (item is ThinkingChunk) {
-      chatItems.add(ChatItem.thinking(item.content));
-    } else if (item is ApiAnswerOutput) {
-      // final answer already in text stream
     } else if (item is ErrorOutput) {
       chatItems.add(
         ChatItem.error(

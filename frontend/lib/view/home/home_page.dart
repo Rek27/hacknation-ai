@@ -44,16 +44,6 @@ class _HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<_HomeView> {
-  final TextEditingController _inputController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void dispose() {
-    _inputController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final double width = MediaQuery.sizeOf(context).width;
@@ -92,14 +82,8 @@ class _HomeViewState extends State<_HomeView> {
             )
           : null,
       body: isMobile
-          ? HomeMobileLayout(
-              scrollController: _scrollController,
-              inputController: _inputController,
-            )
-          : HomeDesktopLayout(
-              scrollController: _scrollController,
-              inputController: _inputController,
-            ),
+          ? const HomeMobileLayout()
+          : const HomeDesktopLayout(),
     );
   }
 }

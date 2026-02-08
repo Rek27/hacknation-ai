@@ -3,17 +3,12 @@ import 'package:provider/provider.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/chat/chat_panel.dart';
+import 'package:frontend/view/home/widgets/chat/chat_controller.dart';
+import 'package:frontend/service/agent_api.dart';
 
 /// Mobile layout: full-width chat (documents are in a drawer provided by the parent Scaffold).
 class HomeMobileLayout extends StatelessWidget {
-  const HomeMobileLayout({
-    super.key,
-    required this.scrollController,
-    required this.inputController,
-  });
-
-  final ScrollController scrollController;
-  final TextEditingController inputController;
+  const HomeMobileLayout({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -23,9 +18,11 @@ class HomeMobileLayout extends StatelessWidget {
         if (controller.errorMessage != null)
           _ErrorBanner(message: controller.errorMessage!),
         Expanded(
-          child: ChatPanel(
-            scrollController: scrollController,
-            inputController: inputController,
+          child: ChangeNotifierProvider<ChatController>(
+            create: (_) => ChatController(
+              chatService: MockChatService(),
+            ),
+            child: const ChatPanel(),
           ),
         ),
       ],

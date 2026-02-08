@@ -2,12 +2,12 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/foundation.dart' hide Category;
 import 'package:http/http.dart' as http;
 
-import '../model/api_models.dart';
-import '../model/chat_models.dart';
-import 'api_client.dart';
+import 'package:frontend/model/api_models.dart';
+import 'package:frontend/model/chat_models.dart';
+import 'package:frontend/service/api_client.dart';
 
 class AgentApi {
   final ApiClient _client;
@@ -99,6 +99,238 @@ class AgentApi {
           _log('streamChat() parse failed: $e; data="$data"');
         }
       }
+    }
+  }
+}
+
+// ---------------------------------------------------------------------------
+// Chat service abstraction for the new chunk-based chat feature.
+// ---------------------------------------------------------------------------
+
+/// Contract for sending a user message and receiving agent output chunks.
+/// Implement with real HTTP when the backend is ready.
+abstract class ChatService {
+  Future<List<OutputItemBase>> sendMessage(String message);
+}
+
+/// Mock implementation that returns realistic chunk sequences.
+/// Tracks conversation step to simulate a multi-turn event-planning flow.
+class MockChatService implements ChatService {
+  int _step = 0;
+
+  @override
+  Future<List<OutputItemBase>> sendMessage(String message) async {
+    await Future.delayed(const Duration(milliseconds: 1200));
+    final List<OutputItemBase> response = _responseForStep(_step);
+    _step++;
+    return response;
+  }
+
+  List<OutputItemBase> _responseForStep(int step) {
+    switch (step) {
+      case 0:
+        return [
+          TextChunk(
+            type: OutputItemType.text,
+            content:
+                'Great! Let me help you plan your event. '
+                'First, let\'s figure out what kind of people and services '
+                'you\'ll need. Please select the categories that apply:',
+          ),
+          TreeChunk(
+            treeType: TreeType.people,
+            category: Category(
+              emoji: '👥',
+              label: 'People',
+              isSelected: false,
+              subcategories: [
+                Category(
+                  emoji: '🍳',
+                  label: 'Catering',
+                  isSelected: false,
+                  subcategories: [
+                    Category(
+                      emoji: '🍕',
+                      label: 'Food',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                    Category(
+                      emoji: '🍹',
+                      label: 'Drinks',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                    Category(
+                      emoji: '🍰',
+                      label: 'Desserts',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                  ],
+                ),
+                Category(
+                  emoji: '🎵',
+                  label: 'Music & Entertainment',
+                  isSelected: false,
+                  subcategories: [
+                    Category(
+                      emoji: '🎤',
+                      label: 'DJ',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                    Category(
+                      emoji: '🎸',
+                      label: 'Live Band',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                  ],
+                ),
+                Category(
+                  emoji: '📸',
+                  label: 'Photography',
+                  isSelected: false,
+                  subcategories: [
+                    Category(
+                      emoji: '📷',
+                      label: 'Photographer',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                    Category(
+                      emoji: '🎥',
+                      label: 'Videographer',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                  ],
+                ),
+                Category(
+                  emoji: '🛡️',
+                  label: 'Security',
+                  isSelected: false,
+                  subcategories: [],
+                ),
+              ],
+            ),
+          ),
+        ];
+      case 1:
+        return [
+          TextChunk(
+            type: OutputItemType.text,
+            content:
+                'Now let\'s look at the equipment you might need '
+                'for the event:',
+          ),
+          TreeChunk(
+            treeType: TreeType.equipment,
+            category: Category(
+              emoji: '🔧',
+              label: 'Equipment',
+              isSelected: false,
+              subcategories: [
+                Category(
+                  emoji: '🎪',
+                  label: 'Tents & Structures',
+                  isSelected: false,
+                  subcategories: [
+                    Category(
+                      emoji: '⛺',
+                      label: 'Main Tent',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                    Category(
+                      emoji: '🏕️',
+                      label: 'Side Canopies',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                  ],
+                ),
+                Category(
+                  emoji: '🔊',
+                  label: 'Audio & Visual',
+                  isSelected: false,
+                  subcategories: [
+                    Category(
+                      emoji: '🎙️',
+                      label: 'Speakers',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                    Category(
+                      emoji: '💡',
+                      label: 'Lighting',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                    Category(
+                      emoji: '📺',
+                      label: 'Screens',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                  ],
+                ),
+                Category(
+                  emoji: '🪑',
+                  label: 'Furniture',
+                  isSelected: false,
+                  subcategories: [
+                    Category(
+                      emoji: '🍽️',
+                      label: 'Tables',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                    Category(
+                      emoji: '💺',
+                      label: 'Chairs',
+                      isSelected: false,
+                      subcategories: [],
+                    ),
+                  ],
+                ),
+                Category(
+                  emoji: '🚿',
+                  label: 'Sanitary',
+                  isSelected: false,
+                  subcategories: [],
+                ),
+              ],
+            ),
+          ),
+        ];
+      case 2:
+        return [
+          TextChunk(
+            type: OutputItemType.text,
+            content:
+                'Perfect choices! Now let\'s finalize the event details. '
+                'Please fill in the information below so I can find the '
+                'best options for you.',
+          ),
+          TextFormChunk(
+            address: TextFieldChunk(label: 'Event Address'),
+            budget: TextFieldChunk(label: 'Budget (\$)'),
+            date: TextFieldChunk(label: 'Event Date'),
+            durationOfEvent: TextFieldChunk(label: 'Duration'),
+            numberOfAttendees: TextFieldChunk(label: 'Number of Attendees'),
+          ),
+        ];
+      default:
+        return [
+          TextChunk(
+            type: OutputItemType.text,
+            content:
+                'Thanks for providing all the details! I\'m now searching '
+                'for the best deals and will prepare your cart shortly.',
+          ),
+        ];
     }
   }
 }

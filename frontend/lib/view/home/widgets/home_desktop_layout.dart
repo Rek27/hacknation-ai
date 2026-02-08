@@ -4,18 +4,13 @@ import 'package:provider/provider.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/chat/chat_panel.dart';
+import 'package:frontend/view/home/widgets/chat/chat_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_panel.dart';
+import 'package:frontend/service/agent_api.dart';
 
 /// Desktop/web layout: chat area and cart view in a Row.
 class HomeDesktopLayout extends StatelessWidget {
-  const HomeDesktopLayout({
-    super.key,
-    required this.scrollController,
-    required this.inputController,
-  });
-
-  final ScrollController scrollController;
-  final TextEditingController inputController;
+  const HomeDesktopLayout({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -30,9 +25,11 @@ class HomeDesktopLayout extends StatelessWidget {
             children: [
               Expanded(
                 flex: 1,
-                child: ChatPanel(
-                  scrollController: scrollController,
-                  inputController: inputController,
+                child: ChangeNotifierProvider<ChatController>(
+                  create: (_) => ChatController(
+                    chatService: MockChatService(),
+                  ),
+                  child: const ChatPanel(),
                 ),
               ),
               Expanded(
