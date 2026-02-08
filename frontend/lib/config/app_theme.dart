@@ -33,6 +33,18 @@ abstract final class AppTheme {
       onSurfaceVariant: Color(0xFF49454F),
       outline: Color(0xFF79747E),
       outlineVariant: Color(0xFFCAC4D0),
+      primaryFixed: Color(0xFF50A479),
+      primaryFixedDim: Color(0xFF458DC1),
+      onPrimaryFixed: Colors.white,
+      onPrimaryFixedVariant: Color(0xFFDDAA58),
+      secondaryFixed: Color(0xFF7A6E95),
+      secondaryFixedDim: Color(0xFF625B71),
+      onSecondaryFixed: Colors.white,
+      onSecondaryFixedVariant: Colors.white,
+      tertiaryFixed: Color(0xFFB8778C),
+      tertiaryFixedDim: Color(0xFF935166),
+      onTertiaryFixed: Colors.white,
+      onTertiaryFixedVariant: Colors.white,
     );
 
     final TextTheme textTheme = ThemeData.light().textTheme.copyWith(

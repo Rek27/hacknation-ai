@@ -132,17 +132,15 @@ class CartPanel extends StatelessWidget {
                             const SizedBox(height: AppConstants.spacingMd),
                         itemBuilder: (context, index) {
                           final CartItem item = controller.items[index];
-                          final expanded = controller.isExpanded(
-                            item.id ?? '$index',
-                          );
-                          final String id = item.id ?? '$index';
+                          final expanded = controller.isExpandedGroup(index);
                           return ChangeNotifierProvider<CartItemController>(
                             create: (_) => CartItemController(item: item),
                             child: CartItemWidget(
                               groupIndex: index,
                               item: item,
                               isExpanded: expanded,
-                              onToggle: () => controller.toggleExpanded(id),
+                              onToggle: () =>
+                                  controller.toggleExpandedGroup(index),
                             ),
                           );
                         },

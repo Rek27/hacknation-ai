@@ -255,10 +255,17 @@ class _ExpandedDetails extends StatelessWidget {
 }
 
 /// Row of 4 recommended options: Main, Cheapest, Best reviewed, Fastest.
-class _RecommendationsRow extends StatelessWidget {
+class _RecommendationsRow extends StatefulWidget {
   const _RecommendationsRow({required this.groupIndex, required this.group});
   final int groupIndex;
   final RecommendedItem group;
+
+  @override
+  State<_RecommendationsRow> createState() => _RecommendationsRowState();
+}
+
+class _RecommendationsRowState extends State<_RecommendationsRow> {
+  int _hoveredIndex = -1;
 
   bool _same(CartItem a, CartItem b) => (a.id ?? a.name) == (b.id ?? b.name);
 
@@ -267,86 +274,105 @@ class _RecommendationsRow extends StatelessWidget {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final controller = context.read<CartController>();
+    final group = widget.group;
+
+    final c1 = colorScheme.primary.withValues(alpha: 0.1);
+    final c2 = colorScheme.primaryFixed.withValues(alpha: 0.1);
+    final c3 = colorScheme.primaryFixedDim.withValues(alpha: 0.15);
+    final c4 = colorScheme.onPrimaryFixedVariant.withValues(alpha: 0.15);
+
+    final displayedMain =
+        controller.getDisplayedMain(widget.groupIndex) ?? group.main;
+    final bool selectCheapest = _same(displayedMain, group.cheapest);
+    final bool selectBest = _same(displayedMain, group.bestReviewed);
+    final bool selectFastest = _same(displayedMain, group.fastest);
+    final bool selectMain = !(selectCheapest || selectBest || selectFastest);
 
     Widget tile({
+      required int index,
       required String label,
       required CartItem item,
       required Color bg,
       required bool selected,
     }) {
+      final bool hovered = _hoveredIndex == index;
+      final Color borderColor = selected
+          ? colorScheme.primary
+          : (hovered ? colorScheme.primary : Colors.transparent);
+      final double borderWidth = selected ? 2 : 1;
       return Expanded(
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-          hoverColor: Theme.of(
-            context,
-          ).colorScheme.primary.withValues(alpha: 0.06),
-          onTap: () => controller.selectRecommendation(groupIndex, item),
-          child: Container(
-            decoration: BoxDecoration(
-              color: bg,
+        child: MouseRegion(
+          onEnter: (_) => setState(() => _hoveredIndex = index),
+          onExit: (_) => setState(() => _hoveredIndex = -1),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
               borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-              border: Border.all(
-                color: selected ? colorScheme.primary : Colors.transparent,
-                width: selected ? 2 : 1,
-              ),
-            ),
-            padding: const EdgeInsets.all(AppConstants.spacingSm),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
-                    fontWeight: FontWeight.w600,
-                  ),
+              hoverColor: Colors.transparent,
+              onTap: () =>
+                  controller.selectRecommendation(widget.groupIndex, item),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: bg,
+                  borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+                  border: Border.all(color: borderColor, width: borderWidth),
                 ),
-                const SizedBox(height: AppConstants.spacingXs),
-                Text(
-                  item.name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurface,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: AppConstants.spacingXs),
-                Row(
+                padding: const EdgeInsets.all(AppConstants.spacingSm),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _formatPrice(item.price),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        color: colorScheme.primary,
-                        fontWeight: FontWeight.w700,
+                      label,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    const SizedBox(width: AppConstants.spacingSm),
-                    _RetailerChip(text: item.retailer),
+                    const SizedBox(height: AppConstants.spacingXs),
+                    Text(
+                      item.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: AppConstants.spacingXs),
+                    Row(
+                      children: [
+                        Text(
+                          _formatPrice(item.price),
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: AppConstants.spacingSm),
+                        _RetailerChip(text: item.retailer),
+                      ],
+                    ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         ),
       );
     }
 
-    final c1 = colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
-    final c2 = colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
-    final c3 = colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
-    final c4 = colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
-
-    final bool selectCheapest = _same(group.main, group.cheapest);
-    final bool selectBest = _same(group.main, group.bestReviewed);
-    final bool selectFastest = _same(group.main, group.fastest);
-    final bool selectMain = !(selectCheapest || selectBest || selectFastest);
-
     return Row(
       children: [
-        tile(label: 'Main', item: group.main, bg: c1, selected: selectMain),
+        tile(
+          index: 0,
+          label: 'Main',
+          item: group.main,
+          bg: c1,
+          selected: selectMain,
+        ),
         const SizedBox(width: AppConstants.spacingSm),
         tile(
+          index: 1,
           label: 'Cheapest',
           item: group.cheapest,
           bg: c2,
@@ -354,6 +380,7 @@ class _RecommendationsRow extends StatelessWidget {
         ),
         const SizedBox(width: AppConstants.spacingSm),
         tile(
+          index: 2,
           label: 'Best reviewed',
           item: group.bestReviewed,
           bg: c3,
@@ -361,6 +388,7 @@ class _RecommendationsRow extends StatelessWidget {
         ),
         const SizedBox(width: AppConstants.spacingSm),
         tile(
+          index: 3,
           label: 'Fastest',
           item: group.fastest,
           bg: c4,

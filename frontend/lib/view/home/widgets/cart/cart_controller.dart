@@ -7,33 +7,52 @@ class CartController extends ChangeNotifier {
   String? errorMessage;
   CartChunk? _cart;
   final Set<String> _expandedIds = <String>{};
+  final Map<int, CartItem> _selectedMainByIndex = <int, CartItem>{};
+  final Set<int> _expandedGroups = <int>{};
 
   bool get isEmpty => (_cart?.items.isEmpty ?? true);
 
-  /// All items currently in the cart.
-  List<CartItem> get items =>
-      _cart?.items.map((g) => g.main).toList() ?? const [];
+  /// All items currently in the cart (displayed mains, honoring selection overrides).
+  List<CartItem> get items {
+    final groups = _cart?.items ?? const <RecommendedItem>[];
+    final List<CartItem> out = <CartItem>[];
+    for (int i = 0; i < groups.length; i++) {
+      out.add(_selectedMainByIndex[i] ?? groups[i].main);
+    }
+    return out;
+  }
 
   /// Dynamic total computed from items (price x amount).
-  double get totalPrice => (_cart?.items ?? const [])
-      .map((g) => g.main)
-      .fold<double>(0.0, (sum, it) => sum + (it.price * it.amount));
+  double get totalPrice =>
+      items.fold<double>(0.0, (sum, it) => sum + (it.price * it.amount));
   int get itemCount => items.length;
   int get retailerCount => items.map((e) => e.retailer).toSet().length;
 
   /// Whether a specific item (by id) is expanded in the UI.
   bool isExpanded(String id) => _expandedIds.contains(id);
 
+  /// Whether a specific group index is expanded (stable across selection changes).
+  bool isExpandedGroup(int index) => _expandedGroups.contains(index);
+
   /// Removes an item by id (or name fallback) and cleans related state.
   void deleteItem(String itemId) {
     if (_cart == null) return;
-    final idx = _cart!.items.indexWhere(
-      (g) => (g.main.id ?? g.main.name) == itemId,
-    );
+    // Determine index based on displayed mains so deletion matches UI.
+    final current = items;
+    final idx = current.indexWhere((m) => (m.id ?? m.name) == itemId);
     if (idx < 0) return;
     final updated = List<RecommendedItem>.from(_cart!.items)..removeAt(idx);
     _cart = CartChunk(items: updated, price: totalPrice);
     _expandedIds.remove(itemId);
+    // Reindex selection overrides after removal
+    final Map<int, CartItem> next = {};
+    _selectedMainByIndex.forEach((k, v) {
+      if (k < idx) next[k] = v;
+      if (k > idx) next[k - 1] = v;
+    });
+    _selectedMainByIndex
+      ..clear()
+      ..addAll(next);
     notifyListeners();
   }
 
@@ -52,6 +71,16 @@ class CartController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Toggles expansion using stable group index.
+  void toggleExpandedGroup(int index) {
+    if (_expandedGroups.contains(index)) {
+      _expandedGroups.remove(index);
+    } else {
+      _expandedGroups.add(index);
+    }
+    notifyListeners();
+  }
+
   /// Returns recommendation group by index.
   RecommendedItem? getGroup(int index) {
     final list = _cart?.items;
@@ -60,32 +89,30 @@ class CartController extends ChangeNotifier {
     return list[index];
   }
 
+  /// Returns the currently displayed main for a group (after overrides).
+  CartItem? getDisplayedMain(int index) {
+    if (_cart == null) return null;
+    if (index < 0 || index >= _cart!.items.length) return null;
+    return _selectedMainByIndex[index] ?? _cart!.items[index].main;
+  }
+
   /// Updates the quantity for a given item (min 1). Recomputes totals.
   void updateQuantity(String itemId, int quantity) {
     if (_cart == null) return;
     final q = quantity < 1 ? 1 : quantity;
-    final idx = _cart!.items.indexWhere(
-      (g) => (g.main.id ?? g.main.name) == itemId,
-    );
+    // Find by current displayed mains
+    final current = items;
+    final idx = current.indexWhere((m) => (m.id ?? m.name) == itemId);
     if (idx < 0) return;
-    final group = _cart!.items[idx];
-    final main = group.main;
-    final updatedMain = CartItem(
-      id: main.id,
-      name: main.name,
-      price: main.price,
+    final prev = _selectedMainByIndex[idx] ?? _cart!.items[idx].main;
+    _selectedMainByIndex[idx] = CartItem(
+      id: prev.id,
+      name: prev.name,
+      price: prev.price,
       amount: q,
-      retailer: main.retailer,
-      deliveryTime: main.deliveryTime,
+      retailer: prev.retailer,
+      deliveryTime: prev.deliveryTime,
     );
-    final newGroups = List<RecommendedItem>.from(_cart!.items);
-    newGroups[idx] = RecommendedItem(
-      main: updatedMain,
-      cheapest: group.cheapest,
-      bestReviewed: group.bestReviewed,
-      fastest: group.fastest,
-    );
-    _cart = CartChunk(items: newGroups, price: totalPrice);
     notifyListeners();
   }
 
@@ -94,18 +121,8 @@ class CartController extends ChangeNotifier {
   void selectRecommendation(int groupIndex, CartItem chosen) {
     if (_cart == null) return;
     if (groupIndex < 0 || groupIndex >= _cart!.items.length) return;
-    final group = _cart!.items[groupIndex];
-    // Set chosen as the new main, but KEEP category buckets unchanged.
-    final newGroup = RecommendedItem(
-      main: chosen,
-      cheapest: group.cheapest,
-      bestReviewed: group.bestReviewed,
-      fastest: group.fastest,
-    );
-
-    final groups = List<RecommendedItem>.from(_cart!.items);
-    groups[groupIndex] = newGroup;
-    _cart = CartChunk(items: groups, price: totalPrice);
+    // Do not mutate group buckets; only override displayed main.
+    _selectedMainByIndex[groupIndex] = chosen;
     notifyListeners();
   }
 
@@ -113,6 +130,7 @@ class CartController extends ChangeNotifier {
   Future<void> loadDummyData() async {
     isLoading = true;
     errorMessage = null;
+    _selectedMainByIndex.clear();
     notifyListeners();
     try {
       // Simulate network/search latency so the skeleton can be seen.
