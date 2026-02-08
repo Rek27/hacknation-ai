@@ -33,7 +33,7 @@ class HomeDesktopLayout extends StatelessWidget {
                 ),
               ),
               Expanded(
-                flex: 2,
+                flex: 3,
                 child: ChangeNotifierProvider<CartController>(
                   create: (_) => CartController(),
                   child: CartPanel(),

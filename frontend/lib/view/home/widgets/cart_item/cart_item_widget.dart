@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/model/chat_models.dart';
+import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
+import 'package:provider/provider.dart';
 
 /// Visual representation of a single cart line item with expandable details.
 class CartItemWidget extends StatefulWidget {
@@ -123,7 +126,33 @@ class _HeaderRow extends StatelessWidget {
                     size: AppConstants.iconSizeXs,
                   ),
                   const SizedBox(width: AppConstants.spacingXs),
-                  Text('Qty: ${item.amount}', style: theme.textTheme.bodySmall),
+                  Text('Qty:'),
+                  const SizedBox(width: AppConstants.spacingXs),
+                  SizedBox(
+                    width: 40,
+                    child: TextFormField(
+                      initialValue: item.amount.toString(),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (value) {
+                        if (value.isEmpty) return;
+                        final qty = int.tryParse(value);
+                        if (qty == null) return;
+                        final key = item.id ?? item.name;
+                        context.read<CartController>().updateQuantity(key, qty);
+                      },
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.bodySmall,
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppConstants.spacingSm,
+                          vertical: AppConstants.spacingXs,
+                        ),
+                        hintText: 'Qty',
+                      ),
+                    ),
+                  ),
                 ],
               ),
             ],
@@ -133,7 +162,28 @@ class _HeaderRow extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
-            _QuantityBadge(quantity: item.amount),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  tooltip: 'Remove',
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    size: AppConstants.iconSizeSm,
+                  ),
+                  onPressed: () {
+                    final key = item.id ?? item.name;
+                    context.read<CartController>().deleteItem(key);
+                  },
+                  // make it dense
+                  style: IconButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: AppConstants.spacingSm),
             Icon(
               isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
@@ -154,34 +204,137 @@ class _ExpandedDetails extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-      ),
-      padding: const EdgeInsets.all(AppConstants.spacingSm),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.local_shipping_outlined,
-            size: AppConstants.iconSizeXs,
+    final controller = context.watch<CartController>();
+    final String itemId = item.id ?? item.name;
+    final alternatives =
+        controller.getAlternatives(itemId)?.items ?? const <CartItem>[];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.08),
+            borderRadius: BorderRadius.circular(AppConstants.radiusSm),
           ),
-          const SizedBox(width: AppConstants.spacingSm),
-          Text(
-            'Est. delivery: ${_formatEstimatedDurationLabel(item.deliveryTime)}',
-            style: theme.textTheme.bodySmall,
+          padding: const EdgeInsets.all(AppConstants.spacingSm),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.local_shipping_outlined,
+                size: AppConstants.iconSizeXs,
+              ),
+              const SizedBox(width: AppConstants.spacingSm),
+              Text(
+                'Est. delivery: ${_formatEstimatedDurationLabel(item.deliveryTime)}',
+                style: theme.textTheme.bodySmall,
+              ),
+              const SizedBox(width: AppConstants.spacingMd),
+              const Icon(Icons.attach_money, size: AppConstants.iconSizeXs),
+              const SizedBox(width: AppConstants.spacingSm),
+              Text(
+                'Item total: ${_formatPrice(item.price * item.amount)}',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: colorScheme.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: AppConstants.spacingMd),
-          const Icon(Icons.attach_money, size: AppConstants.iconSizeXs),
-          const SizedBox(width: AppConstants.spacingSm),
+        ),
+        if (alternatives.isNotEmpty) ...[
+          const SizedBox(height: AppConstants.spacingMd),
           Text(
-            'Item total: ${_formatPrice(item.price * item.amount)}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.primary,
-              fontWeight: FontWeight.w600,
+            'ALTERNATIVES (${alternatives.length})',
+            style: theme.textTheme.labelSmall?.copyWith(
+              letterSpacing: 0.8,
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: AppConstants.spacingMd),
+          ...alternatives.map(
+            (alt) => Padding(
+              padding: const EdgeInsets.only(bottom: AppConstants.spacingMd),
+              child: _AlternativeTile(itemId: itemId, alt: alt),
             ),
           ),
         ],
+      ],
+    );
+  }
+}
+
+/// One line clickable tile displaying an alternative offer (with hover).
+class _AlternativeTile extends StatefulWidget {
+  const _AlternativeTile({required this.itemId, required this.alt});
+  final String itemId;
+  final CartItem alt;
+
+  @override
+  State<_AlternativeTile> createState() => _AlternativeTileState();
+}
+
+class _AlternativeTileState extends State<_AlternativeTile> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+    final controller = context.read<CartController>();
+    final baseColor = colorScheme.surfaceContainerHighest.withValues(
+      alpha: 0.3,
+    );
+    final hoverColor = colorScheme.surfaceContainerHighest.withValues(
+      alpha: 0.6,
+    );
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+        onTap: () => controller.selectAlternative(widget.itemId, widget.alt),
+        child: Container(
+          decoration: BoxDecoration(
+            color: _hovered ? hoverColor : baseColor,
+            borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+          ),
+          padding: const EdgeInsets.all(AppConstants.spacingSm),
+          child: Row(
+            children: [
+              const _SquareImagePlaceholder(size: 60),
+              const SizedBox(width: AppConstants.spacingMd),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.alt.name,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: AppConstants.spacingXs),
+                    Row(
+                      children: [
+                        Text(
+                          _formatPrice(widget.alt.price),
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: AppConstants.spacingSm),
+                        _RetailerChip(text: widget.alt.retailer),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
