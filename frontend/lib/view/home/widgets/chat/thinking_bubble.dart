@@ -171,19 +171,13 @@ class _AnimatedDot extends StatelessWidget {
         }
         return Padding(
           padding: EdgeInsets.symmetric(horizontal: dotSize * 0.35),
-          child: Transform.translate(
-            offset: Offset(0, offset),
-            child: child,
-          ),
+          child: Transform.translate(offset: Offset(0, offset), child: child),
         );
       },
       child: Container(
         width: dotSize,
         height: dotSize,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-        ),
+        decoration: BoxDecoration(color: color, shape: BoxShape.circle),
       ),
     );
   }

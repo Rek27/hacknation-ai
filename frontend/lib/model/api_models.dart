@@ -5,10 +5,7 @@ class HealthStatus {
   final String status;
   final int activeSessions;
 
-  HealthStatus({
-    required this.status,
-    required this.activeSessions,
-  });
+  HealthStatus({required this.status, required this.activeSessions});
 
   factory HealthStatus.fromJson(Map<String, dynamic> json) => HealthStatus(
     status: json['status'] as String,

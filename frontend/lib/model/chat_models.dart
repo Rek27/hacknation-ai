@@ -208,9 +208,7 @@ class ItemsChunk implements OutputItemBase {
   factory ItemsChunk.fromJson(Map<String, dynamic> json) => ItemsChunk(
     type: OutputItemType.items,
     items:
-        (json['items'] as List<dynamic>?)
-            ?.map((e) => e as String)
-            .toList() ??
+        (json['items'] as List<dynamic>?)?.map((e) => e as String).toList() ??
         const [],
   );
 }
@@ -254,9 +252,7 @@ class RetailerOffer {
     discountPercent: (json['discountPercent'] as num?)?.toInt(),
     discountedItems:
         (json['discountedItems'] as List<dynamic>?)
-            ?.map(
-              (e) => RetailerOfferItem.fromJson(e as Map<String, dynamic>),
-            )
+            ?.map((e) => RetailerOfferItem.fromJson(e as Map<String, dynamic>))
             .toList() ??
         const [],
   );
@@ -276,9 +272,7 @@ class RetailerOffersChunk implements OutputItemBase {
         type: OutputItemType.retailerOffers,
         offers:
             (json['offers'] as List<dynamic>?)
-                ?.map(
-                  (e) => RetailerOffer.fromJson(e as Map<String, dynamic>),
-                )
+                ?.map((e) => RetailerOffer.fromJson(e as Map<String, dynamic>))
                 .toList() ??
             const [],
       );
@@ -292,7 +286,10 @@ Duration _parseDeliveryTime(Map<String, dynamic> json) {
   return Duration(milliseconds: innerMs ?? 0);
 }
 
-final RegExp _quantitySuffix = RegExp(r'\s*\(x(\d+)\)\s*$', caseSensitive: false);
+final RegExp _quantitySuffix = RegExp(
+  r'\s*\(x(\d+)\)\s*$',
+  caseSensitive: false,
+);
 
 class CartItem {
   final String? id;

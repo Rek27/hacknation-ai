@@ -24,8 +24,8 @@ class HomeMobileLayout extends StatelessWidget {
       create: (_) => CartController(),
       child: Builder(
         builder: (cartContext) {
-          final CartController cartController =
-              cartContext.read<CartController>();
+          final CartController cartController = cartContext
+              .read<CartController>();
           return MultiProvider(
             providers: [
               ChangeNotifierProvider<ChatController>(
@@ -299,13 +299,15 @@ class _CallCenterContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final VoiceController voiceController = context.watch<VoiceController>();
-    final MicrophoneController micController = context.watch<MicrophoneController>();
-    
+    final MicrophoneController micController = context
+        .watch<MicrophoneController>();
+
     // Show wave animation when user is speaking (recording)
     // or when assistant is thinking (loading but not playing)
-    final bool showWave = voiceController.isRecording || 
-                          (voiceController.isLoading && !voiceController.isPlaying);
-    
+    final bool showWave =
+        voiceController.isRecording ||
+        (voiceController.isLoading && !voiceController.isPlaying);
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingXl),
@@ -362,7 +364,7 @@ class _LiveTranscriptStrip extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final String snippet = voiceController.lastAssistantText.trim();
     if (snippet.isEmpty) return const SizedBox.shrink();
-    
+
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 320),
       child: Container(
@@ -437,10 +439,11 @@ class _MicrophoneButton extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final VoiceController voiceController = context.watch<VoiceController>();
-    
+
     final bool isRecording = voiceController.isRecording;
-    final bool isDisabled = voiceController.isLoading || voiceController.isPlaying;
-    
+    final bool isDisabled =
+        voiceController.isLoading || voiceController.isPlaying;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -451,13 +454,13 @@ class _MicrophoneButton extends StatelessWidget {
             height: AppConstants.callUiTouchTarget,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: isRecording 
+              color: isRecording
                   ? AppConstants.callReject.withValues(alpha: 0.2)
                   : Colors.transparent,
             ),
             child: Icon(
               isRecording ? Icons.mic_rounded : Icons.mic_none_rounded,
-              color: isDisabled 
+              color: isDisabled
                   ? Colors.white.withValues(alpha: 0.3)
                   : (isRecording ? AppConstants.callReject : Colors.white),
               size: AppConstants.iconSizeSm,

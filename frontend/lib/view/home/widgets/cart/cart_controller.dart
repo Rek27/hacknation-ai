@@ -309,10 +309,7 @@ class CartController extends ChangeNotifier {
   String? getAiReasoning(int groupIndex) => _aiReasoning[groupIndex];
 
   /// Fetches the AI recommendation reasoning for the given [groupIndex].
-  Future<void> fetchRecommendationReason(
-    int groupIndex,
-    AgentApi api,
-  ) async {
+  Future<void> fetchRecommendationReason(int groupIndex, AgentApi api) async {
     final group = getGroup(groupIndex);
     if (group == null) return;
     if (_aiReasoningLoading.contains(groupIndex)) return; // already loading
@@ -347,5 +344,4 @@ class CartController extends ChangeNotifier {
         return 0.10;
     }
   }
-
 }

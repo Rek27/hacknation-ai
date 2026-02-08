@@ -129,18 +129,14 @@ class CartPanel extends StatelessWidget {
                             key: ValueKey<String>(key),
                             endActionPane: ActionPane(
                               motion: const DrawerMotion(),
-                              extentRatio:
-                                  AppConstants.cartActionExtentRatio,
+                              extentRatio: AppConstants.cartActionExtentRatio,
                               dismissible: DismissiblePane(
-                                onDismissed: () =>
-                                    controller.deleteItem(key),
+                                onDismissed: () => controller.deleteItem(key),
                               ),
                               children: [
                                 SlidableAction(
-                                  onPressed: (_) =>
-                                      controller.deleteItem(key),
-                                  backgroundColor:
-                                      AppConstants.cartDeleteColor,
+                                  onPressed: (_) => controller.deleteItem(key),
+                                  backgroundColor: AppConstants.cartDeleteColor,
                                   foregroundColor: Colors.white,
                                   icon: Icons.delete_outline,
                                   label: 'Delete',
@@ -155,10 +151,8 @@ class CartPanel extends StatelessWidget {
                                 ),
                               ],
                             ),
-                            child:
-                                ChangeNotifierProvider<CartItemController>(
-                              create: (_) =>
-                                  CartItemController(item: item),
+                            child: ChangeNotifierProvider<CartItemController>(
+                              create: (_) => CartItemController(item: item),
                               child: CartItemWidget(
                                 groupIndex: index,
                                 item: item,
@@ -687,9 +681,7 @@ class _RetailerOrderingScreen extends StatelessWidget {
           // Retailer grid
           Expanded(
             child: GridView.builder(
-              padding: const EdgeInsets.only(
-                bottom: AppConstants.spacingXl,
-              ),
+              padding: const EdgeInsets.only(bottom: AppConstants.spacingXl),
               gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
                 maxCrossAxisExtent: 200,
                 mainAxisSpacing: AppConstants.spacingMd,
@@ -916,37 +908,39 @@ class _OrderCompleteSummary extends StatelessWidget {
               ),
               const SizedBox(height: AppConstants.spacingSm),
               // Items under this retailer
-              ...retailerItems.map((item) => Padding(
-                padding: const EdgeInsets.only(
-                  left: AppConstants.spacingXl + AppConstants.spacingSm,
-                  bottom: AppConstants.spacingSm,
-                ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.check_circle_outline,
-                      size: 16,
-                      color: Color(0xFF34C759),
-                    ),
-                    const SizedBox(width: AppConstants.spacingSm),
-                    Expanded(
-                      child: Text(
-                        '${item.name} x${item.amount}',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: cs.onSurface,
+              ...retailerItems.map(
+                (item) => Padding(
+                  padding: const EdgeInsets.only(
+                    left: AppConstants.spacingXl + AppConstants.spacingSm,
+                    bottom: AppConstants.spacingSm,
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle_outline,
+                        size: 16,
+                        color: Color(0xFF34C759),
+                      ),
+                      const SizedBox(width: AppConstants.spacingSm),
+                      Expanded(
+                        child: Text(
+                          '${item.name} x${item.amount}',
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: cs.onSurface,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    Text(
-                      formatPrice(item.price * item.amount),
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: cs.onSurfaceVariant,
+                      Text(
+                        formatPrice(item.price * item.amount),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: cs.onSurfaceVariant,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              )),
+              ),
               const SizedBox(height: AppConstants.spacingSm),
               const Divider(),
               const SizedBox(height: AppConstants.spacingMd),

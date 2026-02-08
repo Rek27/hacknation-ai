@@ -29,9 +29,11 @@ class ChatController extends ChangeNotifier {
   final ChatService _chatService;
   final CartController? _cartController;
 
-  ChatController({required ChatService chatService, CartController? cartController})
-    : _chatService = chatService,
-      _cartController = cartController;
+  ChatController({
+    required ChatService chatService,
+    CartController? cartController,
+  }) : _chatService = chatService,
+       _cartController = cartController;
 
   // ---------------------------------------------------------------------------
   // State

@@ -43,12 +43,10 @@ class _CategoryPillState extends State<CategoryPill>
       vsync: this,
       duration: AppConstants.durationFast,
     );
-    _scaleAnimation = Tween<double>(
-      begin: 1.0,
-      end: AppConstants.treePillPressScale,
-    ).animate(
-      CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
-    );
+    _scaleAnimation =
+        Tween<double>(begin: 1.0, end: AppConstants.treePillPressScale).animate(
+          CurvedAnimation(parent: _scaleController, curve: Curves.easeInOut),
+        );
   }
 
   @override
@@ -156,12 +154,11 @@ class _CategoryPillState extends State<CategoryPill>
           ? SystemMouseCursors.basic
           : SystemMouseCursors.click,
       child: GestureDetector(
-        onTapDown:
-            widget.isDisabled ? null : (_) => _scaleController.forward(),
-        onTapUp:
-            widget.isDisabled ? null : (_) => _scaleController.reverse(),
-        onTapCancel:
-            widget.isDisabled ? null : () => _scaleController.reverse(),
+        onTapDown: widget.isDisabled ? null : (_) => _scaleController.forward(),
+        onTapUp: widget.isDisabled ? null : (_) => _scaleController.reverse(),
+        onTapCancel: widget.isDisabled
+            ? null
+            : () => _scaleController.reverse(),
         onTap: widget.isDisabled ? null : widget.onTap,
         child: ScaleTransition(
           scale: _scaleAnimation,
@@ -189,13 +186,12 @@ class _CategoryPillState extends State<CategoryPill>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  widget.emoji,
-                  style: TextStyle(fontSize: emojiSize),
+                Text(widget.emoji, style: TextStyle(fontSize: emojiSize)),
+                SizedBox(
+                  width: widget.depth >= 2
+                      ? AppConstants.spacingXs
+                      : AppConstants.spacingSm,
                 ),
-                SizedBox(width: widget.depth >= 2
-                    ? AppConstants.spacingXs
-                    : AppConstants.spacingSm),
                 Flexible(
                   child: Text(
                     widget.label,
