@@ -144,7 +144,8 @@ class SubmitFormResponse {
         success: json['success'] as bool,
         message: json['message'] as String,
         sessionId: json['session_id'] as String,
-        itemsSummary: (json['items_summary'] as List<dynamic>?)
+        itemsSummary:
+            (json['items_summary'] as List<dynamic>?)
                 ?.map((e) => e as String)
                 .toList() ??
             const [],

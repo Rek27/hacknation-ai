@@ -9,11 +9,13 @@ import 'package:provider/provider.dart';
 class CartItemWidget extends StatefulWidget {
   const CartItemWidget({
     super.key,
+    required this.groupIndex,
     required this.item,
     required this.isExpanded,
     required this.onToggle,
   });
 
+  final int groupIndex;
   final CartItem item;
   final bool isExpanded;
   final VoidCallback onToggle;
@@ -55,7 +57,10 @@ class _CartItemWidgetState extends State<CartItemWidget> {
                   const SizedBox(height: AppConstants.spacingMd),
                   const Divider(height: 1),
                   const SizedBox(height: AppConstants.spacingSm),
-                  _ExpandedDetails(item: widget.item),
+                  _ExpandedDetails(
+                    groupIndex: widget.groupIndex,
+                    item: widget.item,
+                  ),
                 ],
               ],
             ),
@@ -198,16 +203,15 @@ class _HeaderRow extends StatelessWidget {
 
 /// Expanded details section: shipping ETA and line total.
 class _ExpandedDetails extends StatelessWidget {
-  const _ExpandedDetails({required this.item});
+  const _ExpandedDetails({required this.groupIndex, required this.item});
+  final int groupIndex;
   final CartItem item;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final controller = context.watch<CartController>();
-    final String itemId = item.id ?? item.name;
-    final alternatives =
-        controller.getAlternatives(itemId)?.items ?? const <CartItem>[];
+    final group = controller.getGroup(groupIndex);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -241,101 +245,128 @@ class _ExpandedDetails extends StatelessWidget {
             ],
           ),
         ),
-        if (alternatives.isNotEmpty) ...[
+        if (group != null) ...[
           const SizedBox(height: AppConstants.spacingMd),
-          Text(
-            'ALTERNATIVES (${alternatives.length})',
-            style: theme.textTheme.labelSmall?.copyWith(
-              letterSpacing: 0.8,
-              color: colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: AppConstants.spacingMd),
-          ...alternatives.map(
-            (alt) => Padding(
-              padding: const EdgeInsets.only(bottom: AppConstants.spacingMd),
-              child: _AlternativeTile(itemId: itemId, alt: alt),
-            ),
-          ),
+          _RecommendationsRow(groupIndex: groupIndex, group: group),
         ],
       ],
     );
   }
 }
 
-/// One line clickable tile displaying an alternative offer (with hover).
-class _AlternativeTile extends StatefulWidget {
-  const _AlternativeTile({required this.itemId, required this.alt});
-  final String itemId;
-  final CartItem alt;
+/// Row of 4 recommended options: Main, Cheapest, Best reviewed, Fastest.
+class _RecommendationsRow extends StatelessWidget {
+  const _RecommendationsRow({required this.groupIndex, required this.group});
+  final int groupIndex;
+  final RecommendedItem group;
 
-  @override
-  State<_AlternativeTile> createState() => _AlternativeTileState();
-}
-
-class _AlternativeTileState extends State<_AlternativeTile> {
-  bool _hovered = false;
+  bool _same(CartItem a, CartItem b) => (a.id ?? a.name) == (b.id ?? b.name);
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final controller = context.read<CartController>();
-    final baseColor = colorScheme.surfaceContainerHighest.withValues(
-      alpha: 0.3,
-    );
-    final hoverColor = colorScheme.surfaceContainerHighest.withValues(
-      alpha: 0.6,
-    );
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-        onTap: () => controller.selectAlternative(widget.itemId, widget.alt),
-        child: Container(
-          decoration: BoxDecoration(
-            color: _hovered ? hoverColor : baseColor,
-            borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-          ),
-          padding: const EdgeInsets.all(AppConstants.spacingSm),
-          child: Row(
-            children: [
-              const _SquareImagePlaceholder(size: 60),
-              const SizedBox(width: AppConstants.spacingMd),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+
+    Widget tile({
+      required String label,
+      required CartItem item,
+      required Color bg,
+      required bool selected,
+    }) {
+      return Expanded(
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+          hoverColor: Theme.of(
+            context,
+          ).colorScheme.primary.withValues(alpha: 0.06),
+          onTap: () => controller.selectRecommendation(groupIndex, item),
+          child: Container(
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+              border: Border.all(
+                color: selected ? colorScheme.primary : Colors.transparent,
+                width: selected ? 2 : 1,
+              ),
+            ),
+            padding: const EdgeInsets.all(AppConstants.spacingSm),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingXs),
+                Text(
+                  item.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colorScheme.onSurface,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: AppConstants.spacingXs),
+                Row(
                   children: [
                     Text(
-                      widget.alt.name,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
+                      _formatPrice(item.price),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w700,
                       ),
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: AppConstants.spacingXs),
-                    Row(
-                      children: [
-                        Text(
-                          _formatPrice(widget.alt.price),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const SizedBox(width: AppConstants.spacingSm),
-                        _RetailerChip(text: widget.alt.retailer),
-                      ],
-                    ),
+                    const SizedBox(width: AppConstants.spacingSm),
+                    _RetailerChip(text: item.retailer),
                   ],
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
+      );
+    }
+
+    final c1 = colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
+    final c2 = colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
+    final c3 = colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
+    final c4 = colorScheme.surfaceContainerHighest.withValues(alpha: 0.6);
+
+    final bool selectCheapest = _same(group.main, group.cheapest);
+    final bool selectBest = _same(group.main, group.bestReviewed);
+    final bool selectFastest = _same(group.main, group.fastest);
+    final bool selectMain = !(selectCheapest || selectBest || selectFastest);
+
+    return Row(
+      children: [
+        tile(label: 'Main', item: group.main, bg: c1, selected: selectMain),
+        const SizedBox(width: AppConstants.spacingSm),
+        tile(
+          label: 'Cheapest',
+          item: group.cheapest,
+          bg: c2,
+          selected: selectCheapest,
+        ),
+        const SizedBox(width: AppConstants.spacingSm),
+        tile(
+          label: 'Best reviewed',
+          item: group.bestReviewed,
+          bg: c3,
+          selected: selectBest,
+        ),
+        const SizedBox(width: AppConstants.spacingSm),
+        tile(
+          label: 'Fastest',
+          item: group.fastest,
+          bg: c4,
+          selected: selectFastest,
+        ),
+      ],
     );
   }
 }
@@ -381,34 +412,6 @@ class _RetailerChip extends StatelessWidget {
         text,
         style: theme.textTheme.labelSmall?.copyWith(
           color: colorScheme.onSurfaceVariant,
-        ),
-      ),
-    );
-  }
-}
-
-/// Small badge showing the quantity for this line.
-class _QuantityBadge extends StatelessWidget {
-  const _QuantityBadge({required this.quantity});
-  final int quantity;
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colorScheme = theme.colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.8),
-        borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-      ),
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppConstants.spacingSm,
-        vertical: 2,
-      ),
-      child: Text(
-        'x$quantity',
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: colorScheme.onSurfaceVariant,
-          fontWeight: FontWeight.w700,
         ),
       ),
     );

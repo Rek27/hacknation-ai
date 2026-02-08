@@ -139,6 +139,7 @@ class CartPanel extends StatelessWidget {
                           return ChangeNotifierProvider<CartItemController>(
                             create: (_) => CartItemController(item: item),
                             child: CartItemWidget(
+                              groupIndex: index,
                               item: item,
                               isExpanded: expanded,
                               onToggle: () => controller.toggleExpanded(id),

@@ -251,10 +251,7 @@ class ChatController extends ChangeNotifier {
       _errorMessage = 'Connection error: $e';
       _messages.add(
         ChatMessage.agent([
-          ErrorOutput(
-            type: OutputItemType.error,
-            message: _errorMessage!,
-          ),
+          ErrorOutput(type: OutputItemType.error, message: _errorMessage!),
         ]),
       );
     } finally {
@@ -312,24 +309,19 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final SubmitFormResponse response =
-          await _chatService.submitForm(submittedForm);
+      final SubmitFormResponse response = await _chatService.submitForm(
+        submittedForm,
+      );
       _messages.add(
         ChatMessage.agent([
-          TextChunk(
-            type: OutputItemType.text,
-            content: response.message,
-          ),
+          TextChunk(type: OutputItemType.text, content: response.message),
         ]),
       );
     } catch (e) {
       _errorMessage = 'Connection error: $e';
       _messages.add(
         ChatMessage.agent([
-          ErrorOutput(
-            type: OutputItemType.error,
-            message: _errorMessage!,
-          ),
+          ErrorOutput(type: OutputItemType.error, message: _errorMessage!),
         ]),
       );
     } finally {

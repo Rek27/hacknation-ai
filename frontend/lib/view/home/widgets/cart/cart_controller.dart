@@ -7,16 +7,17 @@ class CartController extends ChangeNotifier {
   String? errorMessage;
   CartChunk? _cart;
   final Set<String> _expandedIds = <String>{};
-  final Map<String, CartChunk> _alternativesById = <String, CartChunk>{};
 
   bool get isEmpty => (_cart?.items.isEmpty ?? true);
 
   /// All items currently in the cart.
-  List<CartItem> get items => _cart?.items ?? const [];
+  List<CartItem> get items =>
+      _cart?.items.map((g) => g.main).toList() ?? const [];
 
   /// Dynamic total computed from items (price x amount).
-  double get totalPrice =>
-      items.fold<double>(0.0, (sum, it) => sum + (it.price * it.amount));
+  double get totalPrice => (_cart?.items ?? const [])
+      .map((g) => g.main)
+      .fold<double>(0.0, (sum, it) => sum + (it.price * it.amount));
   int get itemCount => items.length;
   int get retailerCount => items.map((e) => e.retailer).toSet().length;
 
@@ -26,11 +27,13 @@ class CartController extends ChangeNotifier {
   /// Removes an item by id (or name fallback) and cleans related state.
   void deleteItem(String itemId) {
     if (_cart == null) return;
-    bool keyMatcher(CartItem e) => (e.id ?? e.name) == itemId;
-    final updated = List<CartItem>.from(_cart!.items)..removeWhere(keyMatcher);
+    final idx = _cart!.items.indexWhere(
+      (g) => (g.main.id ?? g.main.name) == itemId,
+    );
+    if (idx < 0) return;
+    final updated = List<RecommendedItem>.from(_cart!.items)..removeAt(idx);
     _cart = CartChunk(items: updated, price: totalPrice);
     _expandedIds.remove(itemId);
-    _alternativesById.remove(itemId);
     notifyListeners();
   }
 
@@ -49,62 +52,60 @@ class CartController extends ChangeNotifier {
     notifyListeners();
   }
 
-  CartChunk? getAlternatives(String id) => _alternativesById[id];
+  /// Returns recommendation group by index.
+  RecommendedItem? getGroup(int index) {
+    final list = _cart?.items;
+    if (list == null) return null;
+    if (index < 0 || index >= list.length) return null;
+    return list[index];
+  }
 
   /// Updates the quantity for a given item (min 1). Recomputes totals.
   void updateQuantity(String itemId, int quantity) {
     if (_cart == null) return;
     final q = quantity < 1 ? 1 : quantity;
-    final idx = _cart!.items.indexWhere((e) => (e.id ?? e.name) == itemId);
-    if (idx < 0) return;
-    final it = _cart!.items[idx];
-    final updated = CartItem(
-      id: it.id,
-      name: it.name,
-      price: it.price,
-      amount: q,
-      retailer: it.retailer,
-      deliveryTime: it.deliveryTime,
+    final idx = _cart!.items.indexWhere(
+      (g) => (g.main.id ?? g.main.name) == itemId,
     );
-    final list = List<CartItem>.from(_cart!.items);
-    list[idx] = updated;
-    _cart = CartChunk(items: list, price: totalPrice);
+    if (idx < 0) return;
+    final group = _cart!.items[idx];
+    final main = group.main;
+    final updatedMain = CartItem(
+      id: main.id,
+      name: main.name,
+      price: main.price,
+      amount: q,
+      retailer: main.retailer,
+      deliveryTime: main.deliveryTime,
+    );
+    final newGroups = List<RecommendedItem>.from(_cart!.items);
+    newGroups[idx] = RecommendedItem(
+      main: updatedMain,
+      cheapest: group.cheapest,
+      bestReviewed: group.bestReviewed,
+      fastest: group.fastest,
+    );
+    _cart = CartChunk(items: newGroups, price: totalPrice);
     notifyListeners();
   }
 
   /// Swaps currently selected item with the chosen alternative.
   /// The previous selection becomes an alternative entry.
-  void selectAlternative(String itemId, CartItem newSelection) {
+  void selectRecommendation(int groupIndex, CartItem chosen) {
     if (_cart == null) return;
-    String keyOf(CartItem it) => it.id ?? it.name;
-    final int idx = _cart!.items.indexWhere((e) => keyOf(e) == itemId);
-    if (idx < 0) return;
-    final CartItem previous = _cart!.items[idx];
-
-    // Update selected item in cart.
-    final updatedItems = List<CartItem>.from(_cart!.items);
-    updatedItems[idx] = newSelection;
-    _cart = CartChunk(items: updatedItems, price: totalPrice);
-
-    // Update alternatives: take existing list for the CURRENT key
-    // and swap chosen alt for previous selection, preserving position.
-    final existing = _alternativesById[itemId];
-    final altItems = List<CartItem>.from(existing?.items ?? const []);
-    final int chosenIndex = altItems.indexWhere(
-      (e) => keyOf(e) == keyOf(newSelection),
+    if (groupIndex < 0 || groupIndex >= _cart!.items.length) return;
+    final group = _cart!.items[groupIndex];
+    // Set chosen as the new main, but KEEP category buckets unchanged.
+    final newGroup = RecommendedItem(
+      main: chosen,
+      cheapest: group.cheapest,
+      bestReviewed: group.bestReviewed,
+      fastest: group.fastest,
     );
-    if (chosenIndex >= 0) {
-      altItems.removeAt(chosenIndex);
-      altItems.insert(chosenIndex, previous);
-    } else {
-      // Fallback: prepend previous if the chosen wasn't found.
-      altItems.insert(0, previous);
-    }
 
-    // Re-key the alternatives under the NEW selection key so UI continues to find them.
-    final String newKey = keyOf(newSelection);
-    _alternativesById.remove(itemId);
-    _alternativesById[newKey] = CartChunk(items: altItems, price: 0);
+    final groups = List<RecommendedItem>.from(_cart!.items);
+    groups[groupIndex] = newGroup;
+    _cart = CartChunk(items: groups, price: totalPrice);
     notifyListeners();
   }
 
@@ -116,59 +117,17 @@ class CartController extends ChangeNotifier {
     try {
       // Simulate network/search latency so the skeleton can be seen.
       await Future.delayed(const Duration(milliseconds: 1200));
-      final items = <CartItem>[
-        CartItem(
-          id: '1',
-          name: 'Bulk Energy Drink Pack (48ct)',
-          price: 42.99,
-          amount: 2,
-          retailer: 'Amazon',
-          deliveryTime: const Duration(days: 3),
-        ),
-        CartItem(
-          id: '2',
-          name: 'Noise-Cancelling Headphones',
-          price: 199.00,
-          amount: 1,
-          retailer: 'BestBuy',
-          deliveryTime: const Duration(days: 5),
-        ),
-        CartItem(
-          id: '3',
-          name: 'Smart Watch',
-          price: 199.99,
-          amount: 1,
-          retailer: 'Amazon',
-          deliveryTime: const Duration(days: 7),
-        ),
-        CartItem(
-          id: '4',
-          name: 'Laptop',
-          price: 1999.99,
-          amount: 1,
-          retailer: 'Walmart',
-          deliveryTime: const Duration(days: 10),
-        ),
-        CartItem(
-          id: '5',
-          name: 'Phone',
-          price: 999.99,
-          amount: 1,
-          retailer: 'Costco',
-          deliveryTime: const Duration(days: 14),
-        ),
-      ];
-      final total = items.fold<double>(
-        0,
-        (sum, it) => sum + it.price * it.amount,
-      );
-      _cart = CartChunk(items: items, price: total);
-
-      // Seed some alternatives
-      _alternativesById.clear();
-      _alternativesById['1'] = CartChunk(
-        items: [
-          CartItem(
+      final groups = <RecommendedItem>[
+        RecommendedItem(
+          main: CartItem(
+            id: '1',
+            name: 'Bulk Energy Drink Pack (48ct)',
+            price: 42.99,
+            amount: 2,
+            retailer: 'Amazon',
+            deliveryTime: const Duration(days: 3),
+          ),
+          cheapest: CartItem(
             id: '1a',
             name: 'Monster Energy 24‑Pack',
             price: 38.99,
@@ -176,7 +135,7 @@ class CartController extends ChangeNotifier {
             retailer: 'Walmart',
             deliveryTime: const Duration(days: 4),
           ),
-          CartItem(
+          bestReviewed: CartItem(
             id: '1b',
             name: 'Red Bull 48‑Pack',
             price: 56.99,
@@ -184,12 +143,25 @@ class CartController extends ChangeNotifier {
             retailer: 'Costco',
             deliveryTime: const Duration(days: 2),
           ),
-        ],
-        price: 0,
-      );
-      _alternativesById['2'] = CartChunk(
-        items: [
-          CartItem(
+          fastest: CartItem(
+            id: '1c',
+            name: 'Celsius 24‑Pack',
+            price: 44.99,
+            amount: 1,
+            retailer: 'Target',
+            deliveryTime: const Duration(days: 1),
+          ),
+        ),
+        RecommendedItem(
+          main: CartItem(
+            id: '2',
+            name: 'Noise‑Cancelling Headphones',
+            price: 199.00,
+            amount: 1,
+            retailer: 'BestBuy',
+            deliveryTime: const Duration(days: 5),
+          ),
+          cheapest: CartItem(
             id: '2a',
             name: 'Sony WH‑1000XM5',
             price: 329.00,
@@ -197,7 +169,7 @@ class CartController extends ChangeNotifier {
             retailer: 'Amazon',
             deliveryTime: const Duration(days: 3),
           ),
-          CartItem(
+          bestReviewed: CartItem(
             id: '2b',
             name: 'Bose QC45',
             price: 299.00,
@@ -205,9 +177,20 @@ class CartController extends ChangeNotifier {
             retailer: 'Bose',
             deliveryTime: const Duration(days: 2),
           ),
-        ],
-        price: 0,
-      );
+          fastest: CartItem(
+            id: '2c',
+            name: 'AirPods Max',
+            price: 549.00,
+            amount: 1,
+            retailer: 'Apple',
+            deliveryTime: const Duration(days: 1),
+          ),
+        ),
+      ];
+      final total = groups
+          .map((g) => g.main)
+          .fold<double>(0, (sum, it) => sum + it.price * it.amount);
+      _cart = CartChunk(items: groups, price: total);
       errorMessage = null;
     } catch (e) {
       errorMessage =
