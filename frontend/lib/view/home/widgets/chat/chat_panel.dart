@@ -21,22 +21,29 @@ class ChatPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ChatController controller = context.watch<ChatController>();
+    final bool hasPinnedForm = controller.pinnedTextForm != null;
     return Container(
       color: Colors.transparent,
       child: Column(
         children: [
           _ChatHeader(baseUrl: baseUrl),
-          // Main content: sample prompts or message list
+          // Main content: list stays full height; form overlays bottom so scroll doesn't jump
           Expanded(
             child: controller.hasStarted
-                ? const ChatMessageList()
+                ? Stack(
+                    alignment: Alignment.bottomCenter,
+                    children: [
+                      ChatMessageList(
+                        bottomReservedHeight: hasPinnedForm
+                            ? AppConstants.pinnedFormApproxHeight
+                            : 0.0,
+                      ),
+                      if (hasPinnedForm)
+                        _PinnedFormSection(chunk: controller.pinnedTextForm!),
+                    ],
+                  )
                 : const SamplePrompts(),
           ),
-          // Pinned TextFormChunk (final step)
-          if (controller.pinnedTextForm != null)
-            _PinnedFormSection(chunk: controller.pinnedTextForm!),
-          // Loading indicator removed – thinking bubble shown in message list
-          // Input bar
           const ChatInputBar(),
         ],
       ),

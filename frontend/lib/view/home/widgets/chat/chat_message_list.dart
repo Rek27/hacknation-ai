@@ -8,8 +8,12 @@ import 'package:frontend/view/home/widgets/chat/chat_controller.dart';
 import 'package:frontend/view/home/widgets/chat/thinking_bubble.dart';
 
 /// Scrollable message list with auto-scroll and consecutive sender grouping.
+/// [bottomReservedHeight] reserves space at the bottom when the pinned form
+/// overlays the list, so the viewport never shrinks and scroll position stays correct.
 class ChatMessageList extends StatefulWidget {
-  const ChatMessageList({super.key});
+  const ChatMessageList({super.key, this.bottomReservedHeight = 0.0});
+
+  final double bottomReservedHeight;
 
   @override
   State<ChatMessageList> createState() => _ChatMessageListState();
@@ -55,16 +59,29 @@ class _ChatMessageListState extends State<ChatMessageList> {
     );
   }
 
+  void _jumpToBottom({double scrollUpOffset = 0}) {
+    if (!_scrollController.hasClients) return;
+    final double max = _scrollController.position.maxScrollExtent;
+    final double target = (max - scrollUpOffset).clamp(0.0, max);
+    _scrollController.jumpTo(target);
+  }
+
   @override
   Widget build(BuildContext context) {
     final ChatController controller = context.watch<ChatController>();
     final List<ChatMessage> messages = controller.messages;
+    final bool hasPinnedForm = controller.pinnedTextForm != null;
 
-    // Auto-scroll when the trigger changes and user hasn't scrolled up
+    // Auto-scroll when the trigger changes. When the pinned form is shown we
+    // jump to bottom so the new padding doesn't leave a gap.
     if (controller.scrollTrigger != _lastScrollTrigger) {
       _lastScrollTrigger = controller.scrollTrigger;
+      final bool scrollBecauseOfForm = hasPinnedForm;
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!_isUserScrolledUp) {
+        if (scrollBecauseOfForm) {
+          _jumpToBottom();
+          setState(() => _isUserScrolledUp = false);
+        } else if (!_isUserScrolledUp) {
           _scrollToBottom();
         }
       });
@@ -76,7 +93,10 @@ class _ChatMessageListState extends State<ChatMessageList> {
       children: [
         ListView.builder(
           controller: _scrollController,
-          padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingSm),
+          padding: EdgeInsets.only(
+            top: AppConstants.spacingSm,
+            bottom: AppConstants.spacingSm + widget.bottomReservedHeight,
+          ),
           itemCount: totalItems,
           itemBuilder: (BuildContext context, int index) {
             // Last item is the thinking bubble when loading

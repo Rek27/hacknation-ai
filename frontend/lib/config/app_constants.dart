@@ -118,6 +118,10 @@ abstract final class AppConstants {
   /// Maximum width of the pinned text form.
   static const double textFormMaxWidth = 680.0;
 
+  /// Approximate height of the pinned form; used to reserve list padding so the
+  /// list viewport does not shrink when the form appears.
+  static const double pinnedFormApproxHeight = 390.0;
+
   /// Minimum height of form input fields (text and date) for consistent layout.
   static const double formFieldMinHeight = 36.0;
 
