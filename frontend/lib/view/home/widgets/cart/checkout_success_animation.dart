@@ -59,10 +59,13 @@ class _CheckoutSuccessAnimationState extends State<CheckoutSuccessAnimation> {
     if (!_isInitialized || _controller == null) {
       return _buildFallback();
     }
-    return SizedBox(
-      width: widget.size,
-      height: widget.size,
-      child: rive.RiveWidget(controller: _controller!, fit: rive.Fit.contain),
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(widget.size / 2),
+      child: SizedBox(
+        width: widget.size,
+        height: widget.size,
+        child: rive.RiveWidget(controller: _controller!, fit: rive.Fit.contain),
+      ),
     );
   }
 

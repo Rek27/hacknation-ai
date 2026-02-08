@@ -159,6 +159,14 @@ abstract final class AppConstants {
   /// Size of the Rive animation in the order-confirmed state.
   static const double orderDoneAnimationSize = 100.0;
 
+  /// Size of the Rive animation in the cart loading state.
+  static const double cartLoadingAnimationSize = 150.0;
+
+  /// Interval between rotating reassurance sentences while the cart is loading.
+  static const Duration cartLoadingSentenceRotationDuration = Duration(
+    milliseconds: 3000,
+  );
+
   /// Delay before navigating to the order-confirmed screen after the success
   /// animation starts playing.
   static const Duration checkoutSuccessDisplayDuration = Duration(

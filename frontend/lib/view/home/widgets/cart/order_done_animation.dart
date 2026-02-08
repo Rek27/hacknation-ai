@@ -14,7 +14,7 @@ import 'package:rive/rive.dart' as rive;
 // const String _activeOrderDoneAssetPath = 'assets/order_done_success_v2.riv';
 //
 // 4) Donecheck by Codywhy — minimal done check state machine
-const String _activeOrderDoneAssetPath = 'assets/2569-5232-calling-animation.riv';
+const String _activeOrderDoneAssetPath = 'assets/102-434-light-bulb.riv';
 //
 // 5) Confetti Animation by sergeyz — festive confetti burst
 // const String _activeOrderDoneAssetPath = 'assets/order_done_confetti.riv';
@@ -51,10 +51,7 @@ class _OrderDoneAnimationState extends State<OrderDoneAnimation> {
         riveFactory: rive.Factory.rive,
       );
       if (_riveFile == null) return;
-      _controller = rive.RiveWidgetController(
-        _riveFile!,
-        stateMachineSelector: const rive.StateMachineAtIndex(0),
-      );
+      _controller = rive.RiveWidgetController(_riveFile!);
       if (mounted) {
         setState(() => _isInitialized = true);
       }

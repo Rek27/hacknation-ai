@@ -9,7 +9,7 @@ import 'package:frontend/model/chat_models.dart';
 
 /// Asset path for the Rive calling animation.
 const String _callingAnimationAssetPath =
-    'assets/2569-5232-calling-animation.riv';
+    'assets/3725-7780-waiing-animation.riv';
 
 /// Reassurance sentences shown while the retailer call is in progress.
 const List<String> _retailerCallReassuranceSentences = [
@@ -152,16 +152,49 @@ class _RetailerCallChunkWidgetState extends State<RetailerCallChunkWidget> {
           SizedBox(
             height: AppConstants.retailerCallAnimationSize,
             child: Center(
-              child: inProgress
-                  ? _buildCallingAnimation()
-                  : _buildCallEndedIcon(colorScheme),
+              child: AnimatedSwitcher(
+                duration: AppConstants.durationSlow,
+                switchInCurve: Curves.easeOut,
+                switchOutCurve: Curves.easeIn,
+                transitionBuilder: (Widget child, Animation<double> animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: ScaleTransition(
+                      scale: Tween<double>(
+                        begin: 0.8,
+                        end: 1.0,
+                      ).animate(animation),
+                      child: child,
+                    ),
+                  );
+                },
+                child: inProgress
+                    ? _buildCallingAnimation()
+                    : _buildCallEndedIcon(colorScheme),
+              ),
             ),
           ),
           SizedBox(height: AppConstants.spacingSm),
-          if (inProgress)
-            _buildRotatingSentence(theme, colorScheme)
-          else
-            _buildFinishedSentence(theme, colorScheme),
+          AnimatedSwitcher(
+            duration: AppConstants.durationSlow,
+            switchInCurve: Curves.easeOut,
+            switchOutCurve: Curves.easeIn,
+            transitionBuilder: (Widget child, Animation<double> animation) {
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(
+                  position: Tween<Offset>(
+                    begin: const Offset(0, 0.1),
+                    end: Offset.zero,
+                  ).animate(animation),
+                  child: child,
+                ),
+              );
+            },
+            child: inProgress
+                ? _buildRotatingSentence(theme, colorScheme)
+                : _buildFinishedSentence(theme, colorScheme),
+          ),
         ],
       ),
     );
@@ -170,11 +203,13 @@ class _RetailerCallChunkWidgetState extends State<RetailerCallChunkWidget> {
   Widget _buildCallingAnimation() {
     if (!_isRiveInitialized || _riveController == null) {
       return SizedBox(
+        key: const ValueKey<String>('calling_placeholder'),
         width: AppConstants.retailerCallAnimationSize,
         height: AppConstants.retailerCallAnimationSize,
       );
     }
     return SizedBox(
+      key: const ValueKey<String>('calling_animation'),
       width: AppConstants.retailerCallAnimationSize,
       height: AppConstants.retailerCallAnimationSize,
       child: rive.RiveWidget(
@@ -186,6 +221,7 @@ class _RetailerCallChunkWidgetState extends State<RetailerCallChunkWidget> {
 
   Widget _buildCallEndedIcon(ColorScheme colorScheme) {
     return Icon(
+      key: const ValueKey<String>('call_ended_icon'),
       Icons.call_end_rounded,
       size: AppConstants.iconSizeMd,
       color: colorScheme.onSurfaceVariant,
@@ -193,35 +229,39 @@ class _RetailerCallChunkWidgetState extends State<RetailerCallChunkWidget> {
   }
 
   Widget _buildRotatingSentence(ThemeData theme, ColorScheme colorScheme) {
-    return AnimatedSwitcher(
-      duration: AppConstants.durationMedium,
-      switchInCurve: Curves.easeOut,
-      switchOutCurve: Curves.easeIn,
-      transitionBuilder: (Widget child, Animation<double> animation) {
-        return FadeTransition(
-          opacity: animation,
-          child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.1),
-              end: Offset.zero,
-            ).animate(animation),
-            child: child,
+    return KeyedSubtree(
+      key: const ValueKey<String>('rotating_sentence'),
+      child: AnimatedSwitcher(
+        duration: AppConstants.durationMedium,
+        switchInCurve: Curves.easeOut,
+        switchOutCurve: Curves.easeIn,
+        transitionBuilder: (Widget child, Animation<double> animation) {
+          return FadeTransition(
+            opacity: animation,
+            child: SlideTransition(
+              position: Tween<Offset>(
+                begin: const Offset(0, 0.1),
+                end: Offset.zero,
+              ).animate(animation),
+              child: child,
+            ),
+          );
+        },
+        child: Text(
+          _retailerCallReassuranceSentences[_sentenceIndex],
+          key: ValueKey<int>(_sentenceIndex),
+          style: theme.textTheme.bodyMedium?.copyWith(
+            color: colorScheme.onSurface,
           ),
-        );
-      },
-      child: Text(
-        _retailerCallReassuranceSentences[_sentenceIndex],
-        key: ValueKey<int>(_sentenceIndex),
-        style: theme.textTheme.bodyMedium?.copyWith(
-          color: colorScheme.onSurface,
+          textAlign: TextAlign.center,
         ),
-        textAlign: TextAlign.center,
       ),
     );
   }
 
   Widget _buildFinishedSentence(ThemeData theme, ColorScheme colorScheme) {
     return Text(
+      key: const ValueKey<String>('finished_sentence'),
       'All the negotiations are finished!',
       style: theme.textTheme.bodyMedium?.copyWith(
         color: colorScheme.onSurfaceVariant,
