@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/widgets.dart';
-
 import 'package:frontend/model/chat_message.dart';
 import 'package:frontend/model/chat_models.dart';
 import 'package:frontend/service/agent_api.dart';
@@ -374,6 +373,7 @@ class ChatController extends ChangeNotifier {
     _pinnedTextFormMessageId = null;
     _triggerScroll();
     _isLoading = true;
+    _cartController?.setLoading(true); // Cart may be generated from response
     notifyListeners();
 
     try {
@@ -390,6 +390,7 @@ class ChatController extends ChangeNotifier {
       );
     } finally {
       _isLoading = false;
+      _cartController?.setLoading(false);
       _triggerScroll();
       notifyListeners();
     }

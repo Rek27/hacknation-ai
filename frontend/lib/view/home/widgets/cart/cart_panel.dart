@@ -78,7 +78,8 @@ class CartPanel extends StatelessWidget {
                     ),
                   ),
                   // Right: estimated total (with discount: original crossed, final on right)
-                  if (!controller.isLoading)
+                  // Only show label and price once total is calculated (totalPrice > 0).
+                  if (!controller.isLoading && controller.totalPrice > 0)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [

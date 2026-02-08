@@ -80,11 +80,11 @@ class _AnimatedSkeletonBoxState extends State<_AnimatedSkeletonBox>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1100),
+      duration: const Duration(milliseconds: 1400),
     )..repeat(reverse: true);
     _opacity = Tween<double>(
-      begin: 0.10,
-      end: 0.22,
+      begin: 0.1,
+      end: 0.5,
     ).chain(CurveTween(curve: Curves.easeInOut)).animate(_controller);
   }
 
