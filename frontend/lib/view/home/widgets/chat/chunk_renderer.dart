@@ -13,16 +13,21 @@ class ChunkRenderer extends StatelessWidget {
     required this.chunk,
     required this.messageId,
     required this.isDisabled,
+    this.onChunkReady,
   });
 
   final OutputItemBase chunk;
   final String messageId;
   final bool isDisabled;
+  final VoidCallback? onChunkReady;
 
   @override
   Widget build(BuildContext context) {
     if (chunk is TextChunk) {
-      return TextChunkWidget(chunk: chunk as TextChunk);
+      return TextChunkWidget(
+        chunk: chunk as TextChunk,
+        onTypingComplete: onChunkReady,
+      );
     }
     if (chunk is TreeChunk) {
       return TreeChunkWidget(

@@ -18,11 +18,16 @@ class ThinkingBubble extends StatelessWidget {
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildAvatarSlot(colorScheme),
           const SizedBox(width: AppConstants.spacingSm),
-          const _ThinkingDotsContainer(),
+          Padding(
+            padding: const EdgeInsets.only(
+              right: AppConstants.chatBubbleHorizontalPadding,
+            ),
+            child: const _ThinkingDotsContainer(),
+          ),
         ],
       ),
     );

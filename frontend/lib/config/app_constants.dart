@@ -102,6 +102,10 @@ abstract final class AppConstants {
   /// Delay between each word appearing in the typing animation.
   static const Duration textWordDelay = Duration(milliseconds: 30);
 
+  // ── Chunk stagger animation ───────────────────────────────────────────
+  /// Delay before revealing the next non-text chunk in a staggered sequence.
+  static const Duration chunkStaggerDelay = Duration(milliseconds: 500);
+
   // ── Form entrance animation ────────────────────────────────────────────
   /// Total duration for the form field-by-field entrance animation.
   static const Duration formEntranceDuration = Duration(milliseconds: 1200);

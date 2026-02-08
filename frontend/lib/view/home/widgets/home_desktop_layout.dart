@@ -55,12 +55,6 @@ class HomeDesktopLayout extends StatelessWidget {
                   ),
                 ),
               ),
-              // ── Divider ────────────────────────────────────────────
-              VerticalDivider(
-                width: 1,
-                thickness: 1,
-                color: colorScheme.outlineVariant,
-              ),
               // ── Cart panel (right) ─────────────────────────────────
               Expanded(
                 flex: 5,
