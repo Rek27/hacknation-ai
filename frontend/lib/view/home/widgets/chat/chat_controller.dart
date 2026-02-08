@@ -163,8 +163,7 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await for (final OutputItemBase chunk
-          in _chatService.sendMessage(text)) {
+      await for (final OutputItemBase chunk in _chatService.sendMessage(text)) {
         _handleStreamedChunk(chunk);
         _triggerScroll();
         notifyListeners();

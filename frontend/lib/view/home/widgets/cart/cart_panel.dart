@@ -82,7 +82,9 @@ class CartPanel extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          controller.hasAnyDiscount ? 'Final total' : 'Estimated total',
+                          controller.hasAnyDiscount
+                              ? 'Final total'
+                              : 'Estimated total',
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
@@ -214,7 +216,9 @@ class CartPanel extends StatelessWidget {
                 ),
                 child: CartCheckoutBar(
                   totalPrice: controller.totalPrice,
-                  finalTotalPrice: controller.hasAnyDiscount ? controller.finalTotalPrice : null,
+                  finalTotalPrice: controller.hasAnyDiscount
+                      ? controller.finalTotalPrice
+                      : null,
                   retailerCount: controller.retailerCount,
                   onCheckout: () => controller.startCheckout(),
                 ),

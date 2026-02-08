@@ -216,7 +216,11 @@ class _StaggeredChunkListState extends State<_StaggeredChunkList> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        for (int i = 0; i < _revealedBlockCount && i < blocks.length; i++) ...<Widget>[
+        for (
+          int i = 0;
+          i < _revealedBlockCount && i < blocks.length;
+          i++
+        ) ...<Widget>[
           if (i > 0) const SizedBox(height: AppConstants.spacingSm),
           _buildBlockEntry(blocks, i),
         ],
@@ -247,7 +251,9 @@ class _StaggeredChunkListState extends State<_StaggeredChunkList> {
         messageId: widget.messageId,
         isDisabled: widget.isDisabled,
         isLastInMessage: true,
-        onChunkReady: (isLastRevealed && chunk is TextChunk) ? _revealNext : null,
+        onChunkReady: (isLastRevealed && chunk is TextChunk)
+            ? _revealNext
+            : null,
       ),
     );
   }

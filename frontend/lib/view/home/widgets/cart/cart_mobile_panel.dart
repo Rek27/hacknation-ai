@@ -87,7 +87,9 @@ class CartMobilePanel extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      controller.hasAnyDiscount ? 'Final total' : 'Estimated total',
+                      controller.hasAnyDiscount
+                          ? 'Final total'
+                          : 'Estimated total',
                       style: theme.textTheme.labelSmall?.copyWith(
                         color: colorScheme.onSurfaceVariant,
                       ),
@@ -105,7 +107,11 @@ class CartMobilePanel extends StatelessWidget {
                       const SizedBox(width: AppConstants.spacingXs),
                     ],
                     Text(
-                      formatPrice(controller.hasAnyDiscount ? controller.finalTotalPrice : controller.totalPrice),
+                      formatPrice(
+                        controller.hasAnyDiscount
+                            ? controller.finalTotalPrice
+                            : controller.totalPrice,
+                      ),
                       style: theme.textTheme.titleMedium?.copyWith(
                         color: colorScheme.primary,
                         fontWeight: FontWeight.w700,
@@ -200,7 +206,9 @@ class CartMobilePanel extends StatelessWidget {
               top: false,
               child: CartCheckoutBar(
                 totalPrice: controller.totalPrice,
-                finalTotalPrice: controller.hasAnyDiscount ? controller.finalTotalPrice : null,
+                finalTotalPrice: controller.hasAnyDiscount
+                    ? controller.finalTotalPrice
+                    : null,
                 retailerCount: controller.retailerCount,
                 onCheckout: () => controller.startCheckout(),
               ),

@@ -175,10 +175,7 @@ class CartItemPriceWithDiscount extends StatelessWidget {
             decoration: BoxDecoration(
               color: colorScheme.tertiaryContainer,
               borderRadius: BorderRadius.circular(AppConstants.radiusXs),
-              border: Border.all(
-                color: colorScheme.tertiary,
-                width: 1,
-              ),
+              border: Border.all(color: colorScheme.tertiary, width: 1),
             ),
             child: Text(
               '-$discountPercent%',
@@ -241,7 +238,9 @@ class CartItemTotalWithDiscount extends StatelessWidget {
           const SizedBox(width: AppConstants.spacingSm),
         ],
         Text(
-          hasDiscount ? formatPrice(lineTotal) : 'Item total: ${formatPrice(lineTotal)}',
+          hasDiscount
+              ? formatPrice(lineTotal)
+              : 'Item total: ${formatPrice(lineTotal)}',
           style: theme.textTheme.bodySmall?.copyWith(
             color: colorScheme.primary,
             fontWeight: FontWeight.w600,
@@ -383,7 +382,8 @@ class CartCheckoutBar extends StatelessWidget {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
     final double displayTotal = finalTotalPrice ?? totalPrice;
-    final bool showDiscount = finalTotalPrice != null && finalTotalPrice! < totalPrice;
+    final bool showDiscount =
+        finalTotalPrice != null && finalTotalPrice! < totalPrice;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingMd),
       child: Column(
@@ -399,7 +399,9 @@ class CartCheckoutBar extends StatelessWidget {
                       vertical: AppConstants.spacingSm + 4,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.radiusLg,
+                      ),
                     ),
                   ),
                   onPressed: onCheckout,

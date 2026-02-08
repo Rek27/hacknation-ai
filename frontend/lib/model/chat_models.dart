@@ -285,7 +285,7 @@ class RetailerCallChunk implements OutputItemBase {
   final OutputItemType type;
 
   RetailerCallChunk({OutputItemType? type})
-      : type = type ?? OutputItemType.retailerCallStart;
+    : type = type ?? OutputItemType.retailerCallStart;
 
   factory RetailerCallChunk.fromJson(Map<String, dynamic> json) =>
       RetailerCallChunk(type: OutputItemType.retailerCallStart);

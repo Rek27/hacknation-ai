@@ -38,8 +38,9 @@ class _TextChunkWidgetState extends State<TextChunkWidget> {
   void didUpdateWidget(TextChunkWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.chunk.content != oldWidget.chunk.content) {
-      final List<String> newWords =
-          widget.chunk.content.split(RegExp(r'(\s+)'));
+      final List<String> newWords = widget.chunk.content.split(
+        RegExp(r'(\s+)'),
+      );
       if (newWords.length > _words.length) {
         _words = newWords;
         _typingGeneration++;

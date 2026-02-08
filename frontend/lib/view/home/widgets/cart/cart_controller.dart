@@ -73,8 +73,10 @@ class CartController extends ChangeNotifier {
         continue;
       }
       for (final RetailerOfferItem di in offer.discountedItems) {
-        final bool matchId = di.id != null && item.id != null && di.id == item.id;
-        final bool matchName = di.item.trim().toLowerCase() == item.name.trim().toLowerCase();
+        final bool matchId =
+            di.id != null && item.id != null && di.id == item.id;
+        final bool matchName =
+            di.item.trim().toLowerCase() == item.name.trim().toLowerCase();
         if (matchId || matchName) return di.percent;
       }
     }

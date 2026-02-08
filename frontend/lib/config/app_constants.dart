@@ -113,8 +113,9 @@ abstract final class AppConstants {
 
   // ── Retailer call chunk ────────────────────────────────────────────────
   /// Interval between rotating reassurance sentences while the retailer call is in progress.
-  static const Duration retailerCallSentenceRotationDuration =
-      Duration(milliseconds: 2500);
+  static const Duration retailerCallSentenceRotationDuration = Duration(
+    milliseconds: 2500,
+  );
 
   // ── Form entrance animation ────────────────────────────────────────────
   /// Total duration for the form field-by-field entrance animation.
