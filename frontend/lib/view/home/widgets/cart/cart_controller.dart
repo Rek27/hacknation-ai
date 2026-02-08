@@ -11,6 +11,7 @@ class CartController extends ChangeNotifier {
   final Set<int> _expandedGroups = <int>{};
   final Map<int, Map<String, String>> _reasonsByIndex =
       <int, Map<String, String>>{};
+  bool showSummary = false;
 
   bool get isEmpty => (_cart?.items.isEmpty ?? true);
 
@@ -142,6 +143,45 @@ class CartController extends ChangeNotifier {
     // Do not mutate group buckets; only override displayed main.
     _selectedMainByIndex[groupIndex] = chosen;
     notifyListeners();
+  }
+
+  /// Begin checkout flow (switch panel to summary).
+  void startCheckout() {
+    showSummary = true;
+    notifyListeners();
+  }
+
+  /// Return to cart list (edit mode).
+  void cancelCheckout() {
+    showSummary = false;
+    notifyListeners();
+  }
+
+  /// Returns the key of the displayed category: main/cheapest/best/fastest.
+  String displayedCategoryKey(int index) {
+    final group = getGroup(index);
+    if (group == null) return 'main';
+    final displayed = getDisplayedMain(index) ?? group.main;
+    bool same(CartItem a, CartItem b) => (a.id ?? a.name) == (b.id ?? b.name);
+    if (same(displayed, group.cheapest)) return 'cheapest';
+    if (same(displayed, group.bestReviewed)) return 'best';
+    if (same(displayed, group.fastest)) return 'fastest';
+    return 'main';
+  }
+
+  /// Background alpha used for category chips, mirroring recommendation tiles.
+  double categoryAlpha(String key) {
+    switch (key) {
+      case 'cheapest':
+        return 0.16;
+      case 'best':
+        return 0.22;
+      case 'fastest':
+        return 0.28;
+      case 'main':
+      default:
+        return 0.10;
+    }
   }
 
   /// Loads a dummy list of items and computes the total price.
