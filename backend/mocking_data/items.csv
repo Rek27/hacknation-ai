@@ -1,63 +1,583 @@
 id,article,price,delivery_estimate,retailer,producer,reviews_count,review_rating,image_id
-1,Banana Smoothie,1.49,1,PEWE,BananCo,245,4.6,1
-2,Banana Smoothie,1.59,2,BIDL,FruchtZentrale,178,4.4,1
-3,Banana Smoothie,1.39,0,KAUFTOR,JungleSmoothies,312,4.7,1
-4,Banana Smoothie,1.69,1,ALBO,ExotFrucht,89,4.3,1
-5,Mango Smoothie,1.79,2,PEWE,BananCo,156,4.5,13
-6,Mango Smoothie,1.89,1,BIDL,TropiFrucht,203,4.6,13
-7,Mango Smoothie,1.69,0,EDL Markt,JungleSmoothies,112,4.4,13
-8,Berry Smoothie,1.99,1,KAUFTOR,BeeryBlend,98,4.7,3
-9,Berry Smoothie,2.09,2,ALBO,BananCo,67,4.2,3
-10,Water 0.5L,0.59,0,PEWE,AquaQuelle,456,4.8,26
-11,Water 0.5L,0.69,1,BIDL,KristallBrunnen,389,4.7,26
-12,Water 0.5L,0.49,2,KAUFTOR,QuellSpring,521,4.9,26
-13,Water 0.5L,0.79,0,EDL Markt,AquaPure,234,4.5,26
-14,Water 1.5L,0.99,1,PEWE,AquaQuelle,301,4.6,28
-15,Water 1.5L,1.09,2,ALBO,KristallBrunnen,145,4.4,28
-16,Cooked Chicken Meal,3.49,0,PEWE,FreshCater,167,4.3,7
-17,Cooked Chicken Meal,3.79,1,BIDL,MealMaster,256,4.5,7
-18,Cooked Chicken Meal,3.29,2,SCHLEIBER,GourmetBox,89,4.2,7
-19,Cooked Veggie Meal,3.99,0,KAUFTOR,GreenCater,234,4.6,10
-20,Cooked Veggie Meal,4.19,1,ALBO,VeggieFresh,112,4.4,10
-21,Cooked Pasta Meal,3.89,2,EDL Markt,PastaPro,145,4.5,8
-22,Non-Alcoholic Beer 0.33L,1.19,0,PEWE,BierFrei,378,4.7,15
-23,Non-Alcoholic Beer 0.33L,1.29,1,BIDL,NullProzent,289,4.6,15
-24,Non-Alcoholic Beer 0.33L,1.09,2,KAUFTOR,FreiBier,412,4.8,15
-25,Non-Alcoholic Beer Wheat,1.39,0,ALBO,WeizenFrei,156,4.5,17
-26,Non-Alcoholic Beer Wheat,1.49,1,SCHLEIBER,BierFrei,98,4.3,17
-27,Coffee Ground 250g,2.99,1,PEWE,BohnenRöst,267,4.6,5
-28,Coffee Ground 250g,3.19,2,BIDL,KaffeeKönig,189,4.5,5
-29,Coffee Ground 250g,2.79,0,KAUFTOR,RöstMeister,345,4.7,5
-30,Coffee Capsules 10pk,3.49,0,EDL Markt,KapselPro,123,4.4,4
-31,Coffee Capsules 10pk,3.69,1,ALBO,BohnenRöst,78,4.2,4
-32,Fliers A5 500pk,4.99,2,PEWE,PrintZentrale,56,4.1,12
-33,Fliers A5 500pk,5.29,1,BIDL,WerbDienst,89,4.3,12
-34,Fliers A4 500pk,6.49,0,KAUFTOR,DruckProfi,112,4.4,11
-35,Paper Cups 100pk,2.49,1,PEWE,KartonCup,234,4.5,19
-36,Paper Cups 100pk,2.69,2,BIDL,BecherFabrik,167,4.4,19
-37,Paper Cups 100pk,2.29,0,SCHLEIBER,CupMeister,289,4.6,19
-38,Soft Drink Cola 0.33L,0.99,0,PEWE,LimoKing,456,4.7,20
-39,Soft Drink Cola 0.33L,1.09,1,EDL Markt,FizzCo,378,4.6,20
-40,Soft Drink Cola 0.33L,0.89,2,ALBO,BrauseWerk,521,4.8,20
-41,Soft Drink Lemon 0.33L,1.09,0,KAUFTOR,ZitroneFizz,201,4.5,22
-42,Soft Drink Lemon 0.33L,1.19,1,PEWE,LimoKing,145,4.4,22
+1,Banana Smoothie,1.49,1,PEWE,BananCo,245,4.6,2
+2,Banana Smoothie,1.59,2,BIDL,FruchtZentrale,178,4.4,2
+3,Banana Smoothie,1.39,0,KAUFTOR,JungleSmoothies,312,4.7,2
+4,Banana Smoothie,1.69,1,ALBO,ExotFrucht,89,4.3,2
+5,Mango Smoothie,1.79,2,PEWE,BananCo,156,4.5,35
+6,Mango Smoothie,1.89,1,BIDL,TropiFrucht,203,4.6,35
+7,Mango Smoothie,1.69,0,EDL Markt,JungleSmoothies,112,4.4,35
+8,Berry Smoothie,1.99,1,KAUFTOR,BeeryBlend,98,4.7,5
+9,Berry Smoothie,2.09,2,ALBO,BananCo,67,4.2,5
+10,Water 0.5L,0.59,0,PEWE,AquaQuelle,456,4.8,68
+11,Water 0.5L,0.69,1,BIDL,KristallBrunnen,389,4.7,68
+12,Water 0.5L,0.49,2,KAUFTOR,QuellSpring,521,4.9,68
+13,Water 0.5L,0.79,0,EDL Markt,AquaPure,234,4.5,68
+14,Water 1.5L,0.99,1,PEWE,AquaQuelle,301,4.6,
+15,Water 1.5L,1.09,2,ALBO,KristallBrunnen,145,4.4,
+16,Cooked Chicken Meal,3.49,0,PEWE,FreshCater,167,4.3,19
+17,Cooked Chicken Meal,3.79,1,BIDL,MealMaster,256,4.5,19
+18,Cooked Chicken Meal,3.29,2,SCHLEIBER,GourmetBox,89,4.2,19
+19,Cooked Veggie Meal,3.99,0,KAUFTOR,GreenCater,234,4.6,22
+20,Cooked Veggie Meal,4.19,1,ALBO,VeggieFresh,112,4.4,22
+21,Cooked Pasta Meal,3.89,2,EDL Markt,PastaPro,145,4.5,20
+22,Non-Alcoholic Beer 0.33L,1.19,0,PEWE,BierFrei,378,4.7,41
+23,Non-Alcoholic Beer 0.33L,1.29,1,BIDL,NullProzent,289,4.6,41
+24,Non-Alcoholic Beer 0.33L,1.09,2,KAUFTOR,FreiBier,412,4.8,41
+25,Non-Alcoholic Beer Wheat,1.39,0,ALBO,WeizenFrei,156,4.5,43
+26,Non-Alcoholic Beer Wheat,1.49,1,SCHLEIBER,BierFrei,98,4.3,43
+27,Coffee Ground 250g,2.99,1,PEWE,BohnenRöst,267,4.6,16
+28,Coffee Ground 250g,3.19,2,BIDL,KaffeeKönig,189,4.5,16
+29,Coffee Ground 250g,2.79,0,KAUFTOR,RöstMeister,345,4.7,16
+30,Coffee Capsules 10pk,3.49,0,EDL Markt,KapselPro,123,4.4,15
+31,Coffee Capsules 10pk,3.69,1,ALBO,BohnenRöst,78,4.2,15
+32,Fliers A5 500pk,4.99,2,PEWE,PrintZentrale,56,4.1,29
+33,Fliers A5 500pk,5.29,1,BIDL,WerbDienst,89,4.3,29
+34,Fliers A4 500pk,6.49,0,KAUFTOR,DruckProfi,112,4.4,28
+35,Paper Cups 100pk,2.49,1,PEWE,KartonCup,234,4.5,46
+36,Paper Cups 100pk,2.69,2,BIDL,BecherFabrik,167,4.4,46
+37,Paper Cups 100pk,2.29,0,SCHLEIBER,CupMeister,289,4.6,46
+38,Soft Drink Cola 0.33L,0.99,0,PEWE,LimoKing,456,4.7,54
+39,Soft Drink Cola 0.33L,1.09,1,EDL Markt,FizzCo,378,4.6,54
+40,Soft Drink Cola 0.33L,0.89,2,ALBO,BrauseWerk,521,4.8,54
+41,Soft Drink Lemon 0.33L,1.09,0,KAUFTOR,ZitroneFizz,201,4.5,56
+42,Soft Drink Lemon 0.33L,1.19,1,PEWE,LimoKing,145,4.4,56
 43,Apple Juice 1L,1.79,1,BIDL,ApfelPress,267,4.6,0
 44,Apple Juice 1L,1.99,2,SCHLEIBER,ObstSaft,189,4.5,0
 45,Apple Juice 1L,1.69,0,KAUFTOR,FruchtSaft,312,4.7,0
-46,Orange Juice 1L,1.99,0,EDL Markt,ZitrusPress,234,4.6,18
-47,Orange Juice 1L,2.19,1,ALBO,Sonnensaft,156,4.4,18
-48,Orange Juice 1L,1.89,2,PEWE,OrangeCo,278,4.5,18
-49,Milk 1L,0.99,0,BIDL,MilchWerke,489,4.8,14
-50,Milk 1L,1.09,1,KAUFTOR,KuhFrisch,367,4.7,14
-51,Milk 1L,0.89,2,SCHLEIBER,LaktoseLand,423,4.9,14
-52,Vegan Milk Oat 1L,1.89,1,PEWE,PflanzeMilch,189,4.5,24
-53,Vegan Milk Oat 1L,1.99,0,ALBO,HaferDrink,123,4.4,24
-54,Vegan Milk Almond 1L,2.29,2,EDL Markt,MandelMilch,98,4.3,23
-55,Banana Smoothie Protein,2.49,1,BIDL,SportSmoothie,67,4.6,2
-56,Water Sparkling 0.5L,0.79,0,SCHLEIBER,SprudelQuelle,234,4.5,27
-57,Cooked Salmon Meal,4.49,2,KAUFTOR,FischCater,145,4.4,9
-58,Non-Alcoholic Beer IPA,1.59,1,PEWE,HopfenFrei,201,4.7,16
-59,Coffee Instant 100g,2.49,0,ALBO,SofortKaffee,167,4.3,6
-60,Fliers Color A5 500pk,7.99,1,BIDL,FarbePrint,89,4.2,13
-61,Soft Drink Ginger 0.33L,1.29,2,EDL Markt,IngwerFizz,278,4.6,21
-62,Vegan Milk Soy 1L,1.79,0,KAUFTOR,SojaSaft,312,4.5,25
+46,Orange Juice 1L,1.99,0,EDL Markt,ZitrusPress,234,4.6,44
+47,Orange Juice 1L,2.19,1,ALBO,Sonnensaft,156,4.4,44
+48,Orange Juice 1L,1.89,2,PEWE,OrangeCo,278,4.5,44
+49,Milk 1L,0.99,0,BIDL,MilchWerke,489,4.8,37
+50,Milk 1L,1.09,1,KAUFTOR,KuhFrisch,367,4.7,37
+51,Milk 1L,0.89,2,SCHLEIBER,LaktoseLand,423,4.9,37
+52,Vegan Milk Oat 1L,1.89,1,PEWE,PflanzeMilch,189,4.5,64
+53,Vegan Milk Oat 1L,1.99,0,ALBO,HaferDrink,123,4.4,64
+54,Vegan Milk Almond 1L,2.29,2,EDL Markt,MandelMilch,98,4.3,63
+55,Banana Smoothie Protein,2.49,1,BIDL,SportSmoothie,67,4.6,3
+56,Water Sparkling 0.5L,0.79,0,SCHLEIBER,SprudelQuelle,234,4.5,
+57,Cooked Salmon Meal,4.49,2,KAUFTOR,FischCater,145,4.4,21
+58,Non-Alcoholic Beer IPA,1.59,1,PEWE,HopfenFrei,201,4.7,42
+59,Coffee Instant 100g,2.49,0,ALBO,SofortKaffee,167,4.3,17
+60,Fliers Color A5 500pk,7.99,1,BIDL,FarbePrint,89,4.2,
+61,Soft Drink Ginger 0.33L,1.29,2,EDL Markt,IngwerFizz,278,4.6,55
+62,Vegan Milk Soy 1L,1.79,0,KAUFTOR,SojaSaft,312,4.5,65
+63,Margherita Pizza,0.98,1,SCHLEIBER,SoundWave,293,4.7,36
+64,Margherita Pizza,2.92,0,KAUFTOR,PizzaCraft,330,4.3,36
+65,Margherita Pizza,3.44,1,EDL Markt,FreshCater,589,4.4,36
+66,Pepperoni Pizza,5.94,2,BIDL,BoardFun,437,4.3,48
+67,Pepperoni Pizza,5.08,0,PEWE,CleanLife,77,4.6,48
+68,Vegan Vegetable Pizza,5.87,2,ALBO,FunCorp,429,4.5,66
+69,Vegan Vegetable Pizza,4.4,2,SCHLEIBER,BoardFun,417,4.6,66
+70,BBQ Chicken Pizza,2.98,0,ALBO,BoardFun,379,4.2,1
+71,BBQ Chicken Pizza,7.41,1,KAUFTOR,PastaPro,409,4.2,1
+72,BBQ Chicken Pizza,2.41,1,PEWE,BoardFun,365,4.6,1
+73,Grilled Chicken Teriyaki Bowl,7.95,0,SCHLEIBER,FreshCater,220,4.8,31
+74,Grilled Chicken Teriyaki Bowl,5.24,2,EDL Markt,PastaPro,126,4.8,31
+75,Grilled Chicken Teriyaki Bowl,0.93,1,PEWE,CleanLife,500,4.3,31
+76,Beef Lasagna Meal,6.62,2,SCHLEIBER,RestEasy,294,4.7,4
+77,Beef Lasagna Meal,7.0,2,BIDL,PizzaCraft,311,4.3,4
+78,Vegan Chickpea Curry Bowl,4.25,0,EDL Markt,PrizeKing,537,4.2,62
+79,Vegan Chickpea Curry Bowl,4.11,2,BIDL,CleanLife,528,4.2,62
+80,Vegan Chickpea Curry Bowl,6.54,1,ALBO,BoardFun,576,4.8,62
+81,Spaghetti Bolognese Meal,3.98,1,EDL Markt,BoardFun,139,4.8,57
+82,Spaghetti Bolognese Meal,4.63,0,PEWE,PastaPro,336,4.7,57
+83,Spaghetti Bolognese Meal,6.22,0,SCHLEIBER,SoundWave,162,4.7,57
+84,Cheese Sandwich,3.59,2,PEWE,BoardFun,576,4.2,12
+85,Cheese Sandwich,1.31,0,ALBO,FreshCater,321,4.8,12
+86,Cheese Sandwich,7.97,0,BIDL,DrinkCo,351,4.7,12
+87,Ham Sandwich,4.58,1,PEWE,CleanLife,67,4.4,32
+88,Ham Sandwich,5.72,0,EDL Markt,FunCorp,171,4.4,32
+89,Ham Sandwich,1.93,0,BIDL,RestEasy,164,4.6,32
+90,Vegan Wrap,7.38,0,PEWE,DrinkCo,253,4.6,67
+91,Vegan Wrap,7.64,2,SCHLEIBER,PastaPro,430,4.1,67
+92,Butter Croissant,5.89,0,PEWE,SoundWave,473,4.2,11
+93,Butter Croissant,6.29,2,BIDL,SnackHaus,322,4.8,11
+94,Butter Croissant,6.35,2,EDL Markt,RestEasy,322,4.5,11
+95,Chocolate Muffin,2.57,2,PEWE,SnackHaus,178,4.7,13
+96,Chocolate Muffin,4.15,2,ALBO,GreenCater,425,4.9,13
+97,Blueberry Pancakes,0.99,2,PEWE,PrizeKing,554,4.5,7
+98,Blueberry Pancakes,3.49,2,KAUFTOR,PizzaCraft,203,4.2,7
+99,Blueberry Pancakes,2.76,0,EDL Markt,SoundWave,182,4.9,7
+100,Potato Chips 200g,7.17,0,SCHLEIBER,DrinkCo,477,4.7,49
+101,Potato Chips 200g,3.47,2,KAUFTOR,PizzaCraft,521,4.3,49
+102,Potato Chips 200g,3.42,1,BIDL,PrizeKing,83,4.8,49
+103,Salted Popcorn 150g,6.85,2,KAUFTOR,BoardFun,116,4.4,51
+104,Salted Popcorn 150g,6.93,2,SCHLEIBER,PastaPro,206,4.2,51
+105,Nacho Chips 200g,2.29,2,KAUFTOR,RestEasy,142,4.5,40
+106,Nacho Chips 200g,1.67,1,SCHLEIBER,BoardFun,545,4.3,40
+107,Nacho Chips 200g,5.35,0,BIDL,GreenCater,563,4.7,40
+108,Protein Bar Chocolate,6.48,0,KAUFTOR,FunCorp,595,4.1,50
+109,Protein Bar Chocolate,7.08,1,PEWE,PizzaCraft,339,4.5,50
+110,Protein Bar Chocolate,7.33,1,BIDL,PastaPro,336,4.6,50
+111,Granola Bar Honey,6.44,1,KAUFTOR,FunCorp,346,4.8,30
+112,Granola Bar Honey,1.72,1,BIDL,DrinkCo,83,4.2,30
+113,Coffee Beans 500g,1.73,2,SCHLEIBER,GreenCater,342,4.2,14
+114,Coffee Beans 500g,5.55,2,ALBO,PizzaCraft,323,4.4,14
+115,Coffee Beans 500g,0.9,2,BIDL,PrizeKing,115,4.6,14
+116,Espresso Capsules 10pk,2.56,1,EDL Markt,CleanLife,100,4.5,25
+117,Espresso Capsules 10pk,3.84,0,SCHLEIBER,FreshCater,333,4.2,25
+118,Herbal Tea Box,3.93,2,BIDL,GreenCater,547,4.9,34
+119,Herbal Tea Box,3.23,0,EDL Markt,RestEasy,537,4.7,34
+120,Green Tea Box,5.06,0,EDL Markt,GreenCater,368,4.2,
+121,Green Tea Box,3.67,2,SCHLEIBER,BoardFun,116,4.2,
+122,Green Tea Box,2.33,0,KAUFTOR,CleanLife,444,4.5,
+123,Black Tea Box,3.37,1,PEWE,DrinkCo,348,4.4,6
+124,Black Tea Box,7.33,1,BIDL,DrinkCo,133,4.8,6
+125,Black Tea Box,1.57,2,SCHLEIBER,SoundWave,428,4.2,6
+126,Energy Drink 0.5L,2.78,0,ALBO,GreenCater,366,4.7,24
+127,Energy Drink 0.5L,2.7,2,EDL Markt,FunCorp,90,4.5,24
+128,Energy Drink 0.5L,4.6,0,SCHLEIBER,GreenCater,447,4.1,24
+129,Cola 0.5L,3.69,2,KAUFTOR,PastaPro,507,4.3,18
+130,Cola 0.5L,1.13,1,ALBO,SnackHaus,378,4.6,18
+131,Cola 0.5L,2.74,1,BIDL,RestEasy,417,4.7,18
+132,Orange Soda 0.5L,2.11,1,PEWE,DrinkCo,550,4.3,45
+133,Orange Soda 0.5L,5.59,2,KAUFTOR,PastaPro,363,4.2,45
+134,Apple Juice 1L,2.93,1,BIDL,CleanLife,388,4.7,0
+135,Apple Juice 1L,7.33,1,KAUFTOR,PizzaCraft,577,4.7,0
+136,Apple Juice 1L,6.85,0,ALBO,RestEasy,534,4.8,0
+137,Multivitamin Juice 1L,5.22,1,KAUFTOR,DrinkCo,444,4.3,39
+138,Multivitamin Juice 1L,5.66,2,SCHLEIBER,FreshCater,441,4.9,39
+139,Mineral Water 1.5L,4.38,0,SCHLEIBER,PrizeKing,257,4.3,38
+140,Mineral Water 1.5L,4.93,1,ALBO,RestEasy,119,4.4,38
+141,Mineral Water 1.5L,2.26,2,BIDL,FreshCater,387,4.8,38
+142,Sparkling Water 1.5L,6.84,0,SCHLEIBER,SoundWave,466,4.9,58
+143,Sparkling Water 1.5L,2.92,2,KAUFTOR,PizzaCraft,255,4.7,58
+144,Sparkling Water 1.5L,2.35,2,ALBO,SoundWave,396,4.2,58
+145,Board Game Cards,4.86,2,PEWE,SoundWave,449,4.8,8
+146,Board Game Cards,6.2,2,BIDL,SnackHaus,456,4.8,8
+147,Board Game Cards,2.54,1,EDL Markt,GreenCater,543,4.4,8
+148,Dice Set,1.08,2,BIDL,BoardFun,414,4.3,23
+149,Dice Set,6.21,2,ALBO,RestEasy,288,4.5,23
+150,Dice Set,3.05,0,SCHLEIBER,PastaPro,207,4.8,23
+151,Party Speaker Small,1.87,2,SCHLEIBER,RestEasy,546,4.7,47
+152,Party Speaker Small,4.62,2,BIDL,FunCorp,548,4.8,47
+153,Party Speaker Small,4.41,1,PEWE,DrinkCo,149,4.3,47
+154,Wireless Microphone,3.66,2,BIDL,SoundWave,416,4.9,69
+155,Wireless Microphone,4.18,0,ALBO,FunCorp,510,4.3,69
+156,Event Prize Trophy,7.85,2,EDL Markt,PrizeKing,592,4.2,26
+157,Event Prize Trophy,3.18,1,KAUFTOR,SnackHaus,152,4.8,26
+158,Branded T-Shirt,5.14,1,EDL Markt,SnackHaus,474,4.5,10
+159,Branded T-Shirt,6.74,1,SCHLEIBER,FreshCater,100,4.2,10
+160,Branded Cap,5.63,1,BIDL,CleanLife,332,4.7,9
+161,Branded Cap,1.63,1,ALBO,FunCorp,522,4.3,9
+162,Branded Cap,3.73,0,EDL Markt,BoardFun,143,4.7,9
+163,Sticker Pack,6.07,2,KAUFTOR,RestEasy,442,4.8,59
+164,Sticker Pack,5.02,0,EDL Markt,FunCorp,494,4.3,59
+165,Sleeping Bag Light,1.15,2,EDL Markt,BoardFun,354,4.2,53
+166,Sleeping Bag Light,4.4,2,PEWE,SoundWave,354,4.2,53
+167,Fleece Blanket,2.0,1,BIDL,PizzaCraft,153,4.6,27
+168,Fleece Blanket,1.17,1,PEWE,CleanLife,288,4.4,27
+169,Fleece Blanket,1.18,1,ALBO,SnackHaus,365,4.5,27
+170,Travel Pillow,7.48,0,SCHLEIBER,FunCorp,274,4.3,61
+171,Travel Pillow,6.97,0,EDL Markt,PrizeKing,61,4.4,61
+172,Shampoo Bottle,7.42,0,EDL Markt,PizzaCraft,336,4.8,52
+173,Shampoo Bottle,1.69,2,ALBO,BoardFun,368,4.7,52
+174,Shampoo Bottle,6.63,0,SCHLEIBER,FunCorp,336,4.1,52
+175,Toothpaste Tube,4.33,0,ALBO,PizzaCraft,384,4.7,60
+176,Toothpaste Tube,1.74,1,KAUFTOR,CleanLife,475,4.9,60
+177,Toothpaste Tube,5.57,0,SCHLEIBER,DrinkCo,548,4.3,60
+178,Hand Sanitizer 500ml,4.98,1,PEWE,PastaPro,352,4.9,33
+179,Hand Sanitizer 500ml,6.33,0,SCHLEIBER,FunCorp,471,4.7,33
+180,Cheese Sandwich,5.31,2,PEWE,DrinkCo,255,4.9,12
+181,Shampoo Bottle,4.19,2,SCHLEIBER,SoundWave,567,4.6,52
+182,Fleece Blanket,3.58,2,BIDL,PastaPro,117,4.3,27
+183,Party Speaker Small,2.17,0,PEWE,PrizeKing,103,4.6,47
+184,Sparkling Water 1.5L,5.35,0,PEWE,RestEasy,332,4.7,58
+185,Black Tea Box,7.43,2,SCHLEIBER,BoardFun,532,4.7,6
+186,Coffee Beans 500g,5.64,1,EDL Markt,PrizeKing,333,4.3,14
+187,Potato Chips 200g,2.3,1,BIDL,RestEasy,588,4.5,49
+188,Orange Soda 0.5L,2.1,1,EDL Markt,GreenCater,149,4.3,45
+189,Travel Pillow,6.04,0,SCHLEIBER,FreshCater,109,4.8,61
+190,Vegan Vegetable Pizza,1.98,1,BIDL,RestEasy,113,4.8,66
+191,Branded T-Shirt,5.93,2,PEWE,SnackHaus,253,4.7,10
+192,Dice Set,4.76,0,SCHLEIBER,CleanLife,283,4.3,23
+193,Multivitamin Juice 1L,2.35,2,PEWE,BoardFun,173,4.6,39
+194,Apple Juice 1L,2.03,0,KAUFTOR,GreenCater,422,4.6,0
+195,Cheese Sandwich,1.02,1,EDL Markt,PizzaCraft,309,4.6,12
+196,Salted Popcorn 150g,5.54,1,BIDL,PrizeKing,108,4.3,51
+197,Shampoo Bottle,3.16,2,EDL Markt,FunCorp,566,4.5,52
+198,Vegan Vegetable Pizza,3.31,1,ALBO,BoardFun,230,4.3,66
+199,Dice Set,1.21,2,BIDL,PizzaCraft,57,4.6,23
+200,Green Tea Box,2.29,2,EDL Markt,RestEasy,107,4.4,
+201,Hand Sanitizer 500ml,2.78,2,BIDL,PizzaCraft,576,4.4,33
+202,Grilled Chicken Teriyaki Bowl,7.38,1,EDL Markt,CleanLife,249,4.2,31
+203,Sleeping Bag Light,1.97,2,PEWE,PrizeKing,242,4.1,53
+204,Vegan Wrap,3.66,2,KAUFTOR,FunCorp,431,4.6,67
+205,Sparkling Water 1.5L,2.99,1,SCHLEIBER,PastaPro,466,4.7,58
+206,Travel Pillow,5.96,0,PEWE,GreenCater,228,4.8,61
+207,Board Game Cards,7.4,0,SCHLEIBER,PastaPro,395,4.7,8
+208,BBQ Chicken Pizza,1.52,2,ALBO,DrinkCo,459,4.5,1
+209,Energy Drink 0.5L,1.02,2,BIDL,FreshCater,83,4.7,24
+210,Party Speaker Small,4.51,1,EDL Markt,SoundWave,287,4.6,47
+211,Granola Bar Honey,2.28,2,KAUFTOR,FunCorp,388,4.8,30
+212,Branded Cap,7.56,1,BIDL,FunCorp,295,4.2,9
+213,Cheese Sandwich,5.05,0,ALBO,DrinkCo,343,4.5,12
+214,Orange Soda 0.5L,4.09,1,KAUFTOR,PastaPro,198,4.4,45
+215,Vegan Wrap,7.14,0,KAUFTOR,FunCorp,121,4.2,67
+216,Nacho Chips 200g,1.23,1,ALBO,FunCorp,270,4.2,40
+217,Apple Juice 1L,4.05,0,SCHLEIBER,CleanLife,489,4.3,0
+218,Shampoo Bottle,2.39,2,KAUFTOR,BoardFun,137,4.2,52
+219,Apple Juice 1L,7.65,2,SCHLEIBER,FreshCater,421,4.3,0
+220,Mineral Water 1.5L,5.45,1,KAUFTOR,SoundWave,534,4.6,38
+221,Margherita Pizza,5.54,0,EDL Markt,FreshCater,80,4.2,36
+222,Espresso Capsules 10pk,6.59,1,PEWE,FreshCater,435,4.9,25
+223,Orange Soda 0.5L,5.52,1,PEWE,DrinkCo,119,4.7,45
+224,Branded Cap,7.28,0,EDL Markt,RestEasy,239,4.6,9
+225,Beef Lasagna Meal,5.12,0,BIDL,SoundWave,462,4.7,4
+226,Dice Set,0.9,1,PEWE,CleanLife,484,4.6,23
+227,Green Tea Box,4.78,0,KAUFTOR,GreenCater,362,4.6,
+228,Multivitamin Juice 1L,1.68,0,KAUFTOR,DrinkCo,378,4.6,39
+229,Cola 0.5L,5.07,0,BIDL,DrinkCo,67,4.1,18
+230,Protein Bar Chocolate,0.95,1,ALBO,CleanLife,262,4.7,50
+231,Event Prize Trophy,6.07,0,ALBO,PrizeKing,57,4.7,26
+232,Sparkling Water 1.5L,1.39,2,BIDL,DrinkCo,254,4.2,58
+233,Granola Bar Honey,0.98,2,KAUFTOR,DrinkCo,556,4.9,30
+234,Party Speaker Small,7.26,2,PEWE,PrizeKing,447,4.7,47
+235,Board Game Cards,1.61,2,PEWE,BoardFun,241,4.2,8
+236,Shampoo Bottle,4.96,2,KAUFTOR,PrizeKing,384,4.1,52
+237,Toothpaste Tube,7.79,1,PEWE,FreshCater,101,4.4,60
+238,Energy Drink 0.5L,6.92,2,PEWE,PizzaCraft,384,4.3,24
+239,Event Prize Trophy,1.82,0,ALBO,SoundWave,213,4.2,26
+240,Pepperoni Pizza,2.05,2,BIDL,GreenCater,63,4.7,48
+241,Branded Cap,7.2,2,EDL Markt,RestEasy,223,4.8,9
+242,Wireless Microphone,1.42,1,EDL Markt,GreenCater,473,4.9,69
+243,Toothpaste Tube,2.09,0,EDL Markt,RestEasy,561,4.4,60
+244,Mineral Water 1.5L,3.85,1,PEWE,SoundWave,503,4.4,38
+245,Ham Sandwich,6.68,0,EDL Markt,DrinkCo,130,4.2,32
+246,Margherita Pizza,2.61,2,EDL Markt,PrizeKing,504,4.2,36
+247,Margherita Pizza,2.57,0,BIDL,PastaPro,107,4.2,36
+248,Salted Popcorn 150g,2.76,0,SCHLEIBER,FunCorp,95,4.1,51
+249,Energy Drink 0.5L,6.35,0,KAUFTOR,SnackHaus,595,4.5,24
+250,Mineral Water 1.5L,3.28,1,SCHLEIBER,BoardFun,109,4.6,38
+251,Dice Set,2.21,1,PEWE,PrizeKing,591,4.8,23
+252,Party Speaker Small,6.99,0,PEWE,PrizeKing,579,4.5,47
+253,Wireless Microphone,1.66,2,PEWE,PastaPro,82,4.2,69
+254,Fleece Blanket,1.72,1,PEWE,CleanLife,195,4.7,27
+255,Green Tea Box,4.07,2,PEWE,DrinkCo,437,4.4,
+256,Wireless Microphone,1.2,1,PEWE,CleanLife,238,4.7,69
+257,Hand Sanitizer 500ml,2.73,2,ALBO,SnackHaus,599,4.3,33
+258,Hand Sanitizer 500ml,1.78,0,EDL Markt,PastaPro,403,4.2,33
+259,Cheese Sandwich,5.09,2,EDL Markt,FreshCater,584,4.5,12
+260,Cola 0.5L,6.08,0,SCHLEIBER,BoardFun,322,4.3,18
+261,Green Tea Box,1.04,2,KAUFTOR,GreenCater,375,4.6,
+262,Butter Croissant,7.51,0,KAUFTOR,SoundWave,559,4.1,11
+263,Dice Set,1.62,1,EDL Markt,RestEasy,562,4.1,23
+264,Travel Pillow,2.48,2,PEWE,PizzaCraft,524,4.5,61
+265,Beef Lasagna Meal,0.99,0,KAUFTOR,FreshCater,483,4.4,4
+266,Dice Set,6.55,2,ALBO,DrinkCo,323,4.5,23
+267,Vegan Chickpea Curry Bowl,1.45,2,SCHLEIBER,PastaPro,178,4.8,62
+268,Grilled Chicken Teriyaki Bowl,6.75,1,SCHLEIBER,SoundWave,72,4.8,31
+269,Mineral Water 1.5L,1.86,2,ALBO,CleanLife,475,4.2,38
+270,Cola 0.5L,6.19,2,KAUFTOR,CleanLife,100,4.4,18
+271,Coffee Beans 500g,2.81,0,PEWE,FunCorp,586,4.4,14
+272,Sparkling Water 1.5L,4.82,1,EDL Markt,FunCorp,452,4.9,58
+273,Potato Chips 200g,2.83,1,PEWE,PrizeKing,175,4.7,49
+274,Protein Bar Chocolate,6.53,0,ALBO,FreshCater,323,4.8,50
+275,Vegan Chickpea Curry Bowl,3.56,0,BIDL,RestEasy,586,4.8,62
+276,Salted Popcorn 150g,2.68,1,SCHLEIBER,RestEasy,570,4.2,51
+277,Vegan Vegetable Pizza,2.65,1,BIDL,GreenCater,187,4.2,66
+278,Spaghetti Bolognese Meal,4.7,0,SCHLEIBER,SnackHaus,371,4.3,57
+279,Branded Cap,7.41,0,ALBO,DrinkCo,192,4.5,9
+280,Event Prize Trophy,2.01,0,BIDL,DrinkCo,480,4.4,26
+281,Branded T-Shirt,1.89,2,EDL Markt,BoardFun,475,4.4,10
+282,Multivitamin Juice 1L,2.36,0,SCHLEIBER,SoundWave,202,4.6,39
+283,Herbal Tea Box,3.43,0,KAUFTOR,SoundWave,83,4.5,34
+284,Grilled Chicken Teriyaki Bowl,1.37,2,KAUFTOR,RestEasy,511,4.3,31
+285,Green Tea Box,3.09,1,ALBO,FreshCater,274,4.3,
+286,Sleeping Bag Light,3.3,0,BIDL,BoardFun,106,4.9,53
+287,Green Tea Box,3.06,1,EDL Markt,FreshCater,477,4.8,
+288,Apple Juice 1L,4.76,1,SCHLEIBER,FunCorp,454,4.1,0
+289,Board Game Cards,3.63,0,SCHLEIBER,PizzaCraft,93,4.2,8
+290,Shampoo Bottle,2.55,0,KAUFTOR,PizzaCraft,339,4.4,52
+291,Cola 0.5L,6.35,1,ALBO,SoundWave,191,4.1,18
+292,Protein Bar Chocolate,5.18,1,ALBO,PrizeKing,401,4.4,50
+293,Pepperoni Pizza,1.38,1,EDL Markt,CleanLife,65,4.4,48
+294,Apple Juice 1L,2.38,2,PEWE,SoundWave,412,4.7,0
+295,Cheese Sandwich,1.42,2,KAUFTOR,BoardFun,355,4.7,12
+296,Potato Chips 200g,1.89,0,BIDL,PizzaCraft,250,4.6,49
+297,Energy Drink 0.5L,4.92,0,EDL Markt,FunCorp,436,4.8,24
+298,Vegan Vegetable Pizza,6.86,0,ALBO,BoardFun,378,4.4,66
+299,Cheese Sandwich,3.34,2,ALBO,SnackHaus,407,4.7,12
+300,Herbal Tea Box,1.02,1,PEWE,CleanLife,202,4.6,34
+301,Green Tea Box,1.25,1,EDL Markt,CleanLife,408,4.8,
+302,Black Tea Box,7.38,2,PEWE,PastaPro,397,4.2,6
+303,BBQ Chicken Pizza,4.2,2,ALBO,FunCorp,82,4.6,1
+304,Branded Cap,6.25,0,ALBO,PastaPro,405,4.2,9
+305,Margherita Pizza,2.15,0,SCHLEIBER,RestEasy,80,4.6,36
+306,Toothpaste Tube,2.78,2,ALBO,GreenCater,145,4.5,60
+307,Coffee Beans 500g,2.85,1,SCHLEIBER,FunCorp,548,4.9,14
+308,Energy Drink 0.5L,5.78,0,BIDL,PrizeKing,564,4.7,24
+309,Toothpaste Tube,6.14,0,SCHLEIBER,FreshCater,169,4.2,60
+310,Coffee Beans 500g,7.56,1,ALBO,PrizeKing,573,4.7,14
+311,Sleeping Bag Light,3.41,0,PEWE,DrinkCo,82,4.2,53
+312,Blueberry Pancakes,4.22,0,BIDL,SoundWave,370,4.7,7
+313,Blueberry Pancakes,6.01,0,KAUFTOR,GreenCater,596,4.3,7
+314,Margherita Pizza,7.13,2,KAUFTOR,PastaPro,317,4.4,36
+315,Grilled Chicken Teriyaki Bowl,3.99,2,SCHLEIBER,CleanLife,495,4.7,31
+316,Wireless Microphone,3.31,0,EDL Markt,SnackHaus,232,4.1,69
+317,Travel Pillow,5.78,0,ALBO,DrinkCo,244,4.4,61
+318,Vegan Chickpea Curry Bowl,5.55,0,EDL Markt,RestEasy,309,4.2,62
+319,Salted Popcorn 150g,6.16,2,SCHLEIBER,CleanLife,240,4.9,51
+320,Spaghetti Bolognese Meal,1.01,0,PEWE,BoardFun,557,4.7,57
+321,Hand Sanitizer 500ml,7.27,1,PEWE,PrizeKing,221,4.7,33
+322,Mineral Water 1.5L,5.19,0,PEWE,PizzaCraft,166,4.9,38
+323,Board Game Cards,7.07,2,KAUFTOR,SnackHaus,247,4.5,8
+324,Party Speaker Small,1.87,1,PEWE,FunCorp,54,4.1,47
+325,Fleece Blanket,5.8,1,EDL Markt,PizzaCraft,520,4.9,27
+326,Vegan Chickpea Curry Bowl,7.74,2,BIDL,SoundWave,498,4.9,62
+327,Travel Pillow,6.39,1,SCHLEIBER,DrinkCo,586,4.7,61
+328,Beef Lasagna Meal,7.36,2,KAUFTOR,SoundWave,274,4.5,4
+329,Spaghetti Bolognese Meal,4.33,2,PEWE,DrinkCo,243,4.7,57
+330,Salted Popcorn 150g,2.3,0,BIDL,RestEasy,457,4.4,51
+331,Hand Sanitizer 500ml,5.0,1,ALBO,DrinkCo,362,4.5,33
+332,Shampoo Bottle,2.69,0,BIDL,DrinkCo,216,4.4,52
+333,Protein Bar Chocolate,5.63,2,BIDL,CleanLife,549,4.7,50
+334,Sleeping Bag Light,6.02,2,PEWE,SoundWave,237,4.9,53
+335,Spaghetti Bolognese Meal,6.99,0,ALBO,FunCorp,210,4.3,57
+336,Spaghetti Bolognese Meal,3.2,0,PEWE,FreshCater,458,4.7,57
+337,Butter Croissant,5.03,0,BIDL,FreshCater,321,4.4,11
+338,Shampoo Bottle,2.25,2,PEWE,FunCorp,320,4.6,52
+339,Branded T-Shirt,3.55,0,SCHLEIBER,SnackHaus,583,4.6,10
+340,Black Tea Box,3.06,0,SCHLEIBER,BoardFun,558,4.3,6
+341,Sparkling Water 1.5L,4.11,0,EDL Markt,RestEasy,373,4.6,58
+342,Dice Set,2.47,1,BIDL,FunCorp,578,4.2,23
+343,Grilled Chicken Teriyaki Bowl,4.02,2,BIDL,PastaPro,344,4.6,31
+344,Granola Bar Honey,4.31,2,ALBO,CleanLife,200,4.5,30
+345,Board Game Cards,4.43,1,KAUFTOR,SnackHaus,503,4.9,8
+346,Potato Chips 200g,3.91,1,PEWE,BoardFun,435,4.4,49
+347,Nacho Chips 200g,6.16,0,PEWE,SoundWave,487,4.8,40
+348,Herbal Tea Box,5.53,2,SCHLEIBER,FreshCater,355,4.4,34
+349,Ham Sandwich,2.03,2,SCHLEIBER,CleanLife,324,4.2,32
+350,Board Game Cards,3.29,2,BIDL,PizzaCraft,391,4.8,8
+351,Branded T-Shirt,6.91,2,KAUFTOR,BoardFun,469,4.7,10
+352,Orange Soda 0.5L,1.14,1,ALBO,GreenCater,276,4.1,45
+353,Energy Drink 0.5L,3.15,0,EDL Markt,FunCorp,511,4.2,24
+354,Ham Sandwich,6.19,0,EDL Markt,PrizeKing,262,4.6,32
+355,Cola 0.5L,6.41,0,ALBO,PrizeKing,563,4.1,18
+356,Margherita Pizza,4.07,2,PEWE,GreenCater,123,4.8,36
+357,Sparkling Water 1.5L,7.93,1,KAUFTOR,PrizeKing,121,4.1,58
+358,Party Speaker Small,5.13,2,ALBO,SoundWave,572,4.6,47
+359,Coffee Beans 500g,3.52,0,EDL Markt,PizzaCraft,235,4.5,14
+360,Energy Drink 0.5L,1.75,0,EDL Markt,BoardFun,210,4.6,24
+361,Beef Lasagna Meal,4.93,0,EDL Markt,PastaPro,523,4.9,4
+362,Vegan Vegetable Pizza,1.87,1,KAUFTOR,CleanLife,482,4.5,66
+363,BBQ Chicken Pizza,2.77,2,PEWE,GreenCater,346,4.5,1
+364,Spaghetti Bolognese Meal,3.74,1,PEWE,RestEasy,383,4.4,57
+365,Ham Sandwich,2.51,0,BIDL,SnackHaus,318,4.2,32
+366,Ham Sandwich,2.57,0,EDL Markt,RestEasy,333,4.8,32
+367,Potato Chips 200g,2.0,0,EDL Markt,GreenCater,132,4.1,49
+368,Travel Pillow,1.77,2,EDL Markt,PizzaCraft,492,4.3,61
+369,Event Prize Trophy,5.05,1,EDL Markt,DrinkCo,195,4.4,26
+370,Apple Juice 1L,5.93,2,BIDL,RestEasy,262,4.2,0
+371,Coffee Beans 500g,4.53,2,KAUFTOR,DrinkCo,594,4.3,14
+372,Grilled Chicken Teriyaki Bowl,6.2,0,SCHLEIBER,PrizeKing,243,4.8,31
+373,Sticker Pack,1.28,2,BIDL,SnackHaus,190,4.2,59
+374,Green Tea Box,5.3,0,BIDL,BoardFun,72,4.4,
+375,Vegan Vegetable Pizza,2.39,2,PEWE,PastaPro,243,4.2,66
+376,Vegan Chickpea Curry Bowl,5.35,1,SCHLEIBER,GreenCater,410,4.7,62
+377,Ham Sandwich,1.3,0,EDL Markt,PrizeKing,457,4.4,32
+378,Branded T-Shirt,4.55,2,SCHLEIBER,PastaPro,323,4.6,10
+379,Apple Juice 1L,7.89,2,EDL Markt,CleanLife,214,4.7,0
+380,Energy Drink 0.5L,3.67,0,SCHLEIBER,FreshCater,346,4.5,24
+381,Party Speaker Small,4.69,1,KAUFTOR,DrinkCo,182,4.4,47
+382,Travel Pillow,5.2,0,KAUFTOR,SoundWave,539,4.5,61
+383,Apple Juice 1L,1.38,1,ALBO,PrizeKing,93,4.9,0
+384,Nacho Chips 200g,2.26,1,SCHLEIBER,PrizeKing,66,4.8,40
+385,Granola Bar Honey,6.45,1,PEWE,PastaPro,58,4.1,30
+386,Blueberry Pancakes,4.4,2,SCHLEIBER,RestEasy,559,4.4,7
+387,Beef Lasagna Meal,7.17,2,ALBO,PizzaCraft,518,4.6,4
+388,Branded T-Shirt,4.49,0,SCHLEIBER,GreenCater,206,4.4,10
+389,BBQ Chicken Pizza,2.74,2,ALBO,CleanLife,595,4.2,1
+390,Beef Lasagna Meal,5.0,2,BIDL,CleanLife,193,4.7,4
+391,Shampoo Bottle,7.12,0,SCHLEIBER,CleanLife,223,4.2,52
+392,Spaghetti Bolognese Meal,7.19,0,ALBO,PastaPro,295,4.4,57
+393,Nacho Chips 200g,6.32,1,KAUFTOR,DrinkCo,540,4.7,40
+394,Black Tea Box,7.46,0,PEWE,GreenCater,507,4.9,6
+395,Travel Pillow,3.57,2,EDL Markt,DrinkCo,124,4.2,61
+396,Chocolate Muffin,1.91,1,EDL Markt,RestEasy,347,4.4,13
+397,Nacho Chips 200g,3.63,1,KAUFTOR,BoardFun,273,4.8,40
+398,Shampoo Bottle,6.6,0,KAUFTOR,CleanLife,411,4.6,52
+399,Shampoo Bottle,1.24,2,BIDL,RestEasy,497,4.8,52
+400,Grilled Chicken Teriyaki Bowl,5.83,1,ALBO,SnackHaus,431,4.1,31
+401,Chocolate Muffin,6.9,1,PEWE,FunCorp,230,4.5,13
+402,Toothpaste Tube,6.46,2,EDL Markt,GreenCater,588,4.9,60
+403,Blueberry Pancakes,6.09,2,BIDL,CleanLife,523,4.8,7
+404,Branded T-Shirt,6.53,2,ALBO,SnackHaus,510,4.7,10
+405,Toothpaste Tube,6.27,0,PEWE,PrizeKing,412,4.5,60
+406,Toothpaste Tube,1.3,2,EDL Markt,GreenCater,386,4.7,60
+407,BBQ Chicken Pizza,7.56,0,PEWE,SoundWave,571,4.8,1
+408,Black Tea Box,4.03,1,SCHLEIBER,PrizeKing,440,4.5,6
+409,Green Tea Box,5.55,0,EDL Markt,BoardFun,259,4.6,
+410,Coffee Beans 500g,1.36,0,PEWE,SoundWave,218,4.8,14
+411,Multivitamin Juice 1L,5.88,0,KAUFTOR,CleanLife,185,4.2,39
+412,Grilled Chicken Teriyaki Bowl,7.82,2,EDL Markt,PastaPro,520,4.4,31
+413,Coffee Beans 500g,1.43,1,PEWE,PastaPro,466,4.3,14
+414,Apple Juice 1L,6.28,2,PEWE,PrizeKing,488,4.3,0
+415,Coffee Beans 500g,1.95,1,PEWE,CleanLife,416,4.9,14
+416,Espresso Capsules 10pk,6.32,2,EDL Markt,FunCorp,528,4.3,25
+417,Salted Popcorn 150g,4.88,0,SCHLEIBER,PrizeKing,393,4.8,51
+418,Pepperoni Pizza,4.16,0,BIDL,PastaPro,231,4.6,48
+419,Branded Cap,2.18,2,BIDL,SoundWave,103,4.5,9
+420,Vegan Chickpea Curry Bowl,3.84,2,BIDL,DrinkCo,50,4.6,62
+421,Multivitamin Juice 1L,2.42,1,PEWE,BoardFun,102,4.9,39
+422,Margherita Pizza,2.26,0,EDL Markt,PizzaCraft,424,4.2,36
+423,Shampoo Bottle,4.38,2,BIDL,PizzaCraft,327,4.2,52
+424,Vegan Chickpea Curry Bowl,4.59,2,KAUFTOR,GreenCater,522,4.8,62
+425,Shampoo Bottle,3.52,1,BIDL,FreshCater,512,4.5,52
+426,BBQ Chicken Pizza,2.9,1,BIDL,CleanLife,307,4.2,1
+427,Black Tea Box,5.31,2,PEWE,CleanLife,248,4.2,6
+428,Hand Sanitizer 500ml,4.98,1,EDL Markt,GreenCater,267,4.6,33
+429,Herbal Tea Box,1.83,2,KAUFTOR,BoardFun,532,4.9,34
+430,Vegan Chickpea Curry Bowl,1.27,0,BIDL,FreshCater,124,4.9,62
+431,Spaghetti Bolognese Meal,7.24,2,EDL Markt,SnackHaus,497,4.8,57
+432,Blueberry Pancakes,2.29,2,ALBO,FunCorp,373,4.9,7
+433,Chocolate Muffin,2.27,1,EDL Markt,FunCorp,438,4.5,13
+434,Ham Sandwich,3.93,0,KAUFTOR,PastaPro,61,4.7,32
+435,Potato Chips 200g,7.64,2,KAUFTOR,GreenCater,446,4.3,49
+436,Granola Bar Honey,2.42,0,PEWE,SnackHaus,530,4.4,30
+437,Vegan Chickpea Curry Bowl,2.05,1,BIDL,PizzaCraft,160,4.4,62
+438,Vegan Wrap,1.01,2,SCHLEIBER,RestEasy,435,4.2,67
+439,Travel Pillow,2.32,2,EDL Markt,DrinkCo,184,4.1,61
+440,Party Speaker Small,3.28,0,EDL Markt,FreshCater,236,4.5,47
+441,Vegan Chickpea Curry Bowl,3.87,1,EDL Markt,GreenCater,320,4.6,62
+442,Wireless Microphone,2.62,2,BIDL,CleanLife,567,4.1,69
+443,Vegan Wrap,7.27,1,BIDL,GreenCater,282,4.6,67
+444,Green Tea Box,4.77,1,EDL Markt,DrinkCo,248,4.6,
+445,Nacho Chips 200g,1.55,2,EDL Markt,GreenCater,580,4.3,40
+446,Vegan Wrap,2.36,0,ALBO,PastaPro,205,4.2,67
+447,Spaghetti Bolognese Meal,5.3,0,KAUFTOR,RestEasy,56,4.7,57
+448,Sparkling Water 1.5L,6.21,1,PEWE,DrinkCo,188,4.5,58
+449,Pepperoni Pizza,3.84,2,SCHLEIBER,DrinkCo,169,4.8,48
+450,Green Tea Box,2.49,0,SCHLEIBER,PastaPro,299,4.6,
+451,Protein Bar Chocolate,3.11,2,ALBO,PizzaCraft,285,4.4,50
+452,Black Tea Box,7.08,1,SCHLEIBER,RestEasy,474,4.5,6
+453,Orange Soda 0.5L,4.23,0,PEWE,SoundWave,214,4.6,45
+454,Dice Set,3.83,1,BIDL,SnackHaus,285,4.3,23
+455,Salted Popcorn 150g,2.56,1,ALBO,CleanLife,565,4.6,51
+456,Granola Bar Honey,3.63,1,KAUFTOR,FreshCater,506,4.9,30
+457,Potato Chips 200g,7.22,2,ALBO,FreshCater,421,4.4,49
+458,Cola 0.5L,6.43,1,EDL Markt,SnackHaus,293,4.3,18
+459,Hand Sanitizer 500ml,7.54,1,EDL Markt,SoundWave,109,4.7,33
+460,Apple Juice 1L,6.24,0,EDL Markt,SnackHaus,330,4.6,0
+461,Multivitamin Juice 1L,3.23,2,KAUFTOR,RestEasy,532,4.1,39
+462,Shampoo Bottle,7.24,1,PEWE,FreshCater,590,4.3,52
+463,Vegan Vegetable Pizza,4.21,0,SCHLEIBER,SoundWave,557,4.7,66
+464,Branded T-Shirt,1.49,2,ALBO,GreenCater,440,4.6,10
+465,Toothpaste Tube,5.33,0,BIDL,FunCorp,155,4.6,60
+466,Protein Bar Chocolate,5.56,0,EDL Markt,PizzaCraft,350,4.1,50
+467,Event Prize Trophy,1.07,1,EDL Markt,SnackHaus,427,4.8,26
+468,Green Tea Box,7.26,1,BIDL,SoundWave,125,4.4,
+469,Party Speaker Small,6.48,1,SCHLEIBER,FunCorp,273,4.8,47
+470,Hand Sanitizer 500ml,3.65,0,BIDL,PizzaCraft,454,4.1,33
+471,Event Prize Trophy,4.68,2,ALBO,GreenCater,195,4.8,26
+472,Black Tea Box,1.85,0,PEWE,BoardFun,441,4.5,6
+473,Chocolate Muffin,3.81,2,PEWE,PastaPro,413,4.5,13
+474,Black Tea Box,4.11,1,ALBO,GreenCater,223,4.8,6
+475,Wireless Microphone,4.61,0,ALBO,PrizeKing,363,4.2,69
+476,Board Game Cards,4.32,2,PEWE,GreenCater,454,4.3,8
+477,Hand Sanitizer 500ml,6.12,0,BIDL,RestEasy,239,4.3,33
+478,Grilled Chicken Teriyaki Bowl,3.75,0,EDL Markt,GreenCater,579,4.5,31
+479,Board Game Cards,7.53,2,BIDL,PizzaCraft,344,4.1,8
+480,Black Tea Box,5.71,2,KAUFTOR,PizzaCraft,133,4.7,6
+481,Herbal Tea Box,6.5,1,PEWE,PastaPro,500,4.7,34
+482,Grilled Chicken Teriyaki Bowl,7.19,1,BIDL,SoundWave,506,4.9,31
+483,Herbal Tea Box,3.77,2,ALBO,FreshCater,131,4.3,34
+484,Branded Cap,5.95,0,SCHLEIBER,DrinkCo,360,4.1,9
+485,Nacho Chips 200g,3.35,0,ALBO,FreshCater,547,4.5,40
+486,Blueberry Pancakes,3.92,2,BIDL,SoundWave,306,4.4,7
+487,Potato Chips 200g,7.85,1,PEWE,BoardFun,487,4.4,49
+488,Salted Popcorn 150g,3.3,1,ALBO,DrinkCo,445,4.2,51
+489,Pepperoni Pizza,5.16,2,KAUFTOR,GreenCater,156,4.5,48
+490,Toothpaste Tube,0.89,1,EDL Markt,PizzaCraft,234,4.3,60
+491,Blueberry Pancakes,1.0,1,SCHLEIBER,FreshCater,117,4.1,7
+492,Vegan Chickpea Curry Bowl,5.53,1,ALBO,DrinkCo,599,4.4,62
+493,Salted Popcorn 150g,4.3,1,EDL Markt,SnackHaus,113,4.5,51
+494,Sleeping Bag Light,2.36,0,PEWE,SnackHaus,578,4.1,53
+495,Espresso Capsules 10pk,2.2,1,ALBO,PrizeKing,59,4.7,25
+496,Party Speaker Small,6.7,2,SCHLEIBER,SoundWave,313,4.5,47
+497,Blueberry Pancakes,2.73,1,SCHLEIBER,CleanLife,223,4.2,7
+498,BBQ Chicken Pizza,4.61,2,KAUFTOR,PizzaCraft,87,4.8,1
+499,Beef Lasagna Meal,1.99,1,ALBO,CleanLife,486,4.9,4
+500,Nacho Chips 200g,1.56,2,KAUFTOR,CleanLife,93,4.2,40
+501,Ham Sandwich,4.58,2,ALBO,FreshCater,500,4.5,32
+502,Chocolate Muffin,2.04,0,SCHLEIBER,CleanLife,204,4.3,13
+503,Mineral Water 1.5L,3.95,2,SCHLEIBER,RestEasy,291,4.4,38
+504,Herbal Tea Box,7.44,0,EDL Markt,RestEasy,121,4.7,34
+505,Sticker Pack,2.6,1,EDL Markt,CleanLife,197,4.5,59
+506,Branded Cap,6.15,0,PEWE,RestEasy,547,4.4,9
+507,Green Tea Box,7.29,0,EDL Markt,RestEasy,497,4.1,
+508,Branded Cap,4.2,1,ALBO,FreshCater,486,4.5,9
+509,Shampoo Bottle,4.66,1,PEWE,PrizeKing,564,4.5,52
+510,Blueberry Pancakes,7.19,0,ALBO,GreenCater,230,4.3,7
+511,Granola Bar Honey,3.74,1,EDL Markt,DrinkCo,80,4.1,30
+512,Vegan Chickpea Curry Bowl,6.8,0,PEWE,PrizeKing,440,4.1,62
+513,BBQ Chicken Pizza,6.28,1,SCHLEIBER,BoardFun,293,4.1,1
+514,Coffee Beans 500g,5.77,2,KAUFTOR,DrinkCo,455,4.8,14
+515,Grilled Chicken Teriyaki Bowl,4.67,2,ALBO,PrizeKing,327,4.3,31
+516,Wireless Microphone,1.28,0,KAUFTOR,PrizeKing,161,4.6,69
+517,Cola 0.5L,3.48,2,BIDL,BoardFun,269,4.5,18
+518,Vegan Wrap,6.26,2,PEWE,PastaPro,350,4.6,67
+519,Cola 0.5L,7.08,0,BIDL,PastaPro,160,4.9,18
+520,Blueberry Pancakes,3.85,0,ALBO,GreenCater,522,4.2,7
+521,Black Tea Box,7.06,1,PEWE,SoundWave,559,4.5,6
+522,Energy Drink 0.5L,3.49,2,PEWE,PastaPro,120,4.6,24
+523,Butter Croissant,3.13,0,KAUFTOR,RestEasy,482,4.4,11
+524,Salted Popcorn 150g,2.96,1,PEWE,PizzaCraft,548,4.7,51
+525,Spaghetti Bolognese Meal,2.94,0,SCHLEIBER,PizzaCraft,167,4.1,57
+526,Espresso Capsules 10pk,7.5,0,KAUFTOR,SnackHaus,582,4.3,25
+527,Sticker Pack,1.7,0,BIDL,DrinkCo,566,4.7,59
+528,Party Speaker Small,7.96,2,PEWE,PastaPro,545,4.5,47
+529,Energy Drink 0.5L,3.53,0,EDL Markt,GreenCater,349,4.9,24
+530,Event Prize Trophy,1.37,0,PEWE,PizzaCraft,419,4.6,26
+531,Vegan Vegetable Pizza,6.82,0,BIDL,DrinkCo,305,4.3,66
+532,Black Tea Box,6.86,2,ALBO,RestEasy,220,4.5,6
+533,Cheese Sandwich,3.0,2,BIDL,GreenCater,529,4.6,12
+534,Salted Popcorn 150g,3.72,2,BIDL,SnackHaus,582,4.2,51
+535,Branded T-Shirt,6.55,1,SCHLEIBER,FreshCater,303,4.5,10
+536,Energy Drink 0.5L,2.5,0,BIDL,RestEasy,516,4.8,24
+537,Espresso Capsules 10pk,7.85,0,BIDL,GreenCater,358,4.8,25
+538,Multivitamin Juice 1L,2.05,1,BIDL,SnackHaus,291,4.5,39
+539,Travel Pillow,4.45,1,KAUFTOR,PizzaCraft,169,4.3,61
+540,Dice Set,1.25,0,BIDL,BoardFun,214,4.3,23
+541,Green Tea Box,1.76,1,SCHLEIBER,CleanLife,269,4.5,
+542,Event Prize Trophy,3.98,1,PEWE,FreshCater,363,4.5,26
+543,Event Prize Trophy,2.95,1,EDL Markt,DrinkCo,547,4.2,26
+544,Granola Bar Honey,2.4,1,ALBO,SoundWave,193,4.6,30
+545,Potato Chips 200g,1.8,0,SCHLEIBER,CleanLife,123,4.9,49
+546,BBQ Chicken Pizza,2.59,1,EDL Markt,FunCorp,559,4.5,1
+547,Dice Set,6.4,0,EDL Markt,SnackHaus,297,4.7,23
+548,Blueberry Pancakes,7.53,2,KAUFTOR,PrizeKing,285,4.5,7
+549,Pepperoni Pizza,5.45,1,KAUFTOR,GreenCater,576,4.9,48
+550,Espresso Capsules 10pk,7.95,1,SCHLEIBER,FunCorp,297,4.5,25
+551,Orange Soda 0.5L,4.15,0,PEWE,FreshCater,467,4.7,45
+552,Herbal Tea Box,6.78,0,BIDL,FreshCater,405,4.2,34
+553,Protein Bar Chocolate,2.09,1,PEWE,FunCorp,464,4.4,50
+554,Energy Drink 0.5L,7.33,0,SCHLEIBER,GreenCater,558,4.3,24
+555,Travel Pillow,4.45,0,BIDL,FreshCater,564,4.6,61
+556,Protein Bar Chocolate,7.49,1,BIDL,PastaPro,199,4.8,50
+557,Mineral Water 1.5L,2.08,2,PEWE,BoardFun,390,4.2,38
+558,Branded Cap,5.53,0,ALBO,FunCorp,439,4.8,9
+559,Shampoo Bottle,2.87,0,EDL Markt,CleanLife,83,4.2,52
+560,Ham Sandwich,6.2,1,EDL Markt,PastaPro,532,4.8,32
+561,Dice Set,7.74,2,KAUFTOR,GreenCater,205,4.3,23
+562,Shampoo Bottle,2.73,1,EDL Markt,GreenCater,507,4.5,52
+563,BBQ Chicken Pizza,4.17,2,KAUFTOR,RestEasy,380,4.9,1
+564,Sparkling Water 1.5L,6.17,0,BIDL,PastaPro,449,4.8,58
+565,Travel Pillow,6.62,0,ALBO,FreshCater,54,4.2,61
+566,Salted Popcorn 150g,4.81,2,KAUFTOR,GreenCater,194,4.7,51
+567,Ham Sandwich,3.9,0,EDL Markt,FunCorp,429,4.3,32
+568,Branded T-Shirt,2.21,0,KAUFTOR,PastaPro,148,4.3,10
+569,Herbal Tea Box,7.29,2,ALBO,FreshCater,465,4.5,34
+570,Branded Cap,6.07,2,ALBO,DrinkCo,353,4.4,9
+571,Mineral Water 1.5L,6.82,2,EDL Markt,SnackHaus,518,4.2,38
+572,Orange Soda 0.5L,5.84,1,PEWE,PastaPro,293,4.7,45
+573,Sparkling Water 1.5L,3.57,1,PEWE,PrizeKing,130,4.4,58
+574,Granola Bar Honey,5.6,1,EDL Markt,BoardFun,171,4.6,30
+575,Dice Set,5.5,2,ALBO,FreshCater,564,4.3,23
+576,Nacho Chips 200g,5.76,1,EDL Markt,SnackHaus,223,4.5,40
+577,Sticker Pack,2.47,1,ALBO,RestEasy,415,4.7,59
+578,Mineral Water 1.5L,2.23,2,ALBO,SnackHaus,495,4.7,38
+579,Mineral Water 1.5L,1.18,2,ALBO,PastaPro,186,4.8,38
+580,Spaghetti Bolognese Meal,4.57,1,PEWE,DrinkCo,543,4.5,57
+581,Branded Cap,5.24,0,BIDL,PrizeKing,581,4.5,9
+582,Black Tea Box,1.61,0,BIDL,SnackHaus,84,4.2,6
