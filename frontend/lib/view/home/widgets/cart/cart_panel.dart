@@ -5,6 +5,7 @@ import 'package:frontend/view/home/widgets/cart_item/cart_item_widget.dart';
 import 'package:frontend/view/home/widgets/cart_item/cart_item_controller.dart';
 import 'package:frontend/model/chat_models.dart';
 import 'package:provider/provider.dart';
+import 'package:frontend/view/home/widgets/cart/cart_loading_list.dart';
 
 /// High-level cart panel with header, items list and fixed checkout bar.
 class CartPanel extends StatelessWidget {
@@ -43,54 +44,58 @@ class CartPanel extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: AppConstants.spacingSm),
-                        Container(
-                          decoration: BoxDecoration(
-                            color: colorScheme.surfaceContainerHighest
-                                .withValues(alpha: 0.8),
-                            borderRadius: BorderRadius.circular(
-                              AppConstants.radiusSm,
+                        if (!controller.isLoading)
+                          Container(
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerHighest
+                                  .withValues(alpha: 0.8),
+                              borderRadius: BorderRadius.circular(
+                                AppConstants.radiusSm,
+                              ),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: AppConstants.spacingSm,
+                              vertical: AppConstants.spacingXs,
+                            ),
+                            child: Text(
+                              '${controller.itemCount} items',
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: colorScheme.primary,
+                                fontWeight: FontWeight.w600,
+                              ),
                             ),
                           ),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppConstants.spacingSm,
-                            vertical: AppConstants.spacingXs,
-                          ),
-                          child: Text(
-                            '${controller.itemCount} items',
-                            style: theme.textTheme.labelSmall?.copyWith(
-                              color: colorScheme.primary,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
                   // Right: estimated total
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        'Estimated total',
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
+                  if (!controller.isLoading)
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          'Estimated total',
+                          style: theme.textTheme.labelSmall?.copyWith(
+                            color: colorScheme.onSurfaceVariant,
+                          ),
                         ),
-                      ),
-                      Text(
-                        _formatPrice(controller.totalPrice),
-                        style: theme.textTheme.titleLarge?.copyWith(
-                          color: colorScheme.primary,
-                          fontWeight: FontWeight.w700,
+                        Text(
+                          _formatPrice(controller.totalPrice),
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
+                      ],
+                    ),
                 ],
               ),
               const SizedBox(height: AppConstants.spacingMd),
               const Divider(height: 1),
               Expanded(
-                child: controller.isEmpty
+                child: controller.isLoading
+                    ? const CartLoadingList()
+                    : controller.isEmpty
                     ? Center(
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
@@ -139,40 +144,41 @@ class CartPanel extends StatelessWidget {
           ),
         ),
         // Edge-to-edge fixed bottom confirm bar (outside page padding)
-        Positioned(
-          left: 0,
-          right: 0,
-          bottom: 0,
-          child: SafeArea(
-            top: false,
-            child: Container(
-              padding: const EdgeInsets.symmetric(
-                vertical: AppConstants.spacingMd,
-              ),
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                border: Border(
-                  top: BorderSide(
-                    color: colorScheme.surfaceContainerHighest.withValues(
-                      alpha: 0.3,
+        if (!controller.isLoading)
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: SafeArea(
+              top: false,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: AppConstants.spacingMd,
+                ),
+                decoration: BoxDecoration(
+                  color: colorScheme.surface,
+                  border: Border(
+                    top: BorderSide(
+                      color: colorScheme.surfaceContainerHighest.withValues(
+                        alpha: 0.3,
+                      ),
+                      width: 1,
                     ),
-                    width: 1,
                   ),
                 ),
-              ),
-              child: _CheckoutBar(
-                totalPrice: controller.totalPrice,
-                retailerCount: controller.retailerCount,
-                onCheckout: () {
-                  // TODO: hook into controller / flow
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Checkout initiated')),
-                  );
-                },
+                child: _CheckoutBar(
+                  totalPrice: controller.totalPrice,
+                  retailerCount: controller.retailerCount,
+                  onCheckout: () {
+                    // TODO: hook into controller / flow
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Checkout initiated')),
+                    );
+                  },
+                ),
               ),
             ),
           ),
-        ),
       ],
     );
   }

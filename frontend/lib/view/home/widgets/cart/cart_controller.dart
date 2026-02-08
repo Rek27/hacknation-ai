@@ -108,9 +108,11 @@ class CartController extends ChangeNotifier {
   }
 
   /// Loads a dummy list of items and computes the total price.
-  void loadDummyData() {
+  Future<void> loadDummyData() async {
     isLoading = true;
     notifyListeners();
+    // Simulate network/search latency so the skeleton can be seen.
+    await Future.delayed(const Duration(milliseconds: 4000));
     final items = <CartItem>[
       CartItem(
         id: '1',
