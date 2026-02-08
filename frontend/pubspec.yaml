@@ -44,6 +44,7 @@ dependencies:
 
   # Rive animated avatar for the call screen
   rive: ^0.14.2
+  record: ^6.2.0
   
 
 dev_dependencies:
@@ -70,7 +71,7 @@ flutter:
   uses-material-design: true
 
   assets:
-    - assets/character.riv
+    - assets/wave_hear_talk.riv
 
   # To add assets to your application, add an assets section, like this:
   # assets:

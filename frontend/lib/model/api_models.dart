@@ -3,22 +3,16 @@ import 'dart:convert';
 /// Health endpoint response: GET /health
 class HealthStatus {
   final String status;
-  final String ragPipeline;
-  final int toolsAvailable;
-  final int documentsCount;
+  final int activeSessions;
 
   HealthStatus({
     required this.status,
-    required this.ragPipeline,
-    required this.toolsAvailable,
-    required this.documentsCount,
+    required this.activeSessions,
   });
 
   factory HealthStatus.fromJson(Map<String, dynamic> json) => HealthStatus(
     status: json['status'] as String,
-    ragPipeline: json['rag_pipeline'] as String,
-    toolsAvailable: json['tools_available'] as int,
-    documentsCount: json['documents_count'] as int,
+    activeSessions: json['active_sessions'] as int,
   );
 }
 

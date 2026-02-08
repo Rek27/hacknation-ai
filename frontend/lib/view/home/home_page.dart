@@ -100,7 +100,7 @@ class _AppBarActions extends StatelessWidget {
             padding: const EdgeInsets.only(right: AppConstants.spacingMd),
             child: Center(
               child: Text(
-                'Chunks: ${health.documentsCount}',
+                'Sessions: ${health.activeSessions}',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colorScheme.onPrimary,
                 ),

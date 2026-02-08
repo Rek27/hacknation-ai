@@ -67,4 +67,26 @@ abstract final class AppConstants {
 
   /// Display name for the assistant on the call screen.
   static const String callUiAssistantName = 'Assistant';
+
+  // Voice wave animation
+  /// Number of bars in the voice wave visualizer.
+  static const int waveBarCount = 24;
+
+  /// Width of each individual wave bar.
+  static const double waveBarWidth = 3.0;
+
+  /// Maximum height a wave bar reaches while animating.
+  static const double waveBarMaxHeight = 32.0;
+
+  /// Uniform height of all bars in the idle (flat) state.
+  static const double waveBarIdleHeight = 3.0;
+
+  /// Horizontal spacing between wave bars.
+  static const double waveBarSpacing = 2.0;
+
+  /// Opacity of wave bars in the idle (flat) state.
+  static const double waveBarIdleOpacity = 0.35;
+
+  /// Opacity of wave bars in the active (animating) state.
+  static const double waveBarActiveOpacity = 0.85;
 }

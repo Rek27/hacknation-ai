@@ -5,6 +5,9 @@ import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/chat/chat_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_sheet.dart';
+import 'package:frontend/view/home/widgets/talking_avatar.dart';
+import 'package:frontend/view/home/widgets/microphone_controller.dart';
+import 'package:frontend/view/home/widgets/voice_wave_animation.dart';
 import 'package:frontend/service/agent_api.dart';
 import 'package:frontend/model/chat_message.dart';
 import 'package:frontend/model/chat_models.dart';
@@ -29,6 +32,9 @@ class HomeMobileLayout extends StatelessWidget {
         ),
         ChangeNotifierProvider<CartController>(
           create: (_) => CartController(),
+        ),
+        ChangeNotifierProvider<MicrophoneController>(
+          create: (_) => MicrophoneController(),
         ),
       ],
       child: const _MobileCallBody(),
@@ -64,10 +70,16 @@ class _MobileCallBodyState extends State<_MobileCallBody> {
 
   @override
   Widget build(BuildContext context) {
-    return _isInCall ? _InCallView(onOpenCart: _openCart, onEndCall: _onEndCall) : _PreCallView(onStartCall: () => setState(() => _isInCall = true), onOpenCart: _openCart);
+    return _isInCall ? _InCallView(onOpenCart: _openCart, onEndCall: _onEndCall) : _PreCallView(onStartCall: _onStartCall, onOpenCart: _openCart);
+  }
+
+  void _onStartCall() {
+    context.read<MicrophoneController>().startListening();
+    setState(() => _isInCall = true);
   }
 
   void _onEndCall() {
+    context.read<MicrophoneController>().stopListening();
     context.read<ChatController>().clearConversation();
     setState(() => _isInCall = false);
   }
@@ -113,14 +125,9 @@ class _PreCallCenterContent extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(
-              radius: AppConstants.callUiAvatarSize / 2,
-              backgroundColor: Colors.white12,
-              child: Icon(
-                Icons.person_rounded,
-                size: AppConstants.callUiAvatarSize * 0.6,
-                color: Colors.white70,
-              ),
+            const TalkingAvatar(
+              isTalking: false,
+              size: AppConstants.callUiAvatarSize,
             ),
             const SizedBox(height: AppConstants.spacingLg),
             Text(
@@ -281,20 +288,16 @@ class _CallCenterContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ChatController chatController = context.watch<ChatController>();
+    final MicrophoneController micController = context.watch<MicrophoneController>();
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingXl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            CircleAvatar(
-              radius: AppConstants.callUiAvatarSize / 2,
-              backgroundColor: Colors.white12,
-              child: Icon(
-                Icons.person_rounded,
-                size: AppConstants.callUiAvatarSize * 0.6,
-                color: Colors.white70,
-              ),
+            TalkingAvatar(
+              isTalking: chatController.isLoading,
+              size: AppConstants.callUiAvatarSize,
             ),
             const SizedBox(height: AppConstants.spacingLg),
             Text(
@@ -313,7 +316,9 @@ class _CallCenterContent extends StatelessWidget {
                 fontSize: 16,
               ),
             ),
-            const SizedBox(height: AppConstants.spacingXl),
+            const SizedBox(height: AppConstants.spacingLg),
+            VoiceWaveAnimation(amplitude: micController.amplitude),
+            const SizedBox(height: AppConstants.spacingLg),
             _LiveTranscriptStrip(chatController: chatController),
           ],
         ),
