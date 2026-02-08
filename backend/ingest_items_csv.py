@@ -26,6 +26,9 @@ def header_to_label(header: str) -> str:
     # Special case: image_id -> Image
     if header == "image_id":
         return "Image"
+    # Special case: id -> ID
+    if header == "id":
+        return "ID"
     return header.replace("_", " ").strip().title()
 
 
@@ -83,13 +86,26 @@ def main():
     ingested = 0
     for i, row in enumerate(rows):
         text = row_to_text(row, headers)
-        doc_id = f"item_{i}"
+        
+        # Use the ID from the CSV if available, otherwise fall back to row index
+        if "id" in row and row["id"]:
+            doc_id = f"item_{row['id']}"
+        else:
+            doc_id = f"item_{i}"
+            logger.warning(f"Row {i}: No ID found, using index-based ID: {doc_id}")
         
         # Build metadata with filterable fields
         metadata = {
             "source": source_name,
             "row": i
         }
+        
+        # Add item ID to metadata if available
+        if "id" in row and row["id"]:
+            try:
+                metadata["item_id"] = int(row["id"])
+            except (ValueError, TypeError):
+                logger.warning(f"Row {i}: Invalid id value: {row['id']}")
         
         # Add delivery_estimate as filterable metadata (convert to int)
         if "delivery_estimate" in row and row["delivery_estimate"]:
