@@ -299,6 +299,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
             children: [
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.all(AppConstants.spacingLg),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(AppConstants.radiusSm),
                   ),
@@ -527,6 +528,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                   children: [
                     OutlinedButton(
                       style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.all(AppConstants.spacingLg),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(
                             AppConstants.radiusSm,
@@ -540,6 +542,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                     const SizedBox(width: AppConstants.spacingSm),
                     FilledButton(
                       style: FilledButton.styleFrom(
+                        padding: const EdgeInsets.all(AppConstants.spacingLg),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(
                             AppConstants.radiusSm,
