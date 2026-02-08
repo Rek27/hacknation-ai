@@ -48,39 +48,14 @@ class _HomeViewState extends State<_HomeView> {
   Widget build(BuildContext context) {
     final double width = MediaQuery.sizeOf(context).width;
     final bool isMobile = width < AppConstants.kMobileBreakpoint;
-    final ThemeData theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('AI Agent Chat'),
-        leading: isMobile
-            ? IconButton(
-                icon: const Icon(Icons.menu),
-                onPressed: () => Scaffold.of(context).openDrawer(),
-              )
-            : null,
-        actions: [_AppBarActions(baseUrl: widget.baseUrl)],
-      ),
-      drawer: isMobile
-          ? Drawer(
-              child: SafeArea(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(AppConstants.spacingMd),
-                      child: Text(
-                        'Documents',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            )
-          : null,
+      appBar: isMobile
+          ? null
+          : AppBar(
+              title: const Text('AI Agent Chat'),
+              actions: [_AppBarActions(baseUrl: widget.baseUrl)],
+            ),
+      drawer: null,
       body: isMobile ? const HomeMobileLayout() : const HomeDesktopLayout(),
     );
   }
@@ -125,7 +100,7 @@ class _AppBarActions extends StatelessWidget {
             padding: const EdgeInsets.only(right: AppConstants.spacingMd),
             child: Center(
               child: Text(
-                'Chunks: ${health.documentsCount}',
+                'Sessions: ${health.activeSessions}',
                 style: theme.textTheme.labelSmall?.copyWith(
                   color: colorScheme.onPrimary,
                 ),

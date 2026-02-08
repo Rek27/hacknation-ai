@@ -189,6 +189,19 @@ class ChatController extends ChangeNotifier {
     await sendMessage(_lastUserText!);
   }
 
+  /// Clears the conversation and resets to the initial state (e.g. for "End call" on mobile).
+  void clearConversation() {
+    _messages.clear();
+    _hasStarted = false;
+    _lastUserText = null;
+    _errorMessage = null;
+    _pinnedTextForm = null;
+    _pinnedTextFormMessageId = null;
+    _disabledMessageIds.clear();
+    _treeStates.clear();
+    notifyListeners();
+  }
+
   // ---------------------------------------------------------------------------
   // Tree interactions
   // ---------------------------------------------------------------------------

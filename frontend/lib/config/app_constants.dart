@@ -57,4 +57,36 @@ abstract final class AppConstants {
 
   /// Width of sample prompt cards.
   static const double samplePromptWidth = 260.0;
+
+  // Call-style UI (mobile)
+  /// Size of the assistant avatar on the call screen.
+  static const double callUiAvatarSize = 120.0;
+
+  /// Size of the end-call button on the call screen.
+  static const double callUiEndButtonSize = 72.0;
+
+  /// Display name for the assistant on the call screen.
+  static const String callUiAssistantName = 'Assistant';
+
+  // Voice wave animation
+  /// Number of bars in the voice wave visualizer.
+  static const int waveBarCount = 24;
+
+  /// Width of each individual wave bar.
+  static const double waveBarWidth = 3.0;
+
+  /// Maximum height a wave bar reaches while animating.
+  static const double waveBarMaxHeight = 32.0;
+
+  /// Uniform height of all bars in the idle (flat) state.
+  static const double waveBarIdleHeight = 3.0;
+
+  /// Horizontal spacing between wave bars.
+  static const double waveBarSpacing = 2.0;
+
+  /// Opacity of wave bars in the idle (flat) state.
+  static const double waveBarIdleOpacity = 0.35;
+
+  /// Opacity of wave bars in the active (animating) state.
+  static const double waveBarActiveOpacity = 0.85;
 }
