@@ -172,6 +172,8 @@ class TreeAgent:
             collected_text_for_context: list[str] = []
             emitted_people = False
             emitted_place = False
+            emitted_text = False
+            inserted_preface = False
 
             async for chunk in stream:
                 delta = chunk.choices[0].delta
@@ -229,6 +231,17 @@ class TreeAgent:
                                         )
                                         continue
                                     emitted_people = True
+                                    if not emitted_text and not inserted_preface:
+                                        preface = {
+                                            "type": "text",
+                                            "content": "Got it — here are the current trees.",
+                                        }
+                                        yield json.dumps(preface)
+                                        collected_text_for_context.append(
+                                            preface["content"]
+                                        )
+                                        emitted_text = True
+                                        inserted_preface = True
                                 if tc["name"] == "emit_place_tree":
                                     if emitted_place:
                                         logger.info(
@@ -236,6 +249,17 @@ class TreeAgent:
                                         )
                                         continue
                                     emitted_place = True
+                                    if not emitted_text and not inserted_preface:
+                                        preface = {
+                                            "type": "text",
+                                            "content": "Got it — here are the current trees.",
+                                        }
+                                        yield json.dumps(preface)
+                                        collected_text_for_context.append(
+                                            preface["content"]
+                                        )
+                                        emitted_text = True
+                                        inserted_preface = True
 
                                 yield output_json
                                 logger.info(f"Emitted {tc['name']}")
@@ -245,6 +269,7 @@ class TreeAgent:
                                     collected_text_for_context.append(
                                         args["content"]
                                     )
+                                    emitted_text = True
                                 else:
                                     has_only_text = False
                         except json.JSONDecodeError as e:
@@ -294,6 +319,12 @@ class TreeAgent:
             return json.dumps({"type": "people_tree", "nodes": nodes})
         if name == "emit_place_tree":
             nodes = args.get("nodes", [])
+            if len(nodes) > 6:
+                logger.info(
+                    "Trimming place_tree top-level nodes from %d to 6",
+                    len(nodes),
+                )
+                nodes = nodes[:6]
             TreeAgent._propagate_selection(nodes)
             return json.dumps({"type": "place_tree", "nodes": nodes})
         logger.warning(f"Unknown tool: {name}")

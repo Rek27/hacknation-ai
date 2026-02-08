@@ -6,6 +6,8 @@ Add new tools here and register them with the @tools.register decorator.
 
 import json
 import re
+import hashlib
+import random
 from datetime import datetime
 from typing import Optional, Union
 from dataclasses import dataclass
@@ -167,6 +169,139 @@ def calculate(expression: str) -> str:
         return json.dumps({
             "error": f"Invalid expression: {str(e)}"
         })
+
+
+def _stable_rng(seed_text: str) -> random.Random:
+    digest = hashlib.sha256(seed_text.encode("utf-8")).hexdigest()
+    seed_int = int(digest[:16], 16)
+    return random.Random(seed_int)
+
+
+def _extract_event_type(event_context: str) -> str:
+    lower = event_context.lower()
+    keywords = {
+        "wedding": "wedding",
+        "birthday": "birthday party",
+        "conference": "conference",
+        "meetup": "meetup",
+        "office": "office event",
+        "corporate": "corporate event",
+        "festival": "festival",
+        "sports": "sports event",
+        "kids": "kids event",
+        "school": "school event",
+        "outdoor": "outdoor event",
+    }
+    for key, label in keywords.items():
+        if key in lower:
+            return label
+    return "community event"
+
+
+def _extract_location(event_context: str) -> str:
+    match = re.search(r"address:\s*([^.\n]+)", event_context, re.IGNORECASE)
+    if match:
+        return match.group(1).strip()
+    return "the venue"
+
+
+@tools.register
+def check_retailer_sponsorship(
+    retailer: str,
+    items: str,
+    event_context: str
+) -> str:
+    """
+    Mock retailer sponsorship check with deterministic, realistic reasoning.
+    """
+    try:
+        parsed_items = json.loads(items)
+        if not isinstance(parsed_items, list):
+            parsed_items = [parsed_items]
+    except (json.JSONDecodeError, TypeError):
+        parsed_items = [items]
+
+    normalized_items: list[dict] = []
+    for entry in parsed_items:
+        if isinstance(entry, dict):
+            name = str(entry.get("item", "")).strip()
+            if name:
+                normalized_items.append(
+                    {
+                        "item": name,
+                        "id": entry.get("id"),
+                    }
+                )
+        else:
+            name = str(entry).strip()
+            if name:
+                normalized_items.append({"item": name, "id": None})
+
+    seed_text = f"{retailer}|{json.dumps(normalized_items)}|{event_context}"
+    rng = _stable_rng(seed_text)
+
+    event_type = _extract_event_type(event_context)
+    location = _extract_location(event_context)
+
+    approved = rng.random() > 0.35
+
+    approve_reasons = [
+        f"We can support the {event_type} in {location} with a targeted promo.",
+        f"This {event_type} in {location} aligns with our local outreach goals.",
+        f"Seasonal demand in {location} makes this {event_type} a good fit.",
+        f"Our regional marketing plan includes events like this {event_type} in {location}.",
+        f"Partnering on this {event_type} in {location} fits our community engagement focus.",
+        f"Projected attendance in {location} makes this {event_type} a strong match.",
+        f"This {event_type} helps us showcase new inventory in {location}.",
+    ]
+    reject_reasons = [
+        f"Our local budget for {location} is already allocated this month.",
+        f"Inventory constraints in {location} limit support for this {event_type}.",
+        f"We cannot sponsor this {event_type} due to delivery capacity in {location}.",
+        f"Compliance limits prevent sponsorships for this {event_type} in {location}.",
+        f"Current vendor commitments in {location} restrict additional sponsorships.",
+        f"The event timing in {location} overlaps with an internal campaign freeze.",
+        f"We are prioritizing different categories for {event_type} in {location}.",
+    ]
+
+    if not approved:
+        return json.dumps({
+            "retailer": retailer,
+            "status": "rejected",
+            "reason": rng.choice(reject_reasons),
+            "discountedItems": []
+        })
+
+    if not normalized_items:
+        normalized_items = [{"item": "general supplies", "id": None}]
+
+    percent_steps = list(range(5, 55, 5))
+    target_count = max(1, int(round(len(normalized_items) * 0.2)))
+    target_count = min(target_count, len(normalized_items))
+    discounted_selection = rng.sample(normalized_items, k=target_count)
+    discounted_names = {entry["item"] for entry in discounted_selection}
+
+    discounted_items = []
+    for entry in normalized_items:
+        if entry["item"] in discounted_names:
+            percent = rng.choice(percent_steps)
+        else:
+            percent = 0
+        discounted_items.append({
+            "item": entry["item"],
+            "id": entry.get("id"),
+            "percent": percent
+        })
+
+    overall_discount = int(sum(i["percent"] for i in discounted_items) / len(discounted_items))
+
+    return json.dumps({
+        "retailer": retailer,
+        "status": "approved",
+        "reason": rng.choice(approve_reasons),
+        "discountPercent": overall_discount,
+        "discountedItems": discounted_items
+    })
 
 
 def _build_where_clause(filters: Optional[Union[Filters, dict]]) -> Optional[dict]:
