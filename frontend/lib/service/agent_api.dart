@@ -226,6 +226,7 @@ abstract class ChatService {
     required List<Map<String, dynamic>> peopleTree,
     required List<Map<String, dynamic>> placeTree,
   });
+
   /// Streams chunks from POST /submit-form so the UI can display them as they arrive.
   Stream<OutputItemBase> submitFormStream(TextFormChunk form);
 }

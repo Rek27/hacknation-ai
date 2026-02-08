@@ -83,7 +83,8 @@ class _ChatMessageListState extends State<ChatMessageList> {
       <String, dynamic>{
         'buildCount': _buildCount,
         'messageCount': messages.length,
-        'showThinking': controller.isLoading &&
+        'showThinking':
+            controller.isLoading &&
             !(messages.isNotEmpty &&
                 messages.last.sender == ChatMessageSender.agent),
       },
@@ -109,8 +110,8 @@ class _ChatMessageListState extends State<ChatMessageList> {
     final bool isLoading = controller.isLoading;
     // Hide the thinking bubble once agent content starts streaming in,
     // so the user sees the growing text instead of a loading indicator.
-    final bool hasAgentResponse = messages.isNotEmpty &&
-        messages.last.sender == ChatMessageSender.agent;
+    final bool hasAgentResponse =
+        messages.isNotEmpty && messages.last.sender == ChatMessageSender.agent;
     final bool showThinking = isLoading && !hasAgentResponse;
     final int totalItems = messages.length + (showThinking ? 1 : 0);
     return Stack(

@@ -68,15 +68,22 @@ class CartController extends ChangeNotifier {
   /// Matches by retailer and by item id or name. Returns null if no discount.
   int? getDiscountPercentForItem(CartItem item) {
     for (final RetailerOffer offer in _retailerOffers) {
-      if (offer.retailer != item.retailer || offer.status != 'approved') {
+      if (offer.retailer != item.retailer) {
         continue;
       }
+
+      if (offer.status != 'approved') {
+        continue;
+      }
+
       for (final RetailerOfferItem di in offer.discountedItems) {
         final bool matchId =
             di.id != null && item.id != null && di.id == item.id;
         final bool matchName =
             di.item.trim().toLowerCase() == item.name.trim().toLowerCase();
-        if (matchId || matchName) return di.percent;
+        if (matchId || matchName) {
+          return di.percent;
+        }
       }
     }
     return null;
@@ -163,7 +170,24 @@ class CartController extends ChangeNotifier {
     _reasonsByIndex.clear();
     _aiReasoning.clear();
     _aiReasoningLoading.clear();
+    // DO NOT clear _retailerOffers here - they arrive separately and should persist!
+    notifyListeners();
+  }
+
+  /// Clear cart and all associated state (for new conversations).
+  void clearCart() {
+    _cart = null;
     _retailerOffers = const [];
+    _selectedMainByIndex.clear();
+    _expandedIds.clear();
+    _expandedGroups.clear();
+    _reasonsByIndex.clear();
+    _aiReasoning.clear();
+    _aiReasoningLoading.clear();
+    _phase = CheckoutPhase.cart;
+    _confirmedRetailers.clear();
+    errorMessage = null;
+    isLoading = false;
     notifyListeners();
   }
 

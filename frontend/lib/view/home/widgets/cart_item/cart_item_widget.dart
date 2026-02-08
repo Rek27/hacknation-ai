@@ -179,7 +179,7 @@ class _HeaderRow extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: AppConstants.spacingXs),
+              const SizedBox(height: AppConstants.spacingSm),
               Align(
                 alignment: Alignment.centerRight,
                 child: CartItemTotalWithDiscount(item: item),

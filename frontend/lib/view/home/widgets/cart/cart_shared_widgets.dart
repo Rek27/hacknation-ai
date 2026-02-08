@@ -227,13 +227,24 @@ class CartItemTotalWithDiscount extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (hasDiscount) ...[
-          Text(
-            'Item total: ${formatPrice(originalTotal)}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colorScheme.onSurfaceVariant,
-              decoration: TextDecoration.lineThrough,
-              decorationColor: colorScheme.onSurfaceVariant,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Item total: ',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+              Text(
+                formatPrice(originalTotal),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                  decoration: TextDecoration.lineThrough,
+                  decorationColor: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
           ),
           const SizedBox(width: AppConstants.spacingSm),
         ],
@@ -241,7 +252,7 @@ class CartItemTotalWithDiscount extends StatelessWidget {
           hasDiscount
               ? formatPrice(lineTotal)
               : 'Item total: ${formatPrice(lineTotal)}',
-          style: theme.textTheme.bodySmall?.copyWith(
+          style: theme.textTheme.bodyMedium?.copyWith(
             color: colorScheme.primary,
             fontWeight: FontWeight.w600,
           ),
@@ -381,7 +392,6 @@ class CartCheckoutBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final double displayTotal = finalTotalPrice ?? totalPrice;
     final bool showDiscount =
         finalTotalPrice != null && finalTotalPrice! < totalPrice;
     return Padding(
@@ -407,7 +417,7 @@ class CartCheckoutBar extends StatelessWidget {
                   onPressed: onCheckout,
                   icon: const Icon(Icons.bolt),
                   label: Text(
-                    'Checkout All — ${formatPrice(displayTotal)}',
+                    'Checkout All',
                     style: theme.textTheme.titleMedium?.copyWith(
                       color: colorScheme.onPrimary,
                       fontWeight: FontWeight.w700,

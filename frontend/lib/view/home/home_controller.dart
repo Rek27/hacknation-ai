@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
-
 import '../../model/api_models.dart';
 import '../../model/chat_models.dart';
 import '../../service/agent_api.dart';

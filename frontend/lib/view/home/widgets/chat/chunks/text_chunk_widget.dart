@@ -40,27 +40,23 @@ class _TextChunkWidgetState extends State<TextChunkWidget> {
   void didUpdateWidget(TextChunkWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     // #region agent log
-    final contentChanged =
-        widget.chunk.content != oldWidget.chunk.content;
+    final contentChanged = widget.chunk.content != oldWidget.chunk.content;
     if (contentChanged) {
-      debugLog(
-        'text_chunk_widget.dart:didUpdateWidget',
-        'content changed',
-        <String, dynamic>{
-          'oldContentLen': oldWidget.chunk.content.length,
-          'newContentLen': widget.chunk.content.length,
-          'hasMoreWords': widget.chunk.content
-                  .split(RegExp(r'(\s+)'))
-                  .length >
-              _words.length,
-        },
-        'H4',
-      );
+      debugLog('text_chunk_widget.dart:didUpdateWidget', 'content changed', <
+        String,
+        dynamic
+      >{
+        'oldContentLen': oldWidget.chunk.content.length,
+        'newContentLen': widget.chunk.content.length,
+        'hasMoreWords':
+            widget.chunk.content.split(RegExp(r'(\s+)')).length > _words.length,
+      }, 'H4');
     }
     // #endregion
     if (contentChanged) {
-      final List<String> newWords =
-          widget.chunk.content.split(RegExp(r'(\s+)'));
+      final List<String> newWords = widget.chunk.content.split(
+        RegExp(r'(\s+)'),
+      );
       if (newWords.length > _words.length) {
         // Reset completion so new words animate word-by-word instead of
         // appearing all at once when the previous batch had finished typing.

@@ -168,8 +168,7 @@ class ChatController extends ChangeNotifier {
       int chunkIndex = 0;
       final streamStartMs = DateTime.now().millisecondsSinceEpoch;
       // #endregion
-      await for (final OutputItemBase chunk
-          in _chatService.sendMessage(text)) {
+      await for (final OutputItemBase chunk in _chatService.sendMessage(text)) {
         // #region agent log
         debugLog(
           'chat_controller.dart:sendMessage_loop',
@@ -245,6 +244,7 @@ class ChatController extends ChangeNotifier {
     _pinnedTextFormMessageId = null;
     _disabledMessageIds.clear();
     _treeStates.clear();
+    _cartController?.clearCart();
     notifyListeners();
   }
 
@@ -420,8 +420,9 @@ class ChatController extends ChangeNotifier {
       int formChunkIndex = 0;
       final formStreamStartMs = DateTime.now().millisecondsSinceEpoch;
       // #endregion
-      await for (final OutputItemBase chunk
-          in _chatService.submitFormStream(submittedForm)) {
+      await for (final OutputItemBase chunk in _chatService.submitFormStream(
+        submittedForm,
+      )) {
         // #region agent log
         debugLog(
           'chat_controller.dart:submitTextForm_loop',
@@ -573,8 +574,7 @@ class ChatController extends ChangeNotifier {
         chunks: newChunks,
       );
       // #region agent log
-      final TextChunk newLast =
-          newChunks[newChunks.length - 1] as TextChunk;
+      final TextChunk newLast = newChunks[newChunks.length - 1] as TextChunk;
       debugLog(
         'chat_controller.dart:_appendOrMergeTextChunk',
         'merge text chunk',
