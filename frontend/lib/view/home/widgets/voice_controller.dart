@@ -12,7 +12,7 @@ import 'package:frontend/service/agent_api.dart';
 ///
 /// Handles recording user audio, sending it to the backend, receiving
 /// transcriptions and TTS responses, and playing back assistant audio.
-/// 
+///
 /// Features automatic voice detection:
 /// - Auto-starts recording when assistant finishes speaking
 /// - Auto-stops after 1 second of silence
@@ -21,11 +21,9 @@ class VoiceController extends ChangeNotifier {
   final AgentApi _api;
   final String _sessionId;
 
-  VoiceController({
-    required AgentApi api,
-    required String sessionId,
-  })  : _api = api,
-        _sessionId = sessionId;
+  VoiceController({required AgentApi api, required String sessionId})
+    : _api = api,
+      _sessionId = sessionId;
 
   // ── Audio recording ──────────────────────────────────────────────────
   AudioRecorder? _recorder;
@@ -33,19 +31,19 @@ class VoiceController extends ChangeNotifier {
   String? _currentRecordingPath;
   bool _isRecorderReady = false;
   String? _tempDirPath;
-  
+
   // Silence detection
   StreamSubscription<Amplitude>? _amplitudeSubscription;
   Timer? _silenceTimer;
   DateTime? _recordingStartTime;
   double _currentAmplitude = 0.0;
-  
+
   /// Minimum recording duration in seconds
   static const int _minRecordingDurationSeconds = 2;
-  
+
   /// Silence detection threshold (in dBFS, typical range is -160 to 0)
   static const double _silenceThreshold = -40.0;
-  
+
   /// Duration of silence before auto-stopping (in seconds)
   static const int _silenceDurationSeconds = 1;
 
@@ -101,16 +99,16 @@ class VoiceController extends ChangeNotifier {
     try {
       // Prepare recorder for instant response
       await _prepareRecorder();
-      
+
       final response = await _api.startVoice(_sessionId);
-      
+
       _isSessionStarted = true;
       _currentPhase = response.phase;
       _lastAssistantText = response.text;
-      
+
       // Play the greeting TTS audio
       await _playTtsAudio(response.audioId);
-      
+
       _isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -132,10 +130,10 @@ class VoiceController extends ChangeNotifier {
           debugPrint('VoiceController: Error disposing old recorder: $e');
         }
       }
-      
+
       // Create fresh recorder instance
       _recorder = AudioRecorder();
-      
+
       // Check permissions upfront
       final hasPermission = await _recorder!.hasPermission();
       if (!hasPermission) {
@@ -144,13 +142,13 @@ class VoiceController extends ChangeNotifier {
         notifyListeners();
         return;
       }
-      
+
       // Cache temp directory path if not already cached
       if (_tempDirPath == null) {
         final tempDir = await getTemporaryDirectory();
         _tempDirPath = tempDir.path;
       }
-      
+
       _isRecorderReady = true;
       debugPrint('VoiceController: Recorder prepared and ready');
     } catch (e) {
@@ -163,10 +161,12 @@ class VoiceController extends ChangeNotifier {
   /// Start recording user audio with automatic silence detection.
   Future<void> startRecording() async {
     if (_isRecording || _isPlaying) return;
-    
+
     // Fallback: prepare recorder if not ready (should rarely happen)
     if (!_isRecorderReady) {
-      debugPrint('VoiceController: Recorder not ready, preparing now (fallback)');
+      debugPrint(
+        'VoiceController: Recorder not ready, preparing now (fallback)',
+      );
       await _prepareRecorder();
       if (!_isRecorderReady) {
         _error = 'Cannot start recording: recorder not ready';
@@ -195,9 +195,9 @@ class VoiceController extends ChangeNotifier {
         ),
         path: _currentRecordingPath!,
       );
-      
+
       debugPrint('VoiceController: Recording started successfully');
-      
+
       // Start monitoring amplitude for silence detection
       _startAmplitudeMonitoring();
     } catch (e) {
@@ -208,34 +208,34 @@ class VoiceController extends ChangeNotifier {
       debugPrint('VoiceController.startRecording error: $e');
     }
   }
-  
+
   /// Start monitoring amplitude to detect silence.
   void _startAmplitudeMonitoring() {
     _amplitudeSubscription?.cancel();
-    
+
     _amplitudeSubscription = _recorder!
         .onAmplitudeChanged(const Duration(milliseconds: 100))
         .listen((amplitude) {
-      _currentAmplitude = amplitude.current;
-      
-      // Check if we're in silence
-      if (_currentAmplitude < _silenceThreshold) {
-        // Start silence timer if not already running
-        if (_silenceTimer == null || !_silenceTimer!.isActive) {
-          _startSilenceTimer();
-        }
-      } else {
-        // Cancel silence timer if we detect sound
-        _silenceTimer?.cancel();
-        _silenceTimer = null;
-      }
-    });
+          _currentAmplitude = amplitude.current;
+
+          // Check if we're in silence
+          if (_currentAmplitude < _silenceThreshold) {
+            // Start silence timer if not already running
+            if (_silenceTimer == null || !_silenceTimer!.isActive) {
+              _startSilenceTimer();
+            }
+          } else {
+            // Cancel silence timer if we detect sound
+            _silenceTimer?.cancel();
+            _silenceTimer = null;
+          }
+        });
   }
-  
+
   /// Start timer for silence detection.
   void _startSilenceTimer() {
     _silenceTimer?.cancel();
-    
+
     _silenceTimer = Timer(
       const Duration(seconds: _silenceDurationSeconds),
       () async {
@@ -244,17 +244,21 @@ class VoiceController extends ChangeNotifier {
           final duration = DateTime.now().difference(_recordingStartTime!);
           if (duration.inSeconds >= _minRecordingDurationSeconds) {
             // Automatically stop and send
-            debugPrint('VoiceController: Auto-stopping after silence (duration: ${duration.inSeconds}s)');
+            debugPrint(
+              'VoiceController: Auto-stopping after silence (duration: ${duration.inSeconds}s)',
+            );
             await stopRecordingAndSend();
           } else {
-            debugPrint('VoiceController: Silence detected but recording too short (${duration.inSeconds}s), continuing...');
+            debugPrint(
+              'VoiceController: Silence detected but recording too short (${duration.inSeconds}s), continuing...',
+            );
           }
           // If duration is too short, do nothing and wait for more audio
         }
       },
     );
   }
-  
+
   /// Stop amplitude monitoring.
   void _stopAmplitudeMonitoring() {
     _amplitudeSubscription?.cancel();
@@ -270,11 +274,12 @@ class VoiceController extends ChangeNotifier {
     try {
       // Stop amplitude monitoring
       _stopAmplitudeMonitoring();
-      
+
       final path = await _recorder!.stop();
       _isRecording = false;
       _recordingStartTime = null;
-      _isRecorderReady = false; // Mark as not ready, will be prepared during next TTS
+      _isRecorderReady =
+          false; // Mark as not ready, will be prepared during next TTS
       notifyListeners();
 
       if (path == null || path.isEmpty) {
@@ -302,12 +307,13 @@ class VoiceController extends ChangeNotifier {
     try {
       // Stop amplitude monitoring
       _stopAmplitudeMonitoring();
-      
+
       await _recorder!.cancel();
       _isRecording = false;
       _recordingStartTime = null;
       _currentRecordingPath = null;
-      _isRecorderReady = false; // Mark as not ready, will be prepared during next TTS
+      _isRecorderReady =
+          false; // Mark as not ready, will be prepared during next TTS
       notifyListeners();
     } catch (e) {
       _isRecording = false;
@@ -322,16 +328,16 @@ class VoiceController extends ChangeNotifier {
   Future<void> endSession() async {
     // Stop amplitude monitoring
     _stopAmplitudeMonitoring();
-    
+
     await cancelRecording();
     await _audioPlayer.stop();
-    
+
     // Clean up recorder
     _recorder?.dispose();
     _recorder = null;
     _isRecorderReady = false;
     _tempDirPath = null;
-    
+
     _isSessionStarted = false;
     _isPlaying = false;
     _isLoading = false;
@@ -340,7 +346,7 @@ class VoiceController extends ChangeNotifier {
     _lastAssistantText = '';
     _lastUserText = '';
     _recordingStartTime = null;
-    
+
     notifyListeners();
   }
 
@@ -354,14 +360,14 @@ class VoiceController extends ChangeNotifier {
 
     try {
       final response = await _api.sendVoiceInput(_sessionId, audioFile);
-      
+
       _currentPhase = response.phase;
       _lastAssistantText = response.text;
       _lastUserText = response.transcribedText;
-      
+
       // Play the assistant's TTS response
       await _playTtsAudio(response.audioId);
-      
+
       _isLoading = false;
       notifyListeners();
 
@@ -408,13 +414,13 @@ class VoiceController extends ChangeNotifier {
 
       // Wait for playback to complete
       await _audioPlayer.onPlayerComplete.first;
-      
+
       // Ensure recorder is ready before proceeding
       await recorderPreparation;
-      
+
       _isPlaying = false;
       notifyListeners();
-      
+
       // Automatically start recording after assistant finishes speaking
       // Recorder is already pre-warmed, so this should be instant
       await startRecording();

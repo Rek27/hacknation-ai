@@ -33,13 +33,15 @@ Map<String, int> _buildDfsIndexMap(
       initialSelected: cat.isSelected,
     );
     if (state.isSelected && cat.subcategories.isNotEmpty) {
-      map.addAll(_buildDfsIndexMap(
-        cat.subcategories,
-        <String>[...ancestors, cat.label],
-        controller,
-        messageId,
-        counter,
-      ));
+      map.addAll(
+        _buildDfsIndexMap(
+          cat.subcategories,
+          <String>[...ancestors, cat.label],
+          controller,
+          messageId,
+          counter,
+        ),
+      );
     }
   }
   return map;
@@ -109,13 +111,13 @@ class _TreeChunkWidgetState extends State<TreeChunkWidget>
       parent: _entranceController,
       curve: Interval(start, end, curve: Curves.easeOut),
     );
-    final Animation<Offset> slide = Tween<Offset>(
-      begin: const Offset(0, 0.12),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _entranceController,
-      curve: Interval(start, end, curve: Curves.easeOutCubic),
-    ));
+    final Animation<Offset> slide =
+        Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _entranceController,
+            curve: Interval(start, end, curve: Curves.easeOutCubic),
+          ),
+        );
     return SlideTransition(
       position: slide,
       child: FadeTransition(opacity: opacity, child: child),
@@ -188,9 +190,9 @@ class _TreeChunkWidgetState extends State<TreeChunkWidget>
                       totalItems,
                       _SubmitTreeButton(
                         onPressed: () {
-                          context
-                              .read<ChatController>()
-                              .submitTree(widget.messageId);
+                          context.read<ChatController>().submitTree(
+                            widget.messageId,
+                          );
                         },
                       ),
                     ),
@@ -492,8 +494,7 @@ class _SubcategoryWrap extends StatelessWidget {
           runSpacing: AppConstants.spacingXs,
           children: List<Widget>.generate(total, (int index) {
             final Category cat = categories[index];
-            final String path =
-                controller.buildLabelPath(ancestors, cat.label);
+            final String path = controller.buildLabelPath(ancestors, cat.label);
             final CategoryNodeState state = controller.getNodeState(
               messageId,
               path,
@@ -512,7 +513,8 @@ class _SubcategoryWrap extends StatelessWidget {
             // During initial entrance: use DFS-ordered entrance animation.
             // After entrance (user-triggered expand): use local stagger.
             final int? dfsIndex = dfsMap[path];
-            if (dfsIndex != null && (useEntrance || entranceController.value < 1.0)) {
+            if (dfsIndex != null &&
+                (useEntrance || entranceController.value < 1.0)) {
               return animateItem(dfsIndex, totalItems, pill);
             }
             // User-triggered expansion stagger
@@ -526,17 +528,20 @@ class _SubcategoryWrap extends StatelessWidget {
                 curve: Curves.easeOut,
               ),
             );
-            final Animation<Offset> itemSlide = Tween<Offset>(
-              begin: const Offset(0, -0.15),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(
-              parent: expandController,
-              curve: Interval(
-                start.clamp(0.0, 1.0),
-                end.clamp(0.0, 1.0),
-                curve: Curves.easeOutCubic,
-              ),
-            ));
+            final Animation<Offset> itemSlide =
+                Tween<Offset>(
+                  begin: const Offset(0, -0.15),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: expandController,
+                    curve: Interval(
+                      start.clamp(0.0, 1.0),
+                      end.clamp(0.0, 1.0),
+                      curve: Curves.easeOutCubic,
+                    ),
+                  ),
+                );
             return SlideTransition(
               position: itemSlide,
               child: FadeTransition(opacity: itemOpacity, child: pill),
@@ -546,8 +551,7 @@ class _SubcategoryWrap extends StatelessWidget {
         // Expanded depth-2 groups
         ...List<Widget>.generate(total, (int index) {
           final Category cat = categories[index];
-          final String path =
-              controller.buildLabelPath(ancestors, cat.label);
+          final String path = controller.buildLabelPath(ancestors, cat.label);
           final CategoryNodeState state = controller.getNodeState(
             messageId,
             path,
@@ -676,8 +680,10 @@ class _ExpandableLeafGroupState extends State<_ExpandableLeafGroup>
             runSpacing: AppConstants.spacingXs,
             children: List<Widget>.generate(total, (int index) {
               final Category cat = widget.subcategories[index];
-              final String path =
-                  controller.buildLabelPath(widget.ancestors, cat.label);
+              final String path = controller.buildLabelPath(
+                widget.ancestors,
+                cat.label,
+              );
               final CategoryNodeState state = controller.getNodeState(
                 widget.messageId,
                 path,
@@ -689,16 +695,14 @@ class _ExpandableLeafGroupState extends State<_ExpandableLeafGroup>
                 isSelected: state.isSelected,
                 isDisabled: widget.isDisabled,
                 onTap: () {
-                  controller.toggleCategorySelection(
-                    widget.messageId,
-                    path,
-                  );
+                  controller.toggleCategorySelection(widget.messageId, path);
                 },
                 depth: 2,
               );
               // During initial entrance: use DFS-ordered animation.
               final int? dfsIndex = widget.dfsMap[path];
-              if (dfsIndex != null && (useEntrance || widget.entranceController.value < 1.0)) {
+              if (dfsIndex != null &&
+                  (useEntrance || widget.entranceController.value < 1.0)) {
                 return widget.animateItem(dfsIndex, widget.totalItems, pill);
               }
               // User-triggered expansion stagger
@@ -712,17 +716,20 @@ class _ExpandableLeafGroupState extends State<_ExpandableLeafGroup>
                   curve: Curves.easeOut,
                 ),
               );
-              final Animation<Offset> itemSlide = Tween<Offset>(
-                begin: const Offset(0, -0.15),
-                end: Offset.zero,
-              ).animate(CurvedAnimation(
-                parent: _expandController,
-                curve: Interval(
-                  start.clamp(0.0, 1.0),
-                  end.clamp(0.0, 1.0),
-                  curve: Curves.easeOutCubic,
-                ),
-              ));
+              final Animation<Offset> itemSlide =
+                  Tween<Offset>(
+                    begin: const Offset(0, -0.15),
+                    end: Offset.zero,
+                  ).animate(
+                    CurvedAnimation(
+                      parent: _expandController,
+                      curve: Interval(
+                        start.clamp(0.0, 1.0),
+                        end.clamp(0.0, 1.0),
+                        curve: Curves.easeOutCubic,
+                      ),
+                    ),
+                  );
               return SlideTransition(
                 position: itemSlide,
                 child: FadeTransition(opacity: itemOpacity, child: pill),

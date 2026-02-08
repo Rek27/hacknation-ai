@@ -23,10 +23,7 @@ class CartSheet extends StatelessWidget {
         title: const Text('Cart'),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(1),
-          child: Container(
-            height: 1,
-            color: colorScheme.outlineVariant,
-          ),
+          child: Container(height: 1, color: colorScheme.outlineVariant),
         ),
       ),
       body: const CartMobilePanel(),

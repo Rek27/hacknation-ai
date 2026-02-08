@@ -88,8 +88,7 @@ class MicrophoneController extends ChangeNotifier {
     // amp.current is in dBFS (typically -160 to 0).
     // Normalise into 0.0 – 1.0 and apply exponential smoothing.
     final double raw = ((amp.current - _dbFloor) / -_dbFloor).clamp(0.0, 1.0);
-    final double smoothed =
-        _amplitude + (raw - _amplitude) * _smoothingFactor;
+    final double smoothed = _amplitude + (raw - _amplitude) * _smoothingFactor;
     if ((_amplitude - smoothed).abs() > 0.005) {
       _amplitude = smoothed;
       notifyListeners();

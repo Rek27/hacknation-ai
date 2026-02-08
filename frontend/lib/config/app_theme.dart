@@ -214,8 +214,12 @@ abstract final class AppTheme {
         style: FilledButton.styleFrom(
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
-          disabledBackgroundColor: colorScheme.onSurface.withValues(alpha: 0.12),
-          disabledForegroundColor: colorScheme.onSurface.withValues(alpha: 0.38),
+          disabledBackgroundColor: colorScheme.onSurface.withValues(
+            alpha: 0.12,
+          ),
+          disabledForegroundColor: colorScheme.onSurface.withValues(
+            alpha: 0.38,
+          ),
           elevation: 0,
           padding: const EdgeInsets.symmetric(
             horizontal: AppConstants.spacingLg,
@@ -233,8 +237,12 @@ abstract final class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: colorScheme.primary,
           foregroundColor: colorScheme.onPrimary,
-          disabledBackgroundColor: colorScheme.onSurface.withValues(alpha: 0.12),
-          disabledForegroundColor: colorScheme.onSurface.withValues(alpha: 0.38),
+          disabledBackgroundColor: colorScheme.onSurface.withValues(
+            alpha: 0.12,
+          ),
+          disabledForegroundColor: colorScheme.onSurface.withValues(
+            alpha: 0.38,
+          ),
           elevation: 0,
           padding: const EdgeInsets.symmetric(
             horizontal: AppConstants.spacingLg,
@@ -251,7 +259,9 @@ abstract final class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: colorScheme.primary,
-          disabledForegroundColor: colorScheme.onSurface.withValues(alpha: 0.38),
+          disabledForegroundColor: colorScheme.onSurface.withValues(
+            alpha: 0.38,
+          ),
           elevation: 0,
           padding: const EdgeInsets.symmetric(
             horizontal: AppConstants.spacingLg,

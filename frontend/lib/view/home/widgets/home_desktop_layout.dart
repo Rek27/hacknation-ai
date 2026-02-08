@@ -22,8 +22,7 @@ class HomeDesktopLayout extends StatelessWidget {
       create: (_) => CartController(),
       child: Builder(
         builder: (context) {
-          final CartController cartController =
-              context.read<CartController>();
+          final CartController cartController = context.read<CartController>();
           return Row(
             children: [
               // ── Chat panel (left) ──────────────────────────────────

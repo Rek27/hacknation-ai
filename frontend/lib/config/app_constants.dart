@@ -59,16 +59,22 @@ abstract final class AppConstants {
 
   // ── Tree pill constants (per depth level) ───────────────────────────
   /// Padding for level-0 category pills.
-  static const EdgeInsets treePillPaddingL0 =
-      EdgeInsets.symmetric(horizontal: 12, vertical: 8);
+  static const EdgeInsets treePillPaddingL0 = EdgeInsets.symmetric(
+    horizontal: 12,
+    vertical: 8,
+  );
 
   /// Padding for level-1 subcategory pills.
-  static const EdgeInsets treePillPaddingL1 =
-      EdgeInsets.symmetric(horizontal: 8, vertical: 5);
+  static const EdgeInsets treePillPaddingL1 = EdgeInsets.symmetric(
+    horizontal: 8,
+    vertical: 5,
+  );
 
   /// Padding for level-2 leaf pills.
-  static const EdgeInsets treePillPaddingL2 =
-      EdgeInsets.symmetric(horizontal: 6, vertical: 3);
+  static const EdgeInsets treePillPaddingL2 = EdgeInsets.symmetric(
+    horizontal: 6,
+    vertical: 3,
+  );
 
   /// Emoji size inside level-0 pills.
   static const double treePillEmojiSizeL0 = 20.0;

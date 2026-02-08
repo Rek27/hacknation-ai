@@ -11,11 +11,7 @@ class TalkingAvatar extends StatefulWidget {
   final bool isTalking;
   final double size;
 
-  const TalkingAvatar({
-    required this.isTalking,
-    required this.size,
-    super.key,
-  });
+  const TalkingAvatar({required this.isTalking, required this.size, super.key});
 
   @override
   State<TalkingAvatar> createState() => _TalkingAvatarState();
@@ -134,10 +130,7 @@ class _TalkingAvatarState extends State<TalkingAvatar> {
       child: ClipOval(
         child: Transform.translate(
           offset: Offset(0, -widget.size * 0.08),
-          child: rive.RiveWidget(
-            controller: _controller!,
-            fit: rive.Fit.cover,
-          ),
+          child: rive.RiveWidget(controller: _controller!, fit: rive.Fit.cover),
         ),
       ),
     );

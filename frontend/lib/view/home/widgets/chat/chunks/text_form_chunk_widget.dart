@@ -101,13 +101,13 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget>
       parent: _entranceController,
       curve: Interval(start, end, curve: Curves.easeOut),
     );
-    final Animation<Offset> slide = Tween<Offset>(
-      begin: const Offset(0, 0.12),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _entranceController,
-      curve: Interval(start, end, curve: Curves.easeOutCubic),
-    ));
+    final Animation<Offset> slide =
+        Tween<Offset>(begin: const Offset(0, 0.12), end: Offset.zero).animate(
+          CurvedAnimation(
+            parent: _entranceController,
+            curve: Interval(start, end, curve: Curves.easeOutCubic),
+          ),
+        );
     return SlideTransition(
       position: slide,
       child: FadeTransition(opacity: opacity, child: child),
@@ -156,10 +156,7 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget>
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _animateItem(
-                itemIndex++,
-                _buildHeader(theme, colorScheme),
-              ),
+              _animateItem(itemIndex++, _buildHeader(theme, colorScheme)),
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   AppConstants.spacingLg,
@@ -349,7 +346,11 @@ class _FormField extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: AppConstants.metaIconSize, color: colorScheme.onSurfaceVariant),
+            Icon(
+              icon,
+              size: AppConstants.metaIconSize,
+              color: colorScheme.onSurfaceVariant,
+            ),
             const SizedBox(width: AppConstants.spacingXs),
             Text(
               label,

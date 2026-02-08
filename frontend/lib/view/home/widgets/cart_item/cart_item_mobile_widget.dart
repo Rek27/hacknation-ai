@@ -56,10 +56,7 @@ class CartItemMobileWidget extends StatelessWidget {
                 const SizedBox(height: AppConstants.spacingSm),
                 const Divider(height: 1),
                 const SizedBox(height: AppConstants.spacingSm),
-                _MobileExpandedDetails(
-                  groupIndex: groupIndex,
-                  item: item,
-                ),
+                _MobileExpandedDetails(groupIndex: groupIndex, item: item),
               ],
             ],
           ),
@@ -113,10 +110,7 @@ class _MobileHeaderRow extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: AppConstants.spacingXs),
-                  _MobileActionIcons(
-                    item: item,
-                    isExpanded: isExpanded,
-                  ),
+                  _MobileActionIcons(item: item, isExpanded: isExpanded),
                 ],
               ),
               const SizedBox(height: AppConstants.spacingXs),
@@ -229,10 +223,7 @@ class _MobileHeaderRow extends StatelessWidget {
 
 /// Delete and expand/collapse icons for the mobile item card.
 class _MobileActionIcons extends StatelessWidget {
-  const _MobileActionIcons({
-    required this.item,
-    required this.isExpanded,
-  });
+  const _MobileActionIcons({required this.item, required this.isExpanded});
 
   final CartItem item;
   final bool isExpanded;
@@ -250,10 +241,7 @@ class _MobileActionIcons extends StatelessWidget {
 
 /// Expanded details for mobile: delivery info and 2x2 recommendations grid.
 class _MobileExpandedDetails extends StatelessWidget {
-  const _MobileExpandedDetails({
-    required this.groupIndex,
-    required this.item,
-  });
+  const _MobileExpandedDetails({required this.groupIndex, required this.item});
 
   final int groupIndex;
   final CartItem item;
@@ -526,10 +514,8 @@ class _MobileRecommendationsGrid extends StatelessWidget {
           label: 'Best reviewed',
           item: group.bestReviewed,
           isSelected: selectBest,
-          onTap: () => controller.selectRecommendation(
-            groupIndex,
-            group.bestReviewed,
-          ),
+          onTap: () =>
+              controller.selectRecommendation(groupIndex, group.bestReviewed),
         ),
         const SizedBox(height: AppConstants.spacingSm),
         _MobileRecommendationTile(

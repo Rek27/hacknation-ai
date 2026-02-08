@@ -12,10 +12,7 @@ class VoiceWaveAnimation extends StatefulWidget {
   /// Normalised microphone amplitude from 0.0 (silent / idle) to 1.0 (loud).
   final double amplitude;
 
-  const VoiceWaveAnimation({
-    required this.amplitude,
-    super.key,
-  });
+  const VoiceWaveAnimation({required this.amplitude, super.key});
 
   @override
   State<VoiceWaveAnimation> createState() => _VoiceWaveAnimationState();
@@ -73,7 +70,8 @@ class _VoiceWaveAnimationState extends State<VoiceWaveAnimation>
     // Bell-curve envelope: centre bars reach full height, edges stay shorter.
     final double centreDistance = (normalizedIndex - 0.5).abs();
     final double envelope = (1.0 - centreDistance * 1.2).clamp(0.15, 1.0);
-    final double activeHeight = AppConstants.waveBarIdleHeight +
+    final double activeHeight =
+        AppConstants.waveBarIdleHeight +
         (AppConstants.waveBarMaxHeight - AppConstants.waveBarIdleHeight) *
             combined *
             envelope;
@@ -84,7 +82,8 @@ class _VoiceWaveAnimationState extends State<VoiceWaveAnimation>
 
   @override
   Widget build(BuildContext context) {
-    final double opacity = AppConstants.waveBarIdleOpacity +
+    final double opacity =
+        AppConstants.waveBarIdleOpacity +
         (AppConstants.waveBarActiveOpacity - AppConstants.waveBarIdleOpacity) *
             _intensity;
     return SizedBox(
