@@ -654,8 +654,8 @@ class VoiceAgent:
                     form_data=context.form_data,
                 )
                 
-                # Build cart (async) - returns 4 values
-                cart, tool_events, missing_items, sponsorship_results = await self.shopping_agent.build_cart(
+                # Build cart (async) - returns 5 values
+                cart, tool_events, missing_items, retailer_items, ctx_text = await self.shopping_agent.build_cart(
                     items=items,
                     price_ranges=price_ranges,
                     quantities=quantities,
@@ -707,7 +707,7 @@ class VoiceAgent:
         )
         
         # Build cart
-        cart, tool_events, missing_items = self.shopping_agent.build_cart(
+        cart, tool_events, missing_items, retailer_items, ctx_text = await self.shopping_agent.build_cart(
             items=items,
             price_ranges=price_ranges,
             quantities=quantities,

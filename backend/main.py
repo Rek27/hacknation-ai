@@ -464,23 +464,34 @@ async def submit_form(request: SubmitFormRequest):
                 context.people_tree,
                 context.place_tree,
             )
-            cart, tool_events, missing_items, retailer_offers = await shopping_agent.build_cart(
-                items=items,
-                price_ranges=price_ranges,
-                quantities=quantities,
-                form_data=context.form_data,
-                event_context=event_context,
-            )
-            yield (
-                "data: "
-                + RetailerOffersChunk(offers=retailer_offers).model_dump_json(
-                    by_alias=True
+            cart, tool_events, missing_items, retailer_items, ctx_text = (
+                await shopping_agent.build_cart(
+                    items=items,
+                    price_ranges=price_ranges,
+                    quantities=quantities,
+                    form_data=context.form_data,
+                    event_context=event_context,
                 )
-                + "\n\n"
             )
-            if retailer_offers:
+
+            # Stream sponsorship offers one at a time with staggered delays
+            all_offers: list[dict] = []
+            async for offer in shopping_agent.stream_sponsorship_offers(
+                retailer_items=retailer_items,
+                event_context=ctx_text,
+            ):
+                all_offers.append(offer)
+                yield (
+                    "data: "
+                    + RetailerOffersChunk(offers=[offer]).model_dump_json(
+                        by_alias=True
+                    )
+                    + "\n\n"
+                )
+
+            if all_offers:
                 summary = await _summarize_sponsorships(
-                    retailer_offers,
+                    all_offers,
                     event_context,
                 )
                 if summary:

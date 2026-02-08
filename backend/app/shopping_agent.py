@@ -8,9 +8,10 @@ import asyncio
 import json
 import math
 import os
+import random
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, AsyncGenerator
 
 from app.logger import get_logger
 from app.models import CartItem, CartItemDetail, ChunkShoppingCart
@@ -179,7 +180,14 @@ class ShoppingAgent:
         quantities: dict[str, int],
         form_data: dict[str, str] | None,
         event_context: str | None = None,
-    ) -> tuple[ChunkShoppingCart, list[dict], list[str], list[dict]]:
+    ) -> tuple[
+        ChunkShoppingCart,
+        list[dict],
+        list[str],
+        dict[str, list[dict[str, str | None]]],
+        str,
+    ]:
+        """Build cart items. Returns (cart, tool_events, missing, retailer_items, context_text)."""
         price_fallbacks = _price_range_map(price_ranges)
         attendees = _parse_attendees(form_data or {})
         duration_hours = _parse_duration_hours(form_data or {})
@@ -272,20 +280,28 @@ class ShoppingAgent:
                 * cart_item.recommended_item.amount
             )
 
+        return (
+            ChunkShoppingCart(items=cart_items, price=round(total_price, 2)),
+            tool_events,
+            missing_items,
+            retailer_items,
+            context_text,
+        )
+
+    async def stream_sponsorship_offers(
+        self,
+        retailer_items: dict[str, list[dict[str, str | None]]],
+        event_context: str,
+    ) -> AsyncGenerator[dict, None]:
+        """Run all sponsorship checks in parallel, then yield results one at a
+        time with a random delay (3-10 s each) so the frontend can animate."""
+
+        if not retailer_items:
+            return
+
+        # --- fire all mock calls concurrently ---------------------------------
         sponsorship_entries: list[tuple[str, asyncio.Future]] = []
         for retailer, retailer_item_list in retailer_items.items():
-            tool_events.append(
-                {
-                    "type": "tool",
-                    "name": "check_retailer_sponsorship",
-                    "reason": "Request sponsorship/discount from retailer",
-                    "arguments": {
-                        "retailer": retailer,
-                        "items": retailer_item_list,
-                        "event_context": context_text,
-                    },
-                }
-            )
             sponsorship_entries.append(
                 (
                     retailer,
@@ -293,60 +309,35 @@ class ShoppingAgent:
                         check_retailer_sponsorship,
                         retailer=retailer,
                         items=json.dumps(retailer_item_list),
-                        event_context=context_text,
+                        event_context=event_context,
                     ),
                 )
             )
 
-        sponsorship_results: list[dict] = []
-        if sponsorship_entries:
-            raw_results = await asyncio.gather(
-                *(entry[1] for entry in sponsorship_entries),
-                return_exceptions=True,
-            )
-            for (retailer, _), raw in zip(sponsorship_entries, raw_results):
-                if isinstance(raw, Exception):
-                    logger.warning(
-                        f"Sponsorship tool failed for {retailer}: {raw}"
-                    )
-                    tool_events.append(
-                        {
-                            "type": "tool_result",
-                            "name": "check_retailer_sponsorship",
-                            "result": json.dumps(
-                                {
-                                    "retailer": retailer,
-                                    "status": "rejected",
-                                    "reason": "Tool error",
-                                    "discountedItems": [],
-                                }
-                            ),
-                            "success": False,
-                        }
-                    )
-                    sponsorship_results.append(
-                        {
-                            "retailer": retailer,
-                            "status": "rejected",
-                            "reason": "Tool error",
-                            "discountedItems": [],
-                        }
-                    )
-                    continue
+        raw_results = await asyncio.gather(
+            *(entry[1] for entry in sponsorship_entries),
+            return_exceptions=True,
+        )
 
-                tool_events.append(
+        # --- collect results --------------------------------------------------
+        sponsorship_results: list[dict] = []
+        for (retailer, _), raw in zip(sponsorship_entries, raw_results):
+            if isinstance(raw, Exception):
+                logger.warning(f"Sponsorship tool failed for {retailer}: {raw}")
+                sponsorship_results.append(
                     {
-                        "type": "tool_result",
-                        "name": "check_retailer_sponsorship",
-                        "result": raw,
-                        "success": True,
+                        "retailer": retailer,
+                        "status": "rejected",
+                        "reason": "Tool error",
+                        "discountedItems": [],
                     }
                 )
-                try:
-                    parsed = json.loads(raw)
-                    if isinstance(parsed, dict):
-                        sponsorship_results.append(parsed)
-                except json.JSONDecodeError:
+                continue
+            try:
+                parsed = json.loads(raw)
+                if isinstance(parsed, dict):
+                    sponsorship_results.append(parsed)
+                else:
                     sponsorship_results.append(
                         {
                             "retailer": retailer,
@@ -355,7 +346,17 @@ class ShoppingAgent:
                             "discountedItems": [],
                         }
                     )
+            except json.JSONDecodeError:
+                sponsorship_results.append(
+                    {
+                        "retailer": retailer,
+                        "status": "rejected",
+                        "reason": "Invalid tool response",
+                        "discountedItems": [],
+                    }
+                )
 
+        # --- force at least one rejection when all approved -------------------
         if sponsorship_results and all(
             r.get("status") == "approved" for r in sponsorship_results
         ):
@@ -367,12 +368,15 @@ class ShoppingAgent:
             forced["discountPercent"] = None
             forced["discountedItems"] = []
 
-        return (
-            ChunkShoppingCart(items=cart_items, price=round(total_price, 2)),
-            tool_events,
-            missing_items,
-            sponsorship_results,
-        )
+        # --- yield one offer at a time with staggered delays ------------------
+        for offer in sponsorship_results:
+            delay = random.uniform(2.0, 4.0)
+            logger.info(
+                f"Sponsorship offer for {offer.get('retailer', '?')} — "
+                f"sleeping {delay:.1f}s before emitting"
+            )
+            await asyncio.sleep(delay)
+            yield offer
 
     def _result_to_candidate(
         self,

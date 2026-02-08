@@ -113,6 +113,15 @@ Each item should be specific (brand/type/size when possible), but keep the list 
 When the user requests items that are not available, choose the most similar items from the \
 provided inventory list. Only select items that are explicitly available in the inventory list.
 Do not include quantities in the item names.
+
+IMPORTANT — avoid duplicate or similar items:
+- Never include two items that serve the same purpose (e.g., do NOT list both "Water 0.5L" \
+and "Water 1L" — pick the single best-fit size).
+- Each product category (drinks, snacks, decorations, etc.) should have at most one \
+representative item unless the user explicitly asked for variety.
+- Prefer diversity across categories over multiple variants within the same category.
+- If in doubt, choose the most popular or versatile option and skip the rest.
+
 Return only by calling emit_items once.
 """
 
@@ -120,6 +129,8 @@ Return only by calling emit_items once.
 _SYSTEM_PROMPT_QUANTITIES = """\
 You are ShoppingListAgent. Given the shopping list items, form fields (duration in hours), \
 and selected tree nodes, propose quantities for each item.
+Keep quantities reasonable — each item in the list already covers its category, so do not \
+over-order. Prefer modest amounts that match the attendee count and event duration.
 Return only via emit_quantities with a quantity for every listed item.
 """
 
