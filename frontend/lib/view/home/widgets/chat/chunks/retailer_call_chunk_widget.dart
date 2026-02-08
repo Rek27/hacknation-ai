@@ -13,11 +13,11 @@ const String _callingAnimationAssetPath =
 
 /// Reassurance sentences shown while the retailer call is in progress.
 const List<String> _retailerCallReassuranceSentences = [
-  'Negotiating better prices for you',
-  'Telling the retailer how important your purchase is',
-  'Working on the best deal for your order',
-  'Discussing delivery and discounts',
-  'Almost there — wrapping up with retailers',
+  'Working our magic to save you money',
+  'Conjuring up better prices for you',
+  'One moment — we are waving our wand to unlock savings',
+  'Performing magic with retailers to get you a deal',
+  'Almost there — finishing up our money-saving magic',
 ];
 
 /// Renders a retailer call chunk: Rive calling animation with rotating
