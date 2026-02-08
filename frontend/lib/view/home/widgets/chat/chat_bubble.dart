@@ -4,6 +4,7 @@ import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/model/chat_message.dart';
 import 'package:frontend/model/chat_models.dart';
 import 'package:frontend/view/home/widgets/chat/chunk_renderer.dart';
+import 'package:frontend/view/home/widgets/chat/chunks/retailer_call_chunk_widget.dart';
 
 /// A single chat message bubble with alignment, optional avatar, and timestamp.
 class ChatBubble extends StatelessWidget {
@@ -26,7 +27,9 @@ class ChatBubble extends StatelessWidget {
     final ColorScheme colorScheme = theme.colorScheme;
     final EdgeInsets bubblePadding = _isUser
         ? const EdgeInsets.only(left: AppConstants.chatBubbleHorizontalPadding)
-        : const EdgeInsets.only(right: AppConstants.chatBubbleHorizontalPadding);
+        : const EdgeInsets.only(
+            right: AppConstants.chatBubbleHorizontalPadding,
+          );
     return Padding(
       padding: const EdgeInsets.symmetric(
         vertical: AppConstants.spacingSm,
@@ -129,9 +132,37 @@ class ChatBubble extends StatelessWidget {
   }
 }
 
-/// Reveals agent message chunks one at a time with entry animations.
+/// Consecutive [RetailerCallChunk]s are grouped into one block; other chunks
+/// each form their own block. Used so one widget shows the whole "call" phase.
+List<List<OutputItemBase>> _buildBlocks(List<OutputItemBase> chunks) {
+  final List<List<OutputItemBase>> blocks = [];
+  List<OutputItemBase> current = [];
+  for (final OutputItemBase c in chunks) {
+    if (c is RetailerCallChunk) {
+      if (current.isNotEmpty && current.first is! RetailerCallChunk) {
+        blocks.add(List<OutputItemBase>.from(current));
+        current.clear();
+      }
+      current.add(c);
+    } else {
+      if (current.isNotEmpty) {
+        blocks.add(List<OutputItemBase>.from(current));
+        current.clear();
+      }
+      blocks.add([c]);
+    }
+  }
+  if (current.isNotEmpty) {
+    blocks.add(current);
+  }
+  return blocks;
+}
+
+/// Reveals agent message blocks one at a time with entry animations.
+/// Consecutive retailer-call chunks are grouped into one block; the call
+/// widget stays in loading state until a chunk of a different type is received.
 /// Text chunks trigger the next reveal when their typing animation completes;
-/// non-text chunks trigger after [AppConstants.chunkStaggerDelay].
+/// non-text blocks reveal after [AppConstants.chunkStaggerDelay].
 class _StaggeredChunkList extends StatefulWidget {
   const _StaggeredChunkList({
     required this.chunks,
@@ -148,7 +179,7 @@ class _StaggeredChunkList extends StatefulWidget {
 }
 
 class _StaggeredChunkListState extends State<_StaggeredChunkList> {
-  int _revealedCount = 1;
+  int _revealedBlockCount = 1;
 
   @override
   void initState() {
@@ -156,11 +187,13 @@ class _StaggeredChunkListState extends State<_StaggeredChunkList> {
     _scheduleNextIfNonText();
   }
 
-  /// For non-text chunks, schedule the next reveal after a fixed delay.
   void _scheduleNextIfNonText() {
-    if (_revealedCount >= widget.chunks.length) return;
-    final OutputItemBase lastRevealed = widget.chunks[_revealedCount - 1];
-    if (lastRevealed is! TextChunk) {
+    final List<List<OutputItemBase>> blocks = _buildBlocks(widget.chunks);
+    if (_revealedBlockCount >= blocks.length) return;
+    final List<OutputItemBase> lastBlock = blocks[_revealedBlockCount - 1];
+    final bool lastIsSingleText =
+        lastBlock.length == 1 && lastBlock.first is TextChunk;
+    if (!lastIsSingleText) {
       Future<void>.delayed(AppConstants.chunkStaggerDelay).then((_) {
         if (mounted) _revealNext();
       });
@@ -168,34 +201,60 @@ class _StaggeredChunkListState extends State<_StaggeredChunkList> {
   }
 
   void _revealNext() {
-    if (_revealedCount >= widget.chunks.length) return;
+    final List<List<OutputItemBase>> blocks = _buildBlocks(widget.chunks);
+    if (_revealedBlockCount >= blocks.length) return;
     setState(() {
-      _revealedCount++;
+      _revealedBlockCount++;
     });
     _scheduleNextIfNonText();
   }
 
   @override
   Widget build(BuildContext context) {
+    final List<List<OutputItemBase>> blocks = _buildBlocks(widget.chunks);
+    if (blocks.isEmpty) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: <Widget>[
-        for (int i = 0; i < _revealedCount; i++) ...<Widget>[
+        for (
+          int i = 0;
+          i < _revealedBlockCount && i < blocks.length;
+          i++
+        ) ...<Widget>[
           if (i > 0) const SizedBox(height: AppConstants.spacingSm),
-          _AnimatedChunkEntry(
-            key: ValueKey<String>('${widget.messageId}-chunk-$i'),
-            child: ChunkRenderer(
-              chunk: widget.chunks[i],
-              messageId: widget.messageId,
-              isDisabled: widget.isDisabled,
-              onChunkReady:
-                  (i == _revealedCount - 1 && widget.chunks[i] is TextChunk)
-                      ? _revealNext
-                      : null,
-            ),
-          ),
+          _buildBlockEntry(blocks, i),
         ],
       ],
+    );
+  }
+
+  Widget _buildBlockEntry(List<List<OutputItemBase>> blocks, int blockIndex) {
+    final List<OutputItemBase> block = blocks[blockIndex];
+    final bool isRetailerCallBlock =
+        block.isNotEmpty && block.first is RetailerCallChunk;
+    final bool isLastBlock = blockIndex == blocks.length - 1;
+    if (isRetailerCallBlock) {
+      return _AnimatedChunkEntry(
+        key: ValueKey<String>('${widget.messageId}-block-$blockIndex'),
+        child: RetailerCallChunkWidget(
+          chunk: block.first as RetailerCallChunk,
+          isLastInMessage: isLastBlock,
+        ),
+      );
+    }
+    final OutputItemBase chunk = block.single;
+    final bool isLastRevealed = blockIndex == _revealedBlockCount - 1;
+    return _AnimatedChunkEntry(
+      key: ValueKey<String>('${widget.messageId}-block-$blockIndex'),
+      child: ChunkRenderer(
+        chunk: chunk,
+        messageId: widget.messageId,
+        isDisabled: widget.isDisabled,
+        isLastInMessage: true,
+        onChunkReady: (isLastRevealed && chunk is TextChunk)
+            ? _revealNext
+            : null,
+      ),
     );
   }
 }
@@ -241,10 +300,7 @@ class _AnimatedChunkEntryState extends State<_AnimatedChunkEntry>
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _opacity,
-      child: SlideTransition(
-        position: _slide,
-        child: widget.child,
-      ),
+      child: SlideTransition(position: _slide, child: widget.child),
     );
   }
 }

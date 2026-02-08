@@ -13,7 +13,8 @@ enum OutputItemType {
   placeTree('place_tree'),
   cart('cart'),
   items('items'),
-  retailerOffers('retailer_offers');
+  retailerOffers('retailer_offers'),
+  retailerCallStart('retailer_call_start');
 
   const OutputItemType(this.jsonValue);
   final String jsonValue;
@@ -278,6 +279,18 @@ class RetailerOffersChunk implements OutputItemBase {
       );
 }
 
+/// type: "retailer_call_start" — agent is on a call with retailers to negotiate.
+class RetailerCallChunk implements OutputItemBase {
+  @override
+  final OutputItemType type;
+
+  RetailerCallChunk({OutputItemType? type})
+    : type = type ?? OutputItemType.retailerCallStart;
+
+  factory RetailerCallChunk.fromJson(Map<String, dynamic> json) =>
+      RetailerCallChunk(type: OutputItemType.retailerCallStart);
+}
+
 Duration _parseDeliveryTime(Map<String, dynamic> json) {
   final ms = json['deliveryTimeMs'] as int?;
   if (ms != null) return Duration(milliseconds: ms);
@@ -474,6 +487,8 @@ OutputItemBase parseOutputItem(Map<String, dynamic> json) {
       return ItemsChunk.fromJson(json);
     case OutputItemType.retailerOffers:
       return RetailerOffersChunk.fromJson(json);
+    case OutputItemType.retailerCallStart:
+      return RetailerCallChunk.fromJson(json);
   }
 }
 

@@ -14,7 +14,9 @@ import 'package:frontend/view/home/widgets/resizable_divider.dart';
 /// The two panels are separated by a draggable divider that lets the
 /// user resize each section.
 class HomeDesktopLayout extends StatefulWidget {
-  const HomeDesktopLayout({super.key});
+  const HomeDesktopLayout({super.key, required this.baseUrl});
+
+  final String baseUrl;
 
   @override
   State<HomeDesktopLayout> createState() => _HomeDesktopLayoutState();
@@ -43,15 +45,13 @@ class _HomeDesktopLayoutState extends State<HomeDesktopLayout> {
       create: (_) => CartController(),
       child: Builder(
         builder: (context) {
-          final CartController cartController =
-              context.read<CartController>();
+          final CartController cartController = context.read<CartController>();
           return LayoutBuilder(
             builder: (BuildContext context, BoxConstraints constraints) {
               final double totalWidth = constraints.maxWidth;
               final double availableWidth =
                   totalWidth - AppConstants.resizeDividerHitWidth;
-              final double chatWidth =
-                  availableWidth * _chatWidthFraction;
+              final double chatWidth = availableWidth * _chatWidthFraction;
               final double cartWidth =
                   availableWidth * (1.0 - _chatWidthFraction);
               return Row(
@@ -81,7 +81,7 @@ class _HomeDesktopLayoutState extends State<HomeDesktopLayout> {
                             cartController: cartController,
                           );
                         },
-                        child: const ChatPanel(),
+                        child: ChatPanel(baseUrl: widget.baseUrl),
                       ),
                     ),
                   ),

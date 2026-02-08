@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_utils.dart';
 import 'package:frontend/view/home/widgets/cart/cart_shared_widgets.dart';
+import 'package:frontend/view/home/widgets/cart/checkout_loading_animation.dart';
+import 'package:frontend/view/home/widgets/cart/order_done_animation.dart';
 import 'package:frontend/view/home/widgets/cart_item/cart_item_widget.dart';
 import 'package:frontend/view/home/widgets/cart_item/cart_item_controller.dart';
 import 'package:frontend/model/chat_models.dart';
@@ -11,6 +14,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:frontend/view/home/widgets/cart/cart_loading_list.dart';
 import 'package:frontend/view/home/widgets/cart/cart_error_widget.dart';
+import 'package:loading_animation_widget/loading_animation_widget.dart';
 
 /// High-level cart panel with header, items list and fixed checkout bar.
 class CartPanel extends StatelessWidget {
@@ -73,24 +77,43 @@ class CartPanel extends StatelessWidget {
                       ],
                     ),
                   ),
-                  // Right: estimated total
+                  // Right: estimated total (with discount: original crossed, final on right)
                   if (!controller.isLoading)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Text(
-                          'Estimated total',
+                          controller.hasAnyDiscount
+                              ? 'Final total'
+                              : 'Estimated total',
                           style: theme.textTheme.labelSmall?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
                         ),
-                        Text(
-                          formatPrice(controller.totalPrice),
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            color: colorScheme.primary,
-                            fontWeight: FontWeight.w700,
+                        if (controller.hasAnyDiscount) ...[
+                          Text(
+                            formatPrice(controller.totalPrice),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: colorScheme.onSurfaceVariant,
+                              decoration: TextDecoration.lineThrough,
+                              decorationColor: colorScheme.onSurfaceVariant,
+                            ),
                           ),
-                        ),
+                          Text(
+                            formatPrice(controller.finalTotalPrice),
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ] else
+                          Text(
+                            formatPrice(controller.totalPrice),
+                            style: theme.textTheme.titleLarge?.copyWith(
+                              color: colorScheme.primary,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
                       ],
                     ),
                 ],
@@ -194,6 +217,9 @@ class CartPanel extends StatelessWidget {
                 ),
                 child: CartCheckoutBar(
                   totalPrice: controller.totalPrice,
+                  finalTotalPrice: controller.hasAnyDiscount
+                      ? controller.finalTotalPrice
+                      : null,
                   retailerCount: controller.retailerCount,
                   onCheckout: () => controller.startCheckout(),
                 ),
@@ -505,7 +531,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                       child: const Text('Back'),
                     ),
                     const SizedBox(width: AppConstants.spacingSm),
-                    FilledButton(
+                    FilledButton.icon(
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.all(AppConstants.spacingLg),
                         shape: RoundedRectangleBorder(
@@ -515,7 +541,12 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                         ),
                       ),
                       onPressed: () => controller.placeOrder(),
-                      child: Text(
+                      icon: _payment == 'apple'
+                          ? const FaIcon(FontAwesomeIcons.apple, size: 20)
+                          : _payment == 'paypal'
+                          ? const FaIcon(FontAwesomeIcons.paypal, size: 20)
+                          : const Icon(Icons.credit_card, size: 20),
+                      label: Text(
                         'Place order — ${formatPrice(controller.totalPrice)}',
                       ),
                     ),
@@ -653,11 +684,20 @@ class _RetailerOrderingScreen extends StatelessWidget {
       padding: const EdgeInsets.only(top: AppConstants.spacingMd),
       child: Column(
         children: [
-          // Title
-          Icon(
-            allDone ? Icons.check_circle_rounded : Icons.sync_rounded,
-            size: AppConstants.iconSizeMd,
-            color: allDone ? const Color(0xFF34C759) : cs.primary,
+          // Animated header: Rive loading → green checkmark on completion
+          AnimatedSwitcher(
+            duration: AppConstants.durationSlow,
+            child: allDone
+                ? Icon(
+                    key: const ValueKey('ordering_done'),
+                    Icons.check_circle_rounded,
+                    size: AppConstants.iconSizeMd,
+                    color: const Color(0xFF34C759),
+                  )
+                : const CheckoutLoadingAnimation(
+                    key: ValueKey('ordering_loading'),
+                    size: AppConstants.checkoutLoadingAnimationSize,
+                  ),
           ),
           const SizedBox(height: AppConstants.spacingMd),
           Text(
@@ -775,14 +815,10 @@ class _RetailerCard extends StatelessWidget {
                             ),
                           ],
                         )
-                      : SizedBox(
+                      : LoadingAnimationWidget.staggeredDotsWave(
                           key: const ValueKey('loading'),
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: cs.primary,
-                          ),
+                          color: cs.primary,
+                          size: 24,
                         ),
                 ),
               ],
@@ -839,18 +875,8 @@ class _OrderCompleteSummary extends StatelessWidget {
           Center(
             child: Column(
               children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF34C759),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.check_rounded,
-                    size: 40,
-                    color: Colors.white,
-                  ),
+                const OrderDoneAnimation(
+                  size: AppConstants.orderDoneAnimationSize,
                 ),
                 const SizedBox(height: AppConstants.spacingMd),
                 Text(
@@ -963,29 +989,6 @@ class _OrderCompleteSummary extends StatelessWidget {
                 style: theme.textTheme.titleLarge?.copyWith(
                   fontWeight: FontWeight.w700,
                   color: cs.primary,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppConstants.spacingXl),
-
-          // Action buttons
-          Row(
-            children: [
-              Expanded(
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.all(AppConstants.spacingMd),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppConstants.radiusSm,
-                      ),
-                    ),
-                    side: BorderSide(color: cs.primary),
-                  ),
-                  onPressed: () => controller.resetToCart(),
-                  icon: const Icon(Icons.arrow_back),
-                  label: const Text('Back to cart'),
                 ),
               ),
             ],

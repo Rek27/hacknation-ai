@@ -7,8 +7,18 @@ import 'package:frontend/model/chat_models.dart';
 import 'package:frontend/view/home/widgets/chat/chat_controller.dart';
 
 const List<String> _eventDateMonths = [
-  'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-  'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
+  'Jan',
+  'Feb',
+  'Mar',
+  'Apr',
+  'May',
+  'Jun',
+  'Jul',
+  'Aug',
+  'Sep',
+  'Oct',
+  'Nov',
+  'Dec',
 ];
 
 String _formatEventDate(DateTime d) {
@@ -111,7 +121,8 @@ class _DatePickerPopoverState extends State<_DatePickerPopover> {
                     firstDay: firstDay,
                     lastDay: lastDay,
                     focusedDay: _focusedDay,
-                    selectedDayPredicate: (DateTime day) => isSameDay(day, _current),
+                    selectedDayPredicate: (DateTime day) =>
+                        isSameDay(day, _current),
                     onDaySelected: (DateTime selectedDay, DateTime focusedDay) {
                       setState(() {
                         _current = selectedDay;
@@ -119,55 +130,56 @@ class _DatePickerPopoverState extends State<_DatePickerPopover> {
                       });
                       widget.onDone(selectedDay);
                     },
-                      onPageChanged: (DateTime focusedDay) {
-                        setState(() => _focusedDay = focusedDay);
-                      },
-                      calendarFormat: CalendarFormat.month,
-                      calendarStyle: CalendarStyle(
-                        selectedDecoration: BoxDecoration(
-                          color: colorScheme.primary,
-                          shape: BoxShape.circle,
-                        ),
-                        todayDecoration: BoxDecoration(
-                          color: colorScheme.primaryContainer,
-                          shape: BoxShape.circle,
-                        ),
-                        todayTextStyle: TextStyle(
-                          color: colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        selectedTextStyle: TextStyle(color: colorScheme.onPrimary),
-                        defaultTextStyle: theme.textTheme.bodyMedium!,
-                        weekendTextStyle: theme.textTheme.bodyMedium!.copyWith(
-                          color: colorScheme.onSurface.withValues(alpha: 0.7),
-                        ),
-                        outsideTextStyle: theme.textTheme.bodySmall!.copyWith(
-                          color: colorScheme.onSurface.withValues(alpha: 0.35),
-                        ),
-                        markerDecoration: const BoxDecoration(
-                          color: Colors.transparent,
-                        ),
+                    onPageChanged: (DateTime focusedDay) {
+                      setState(() => _focusedDay = focusedDay);
+                    },
+                    calendarFormat: CalendarFormat.month,
+                    calendarStyle: CalendarStyle(
+                      selectedDecoration: BoxDecoration(
+                        color: colorScheme.primary,
+                        shape: BoxShape.circle,
                       ),
-                      headerStyle: HeaderStyle(
-                        formatButtonVisible: false,
-                        titleCentered: true,
-                        titleTextStyle: theme.textTheme.titleSmall!.copyWith(
-                          color: colorScheme.onSurface,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        leftChevronIcon: Icon(
-                          Icons.chevron_left_rounded,
-                          color: colorScheme.primary,
-                          size: AppConstants.iconSizeSm,
-                        ),
-                        rightChevronIcon: Icon(
-                          Icons.chevron_right_rounded,
-                          color: colorScheme.primary,
-                          size: AppConstants.iconSizeSm,
-                        ),
-                        headerPadding: const EdgeInsets.symmetric(
-                          vertical: AppConstants.spacingSm,
-                        ),
+                      todayDecoration: BoxDecoration(
+                        color: colorScheme.primaryContainer,
+                        shape: BoxShape.circle,
+                      ),
+                      todayTextStyle: TextStyle(
+                        color: colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      selectedTextStyle: TextStyle(
+                        color: colorScheme.onPrimary,
+                      ),
+                      defaultTextStyle: theme.textTheme.bodyMedium!,
+                      weekendTextStyle: theme.textTheme.bodyMedium!.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.7),
+                      ),
+                      outsideTextStyle: theme.textTheme.bodySmall!.copyWith(
+                        color: colorScheme.onSurface.withValues(alpha: 0.35),
+                      ),
+                      markerDecoration: const BoxDecoration(
+                        color: Colors.transparent,
+                      ),
+                    ),
+                    headerStyle: HeaderStyle(
+                      formatButtonVisible: false,
+                      titleCentered: true,
+                      titleTextStyle: theme.textTheme.titleSmall!.copyWith(
+                        color: colorScheme.onSurface,
+                        fontWeight: FontWeight.w600,
+                      ),
+                      leftChevronIcon: Icon(
+                        Icons.chevron_left_rounded,
+                        color: colorScheme.primary,
+                        size: AppConstants.iconSizeSm,
+                      ),
+                      rightChevronIcon: Icon(
+                        Icons.chevron_right_rounded,
+                        color: colorScheme.primary,
+                        size: AppConstants.iconSizeSm,
+                      ),
+                      headerPadding: const EdgeInsets.symmetric(
+                        vertical: AppConstants.spacingSm,
                       ),
                     ),
                   ),
@@ -175,11 +187,11 @@ class _DatePickerPopoverState extends State<_DatePickerPopover> {
               ),
             ),
           ),
+        ),
       ],
     );
   }
 }
-
 
 /// Renders the TextFormChunk as an Apple-inspired grouped form.
 /// Supports pinned, history, and disabled modes.
@@ -230,7 +242,8 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget>
     _budgetController = TextEditingController(
       text: widget.chunk.budget.content ?? '',
     );
-    _selectedDate = _tryParseEventDate(widget.chunk.date.content) ?? DateTime.now();
+    _selectedDate =
+        _tryParseEventDate(widget.chunk.date.content) ?? DateTime.now();
     _durationController = TextEditingController(
       text: widget.chunk.durationOfEvent.content ?? '',
     );
@@ -261,7 +274,9 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget>
     context.read<ChatController>().submitTextForm({
       'address': _addressController.text.trim(),
       'budget': _budgetController.text.trim(),
-      'date': _selectedDate != null ? _formatEventDateForSubmit(_selectedDate!) : '',
+      'date': _selectedDate != null
+          ? _formatEventDateForSubmit(_selectedDate!)
+          : '',
       'duration': _durationController.text.trim(),
       'numberOfAttendees': _attendeesController.text.trim(),
     });
@@ -269,24 +284,32 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget>
 
   void _openDatePicker() {
     if (widget.isDisabled) return;
-    final RenderBox? box = _dateFieldKey.currentContext?.findRenderObject() as RenderBox?;
+    final RenderBox? box =
+        _dateFieldKey.currentContext?.findRenderObject() as RenderBox?;
     if (box == null) return;
     final OverlayState overlayState = Overlay.of(context);
-    final RenderBox overlayBox = overlayState.context.findRenderObject() as RenderBox;
+    final RenderBox overlayBox =
+        overlayState.context.findRenderObject() as RenderBox;
     final Offset topLeft = box.localToGlobal(Offset.zero, ancestor: overlayBox);
     final Size anchorSize = box.size;
     const double popupWidth = 320.0;
     const double popupHeight = 340.0;
     const double gap = 4.0;
-    final double popupLeft = (topLeft.dx + anchorSize.width / 2 - popupWidth / 2)
-        .clamp(8.0, overlayBox.size.width - popupWidth - 8.0);
-    final double popupTop = (topLeft.dy + anchorSize.height + gap)
-        .clamp(8.0, overlayBox.size.height - popupHeight - 8.0);
+    final double popupLeft =
+        (topLeft.dx + anchorSize.width / 2 - popupWidth / 2).clamp(
+          8.0,
+          overlayBox.size.width - popupWidth - 8.0,
+        );
+    final double popupTop = (topLeft.dy + anchorSize.height + gap).clamp(
+      8.0,
+      overlayBox.size.height - popupHeight - 8.0,
+    );
 
     late OverlayEntry overlayEntry;
     void removeOverlay() {
       overlayEntry.remove();
     }
+
     overlayEntry = OverlayEntry(
       builder: (BuildContext overlayContext) => _DatePickerPopover(
         left: popupLeft,
@@ -588,7 +611,6 @@ class _FormField extends StatelessWidget {
                   : colorScheme.onSurface,
             ),
             decoration: InputDecoration(
-              isDense: true,
               filled: true,
               fillColor: isReadOnly
                   ? colorScheme.surfaceContainerHigh.withValues(alpha: 0.5)
@@ -647,7 +669,11 @@ class _DateFormField extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(icon, size: AppConstants.metaIconSize, color: colorScheme.onSurfaceVariant),
+            Icon(
+              icon,
+              size: AppConstants.metaIconSize,
+              color: colorScheme.onSurfaceVariant,
+            ),
             const SizedBox(width: AppConstants.spacingXs),
             Text(
               label,
@@ -679,30 +705,30 @@ class _DateFormField extends StatelessWidget {
                 ),
                 alignment: Alignment.centerLeft,
                 child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      displayText,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: isReadOnly
-                            ? colorScheme.onSurface.withValues(alpha: 0.6)
-                            : selectedDate != null
-                                ? colorScheme.onSurface
-                                : colorScheme.onSurfaceVariant,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        displayText,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: isReadOnly
+                              ? colorScheme.onSurface.withValues(alpha: 0.6)
+                              : selectedDate != null
+                              ? colorScheme.onSurface
+                              : colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
-                  ),
-                  if (canTap)
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      size: AppConstants.iconSizeSm,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                ],
+                    if (canTap)
+                      Icon(
+                        Icons.chevron_right_rounded,
+                        size: AppConstants.iconSizeSm,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
         ),
       ],
     );

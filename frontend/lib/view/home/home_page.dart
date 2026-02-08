@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/config/app_constants.dart';
-import 'package:frontend/config/app_theme.dart';
-import 'package:frontend/model/api_models.dart';
 import 'package:frontend/service/agent_api.dart';
 import 'package:frontend/service/api_client.dart';
 import 'package:frontend/view/home/home_controller.dart';
@@ -21,7 +19,7 @@ class HomePage extends StatelessWidget {
     //   flutter run --dart-define=API_BASE_URL=http://localhost:8000  (desktop/web -> local)
     const envBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
     const hostedBaseUrl =
-        'https://ca97-2001-4ca0-0-f237-1562-d89a-324c-8866.ngrok-free.app/';
+        'https://b991-2001-4ca0-0-f237-1562-d89a-324c-8866.ngrok-free.app/';
 
     final baseUrl = envBaseUrl.isNotEmpty ? envBaseUrl : hostedBaseUrl;
 
@@ -49,73 +47,12 @@ class _HomeViewState extends State<_HomeView> {
   Widget build(BuildContext context) {
     final double width = MediaQuery.sizeOf(context).width;
     final bool isMobile = width < AppConstants.kMobileBreakpoint;
-    final ColorScheme colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: isMobile
-          ? null
-          : AppBar(
-              title: const Text('AI Agent Chat'),
-              actions: [_AppBarActions(baseUrl: widget.baseUrl)],
-              bottom: PreferredSize(
-                preferredSize: const Size.fromHeight(1),
-                child: Container(height: 1, color: colorScheme.outlineVariant),
-              ),
-            ),
+      appBar: null,
       drawer: null,
-      body: isMobile ? const HomeMobileLayout() : const HomeDesktopLayout(),
-    );
-  }
-}
-
-class _AppBarActions extends StatelessWidget {
-  const _AppBarActions({required this.baseUrl});
-
-  final String baseUrl;
-
-  @override
-  Widget build(BuildContext context) {
-    final HomeController controller = context.watch<HomeController>();
-    final HealthStatus? health = controller.health;
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
-    final bool isHealthy = health?.status == 'healthy';
-
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Tooltip(
-          message: 'API: $baseUrl',
-          child: Padding(
-            padding: const EdgeInsets.only(right: AppConstants.spacingSm),
-            child: Center(
-              child: Text(
-                'API',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
-        ),
-        Icon(
-          isHealthy ? Icons.check_circle : Icons.error,
-          color: isHealthy ? AppTheme.success : colorScheme.error,
-          size: AppConstants.iconSizeXs,
-        ),
-        const SizedBox(width: AppConstants.spacingSm),
-        if (health != null)
-          Padding(
-            padding: const EdgeInsets.only(right: AppConstants.spacingMd),
-            child: Center(
-              child: Text(
-                'Sessions: ${health.activeSessions}',
-                style: theme.textTheme.labelSmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-          ),
-      ],
+      body: isMobile
+          ? const HomeMobileLayout()
+          : HomeDesktopLayout(baseUrl: widget.baseUrl),
     );
   }
 }

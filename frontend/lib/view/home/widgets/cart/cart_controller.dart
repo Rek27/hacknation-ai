@@ -61,9 +61,47 @@ class CartController extends ChangeNotifier {
     return out;
   }
 
-  /// Dynamic total computed from items (price x amount).
+  /// Dynamic total computed from items (price x amount), before discounts.
   double get totalPrice =>
       items.fold<double>(0.0, (sum, it) => sum + (it.price * it.amount));
+
+  /// Discount percent for a cart item from retailer offers (approved only).
+  /// Matches by retailer and by item id or name. Returns null if no discount.
+  int? getDiscountPercentForItem(CartItem item) {
+    for (final RetailerOffer offer in _retailerOffers) {
+      if (offer.retailer != item.retailer || offer.status != 'approved') {
+        continue;
+      }
+      for (final RetailerOfferItem di in offer.discountedItems) {
+        final bool matchId =
+            di.id != null && item.id != null && di.id == item.id;
+        final bool matchName =
+            di.item.trim().toLowerCase() == item.name.trim().toLowerCase();
+        if (matchId || matchName) return di.percent;
+      }
+    }
+    return null;
+  }
+
+  /// Unit price after discount for an item (same as price if no discount).
+  double discountedUnitPrice(CartItem item) {
+    final int? percent = getDiscountPercentForItem(item);
+    if (percent == null || percent <= 0) return item.price;
+    return item.price * (1.0 - percent / 100.0);
+  }
+
+  /// Line total (price * amount) after discount for an item.
+  double discountedLineTotal(CartItem item) =>
+      discountedUnitPrice(item) * item.amount;
+
+  /// Final total after all item-level discounts.
+  double get finalTotalPrice =>
+      items.fold<double>(0.0, (sum, it) => sum + discountedLineTotal(it));
+
+  /// True if any item has a discount from retailer offers.
+  bool get hasAnyDiscount =>
+      items.any((it) => getDiscountPercentForItem(it) != null);
+
   int get itemCount => items.length;
   int get retailerCount => items.map((e) => e.retailer).toSet().length;
 

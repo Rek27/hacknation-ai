@@ -4,10 +4,7 @@ import 'package:frontend/config/app_constants.dart';
 /// A vertical divider that can be dragged to resize adjacent panels.
 /// Shows a subtle grip indicator on hover to signal draggability.
 class ResizableDivider extends StatefulWidget {
-  const ResizableDivider({
-    super.key,
-    required this.onDragUpdate,
-  });
+  const ResizableDivider({super.key, required this.onDragUpdate});
 
   final ValueChanged<double> onDragUpdate;
 
@@ -44,9 +41,7 @@ class _ResizableDividerState extends State<ResizableDivider> {
               // Vertical line
               AnimatedContainer(
                 duration: AppConstants.durationFast,
-                width: _isActive
-                    ? AppConstants.resizeDividerActiveWidth
-                    : 1.0,
+                width: _isActive ? AppConstants.resizeDividerActiveWidth : 1.0,
                 decoration: BoxDecoration(
                   color: _isActive
                       ? colorScheme.primary.withValues(alpha: 0.4)
