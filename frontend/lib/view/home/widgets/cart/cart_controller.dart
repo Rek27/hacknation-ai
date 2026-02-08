@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:math';
-
 import 'package:flutter/material.dart';
+import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/model/chat_models.dart';
 import 'package:frontend/service/agent_api.dart';
 
@@ -69,15 +69,22 @@ class CartController extends ChangeNotifier {
   /// Matches by retailer and by item id or name. Returns null if no discount.
   int? getDiscountPercentForItem(CartItem item) {
     for (final RetailerOffer offer in _retailerOffers) {
-      if (offer.retailer != item.retailer || offer.status != 'approved') {
+      if (offer.retailer != item.retailer) {
         continue;
       }
+
+      if (offer.status != 'approved') {
+        continue;
+      }
+
       for (final RetailerOfferItem di in offer.discountedItems) {
         final bool matchId =
             di.id != null && item.id != null && di.id == item.id;
         final bool matchName =
             di.item.trim().toLowerCase() == item.name.trim().toLowerCase();
-        if (matchId || matchName) return di.percent;
+        if (matchId || matchName) {
+          return di.percent;
+        }
       }
     }
     return null;
@@ -164,12 +171,37 @@ class CartController extends ChangeNotifier {
     _reasonsByIndex.clear();
     _aiReasoning.clear();
     _aiReasoningLoading.clear();
+    // DO NOT clear _retailerOffers here - they arrive separately and should persist!
     notifyListeners();
   }
 
-  /// Store retailer sponsorship offers from the stream.
+  /// Clear cart and all associated state (for new conversations).
+  void clearCart() {
+    _cart = null;
+    _retailerOffers = const [];
+    _selectedMainByIndex.clear();
+    _expandedIds.clear();
+    _expandedGroups.clear();
+    _reasonsByIndex.clear();
+    _aiReasoning.clear();
+    _aiReasoningLoading.clear();
+    _phase = CheckoutPhase.cart;
+    _confirmedRetailers.clear();
+    errorMessage = null;
+    isLoading = false;
+    notifyListeners();
+  }
+
+  /// Accumulate retailer sponsorship offers from the stream.
+  /// Upserts by retailer name so incremental chunks merge correctly.
   void setRetailerOffers(List<RetailerOffer> offers) {
-    _retailerOffers = offers;
+    final Map<String, RetailerOffer> merged = <String, RetailerOffer>{
+      for (final RetailerOffer o in _retailerOffers) o.retailer: o,
+    };
+    for (final RetailerOffer o in offers) {
+      merged[o.retailer] = o;
+    }
+    _retailerOffers = merged.values.toList();
     notifyListeners();
   }
 
@@ -303,8 +335,8 @@ class CartController extends ChangeNotifier {
         _confirmedRetailers.add(retailer);
         notifyListeners();
         if (_confirmedRetailers.length == retailers.length) {
-          // Small extra pause before showing the final summary.
-          Future.delayed(const Duration(milliseconds: 800), () {
+          // Show the success animation, then navigate to the confirmed page.
+          Future.delayed(AppConstants.checkoutSuccessDisplayDuration, () {
             _phase = CheckoutPhase.complete;
             notifyListeners();
           });

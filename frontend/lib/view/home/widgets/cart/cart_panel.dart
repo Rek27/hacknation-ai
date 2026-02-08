@@ -6,6 +6,7 @@ import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_utils.dart';
 import 'package:frontend/view/home/widgets/cart/cart_shared_widgets.dart';
 import 'package:frontend/view/home/widgets/cart/checkout_loading_animation.dart';
+import 'package:frontend/view/home/widgets/cart/checkout_success_animation.dart';
 import 'package:frontend/view/home/widgets/cart/order_done_animation.dart';
 import 'package:frontend/view/home/widgets/cart_item/cart_item_widget.dart';
 import 'package:frontend/view/home/widgets/cart_item/cart_item_controller.dart';
@@ -46,7 +47,7 @@ class CartPanel extends StatelessWidget {
                         ),
                         const SizedBox(width: AppConstants.spacingSm),
                         Text(
-                          'Smart Cart',
+                          'SmartCart',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w600,
                             color: colorScheme.onSurface,
@@ -78,7 +79,8 @@ class CartPanel extends StatelessWidget {
                     ),
                   ),
                   // Right: estimated total (with discount: original crossed, final on right)
-                  if (!controller.isLoading)
+                  // Only show label and price once total is calculated (totalPrice > 0).
+                  if (!controller.isLoading && controller.totalPrice > 0)
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
@@ -86,14 +88,14 @@ class CartPanel extends StatelessWidget {
                           controller.hasAnyDiscount
                               ? 'Final total'
                               : 'Estimated total',
-                          style: theme.textTheme.labelSmall?.copyWith(
+                          style: theme.textTheme.labelMedium?.copyWith(
                             color: colorScheme.onSurfaceVariant,
                           ),
                         ),
                         if (controller.hasAnyDiscount) ...[
                           Text(
                             formatPrice(controller.totalPrice),
-                            style: theme.textTheme.bodySmall?.copyWith(
+                            style: theme.textTheme.bodyMedium?.copyWith(
                               color: colorScheme.onSurfaceVariant,
                               decoration: TextDecoration.lineThrough,
                               decorationColor: colorScheme.onSurfaceVariant,
@@ -374,13 +376,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                         const SizedBox(height: AppConstants.spacingXs),
                         Row(
                           children: [
-                            Text(
-                              formatPrice(item.price),
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: cs.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            CartItemPriceWithDiscount(item: item),
                             const SizedBox(width: AppConstants.spacingSm),
                             CartRetailerChip(text: item.retailer),
                           ],
@@ -514,7 +510,80 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                     ],
                   ),
                 ],
-                const SizedBox(height: AppConstants.spacingXl),
+                const SizedBox(height: AppConstants.spacingLg),
+                // Savings display
+                if (controller.hasAnyDiscount) ...[
+                  Container(
+                    padding: const EdgeInsets.all(AppConstants.spacingMd),
+                    decoration: BoxDecoration(
+                      color: cs.tertiaryContainer.withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(
+                        AppConstants.radiusMd,
+                      ),
+                      border: Border.all(
+                        color: cs.tertiary.withValues(alpha: 0.4),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.savings_outlined,
+                          color: cs.tertiary,
+                          size: 28,
+                        ),
+                        const SizedBox(width: AppConstants.spacingMd),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Total savings from negotiations',
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: cs.onSurfaceVariant,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(
+                                height: AppConstants.spacingXs / 2,
+                              ),
+                              Text(
+                                formatPrice(
+                                  controller.totalPrice -
+                                      controller.finalTotalPrice,
+                                ),
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  color: cs.tertiary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppConstants.spacingMd,
+                            vertical: AppConstants.spacingSm,
+                          ),
+                          decoration: BoxDecoration(
+                            color: cs.tertiary,
+                            borderRadius: BorderRadius.circular(
+                              AppConstants.radiusFull,
+                            ),
+                          ),
+                          child: Text(
+                            '${((controller.totalPrice - controller.finalTotalPrice) / controller.totalPrice * 100).round()}% off',
+                            style: theme.textTheme.labelLarge?.copyWith(
+                              color: cs.onTertiary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: AppConstants.spacingLg),
+                ],
                 Row(
                   children: [
                     OutlinedButton(
@@ -546,9 +615,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                           : _payment == 'paypal'
                           ? const FaIcon(FontAwesomeIcons.paypal, size: 20)
                           : const Icon(Icons.credit_card, size: 20),
-                      label: Text(
-                        'Place order — ${formatPrice(controller.totalPrice)}',
-                      ),
+                      label: Text('Place order'),
                     ),
                   ],
                 ),
@@ -684,15 +751,13 @@ class _RetailerOrderingScreen extends StatelessWidget {
       padding: const EdgeInsets.only(top: AppConstants.spacingMd),
       child: Column(
         children: [
-          // Animated header: Rive loading → green checkmark on completion
+          // Animated header: Rive loading → Rive success on completion
           AnimatedSwitcher(
             duration: AppConstants.durationSlow,
             child: allDone
-                ? Icon(
-                    key: const ValueKey('ordering_done'),
-                    Icons.check_circle_rounded,
-                    size: AppConstants.iconSizeMd,
-                    color: const Color(0xFF34C759),
+                ? const CheckoutSuccessAnimation(
+                    key: ValueKey('ordering_done'),
+                    size: AppConstants.checkoutLoadingAnimationSize,
                   )
                 : const CheckoutLoadingAnimation(
                     key: ValueKey('ordering_loading'),
@@ -906,7 +971,7 @@ class _OrderCompleteSummary extends StatelessWidget {
             final retailerItems = entry.value;
             final retailerTotal = retailerItems.fold<double>(
               0.0,
-              (sum, it) => sum + it.price * it.amount,
+              (sum, it) => sum + controller.discountedLineTotal(it),
             );
             return [
               // Retailer header
@@ -958,7 +1023,7 @@ class _OrderCompleteSummary extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        formatPrice(item.price * item.amount),
+                        formatPrice(controller.discountedLineTotal(item)),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: cs.onSurfaceVariant,
                         ),
@@ -984,12 +1049,28 @@ class _OrderCompleteSummary extends StatelessWidget {
                   color: cs.onSurface,
                 ),
               ),
-              Text(
-                formatPrice(controller.totalPrice),
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: cs.primary,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (controller.hasAnyDiscount) ...[
+                    Text(
+                      formatPrice(controller.totalPrice),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        decoration: TextDecoration.lineThrough,
+                        decorationColor: cs.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: AppConstants.spacingSm),
+                  ],
+                  Text(
+                    formatPrice(controller.finalTotalPrice),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: cs.primary,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

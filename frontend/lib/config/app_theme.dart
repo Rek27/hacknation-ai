@@ -44,7 +44,7 @@ abstract final class AppTheme {
     surfaceContainerLowest: Color(0xFFFFFFFF),
     surfaceContainerLow: Color(0xFFF5F5F5),
     surfaceContainer: Color(0xFFF0F0F0),
-    surfaceContainerHigh: Color(0xFFEAEAEA),
+    surfaceContainerHigh: Color(0xFFF7F7F7),
     surfaceContainerHighest: Color(0xFFE0E0E0),
     onSurfaceVariant: Color(0xFF6B6B6B),
     outline: Color(0xFF8E8E8E),

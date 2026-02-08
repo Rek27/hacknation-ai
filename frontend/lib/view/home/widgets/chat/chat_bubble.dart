@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/model/chat_message.dart';
 import 'package:frontend/model/chat_models.dart';
@@ -185,6 +184,16 @@ class _StaggeredChunkListState extends State<_StaggeredChunkList> {
   void initState() {
     super.initState();
     _scheduleNextIfNonText();
+  }
+
+  @override
+  void didUpdateWidget(_StaggeredChunkList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // When new blocks arrive during streaming, ensure they get revealed.
+    final List<List<OutputItemBase>> blocks = _buildBlocks(widget.chunks);
+    if (_revealedBlockCount < blocks.length) {
+      _scheduleNextIfNonText();
+    }
   }
 
   void _scheduleNextIfNonText() {

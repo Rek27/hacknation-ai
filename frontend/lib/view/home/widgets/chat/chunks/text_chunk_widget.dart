@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'package:frontend/config/app_constants.dart';
+import 'package:frontend/debug_log.dart';
 import 'package:frontend/model/chat_models.dart';
 
 /// Renders a text chunk with a word-by-word typing animation that gives the
@@ -37,11 +39,28 @@ class _TextChunkWidgetState extends State<TextChunkWidget> {
   @override
   void didUpdateWidget(TextChunkWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.chunk.content != oldWidget.chunk.content) {
+    // #region agent log
+    final contentChanged = widget.chunk.content != oldWidget.chunk.content;
+    if (contentChanged) {
+      debugLog('text_chunk_widget.dart:didUpdateWidget', 'content changed', <
+        String,
+        dynamic
+      >{
+        'oldContentLen': oldWidget.chunk.content.length,
+        'newContentLen': widget.chunk.content.length,
+        'hasMoreWords':
+            widget.chunk.content.split(RegExp(r'(\s+)')).length > _words.length,
+      }, 'H4');
+    }
+    // #endregion
+    if (contentChanged) {
       final List<String> newWords = widget.chunk.content.split(
         RegExp(r'(\s+)'),
       );
       if (newWords.length > _words.length) {
+        // Reset completion so new words animate word-by-word instead of
+        // appearing all at once when the previous batch had finished typing.
+        _isComplete = false;
         _words = newWords;
         _typingGeneration++;
         _startTyping();
@@ -71,6 +90,21 @@ class _TextChunkWidgetState extends State<TextChunkWidget> {
 
   @override
   Widget build(BuildContext context) {
+    // #region agent log
+    if (_visibleWordCount == 0 || _isComplete) {
+      debugLog(
+        'text_chunk_widget.dart:build',
+        'TextChunkWidget build',
+        <String, dynamic>{
+          'visibleWordCount': _visibleWordCount,
+          'totalWords': _words.length,
+          'contentLen': widget.chunk.content.length,
+          'isComplete': _isComplete,
+        },
+        'H4',
+      );
+    }
+    // #endregion
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
     // Show only the first _visibleWordCount words, or all if complete.

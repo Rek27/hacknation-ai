@@ -100,6 +100,15 @@ flutter:
     - assets/order_done_success_v2.riv
     - assets/order_done_donecheck.riv
     - assets/order_done_confetti.riv
+    - assets/7552-15074-loading-indicator-remix.riv
+    - assets/1658-3268-flag-animation.riv
+    - assets/7552-15074-loading-indicator-remix copy.riv
+    - assets/2569-5232-calling-animation.riv
+    - assets/11929-22748-simple-loading.riv
+    - assets/4207-8735-success.riv
+    - assets/950-1856-incoming-call.riv
+    - assets/102-434-light-bulb.riv
+    - assets/3725-7780-waiing-animation.riv
 
   # To add assets to your application, add an assets section, like this:
   # assets:

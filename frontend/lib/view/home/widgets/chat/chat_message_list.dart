@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'package:frontend/config/app_constants.dart';
+import 'package:frontend/debug_log.dart';
 import 'package:frontend/model/chat_message.dart';
 import 'package:frontend/view/home/widgets/chat/chat_bubble.dart';
 import 'package:frontend/view/home/widgets/chat/chat_controller.dart';
@@ -23,6 +24,9 @@ class _ChatMessageListState extends State<ChatMessageList> {
   final ScrollController _scrollController = ScrollController();
   bool _isUserScrolledUp = false;
   int _lastScrollTrigger = -1;
+  // #region agent log
+  static int _buildCount = 0;
+  // #endregion
 
   @override
   void initState() {
@@ -71,6 +75,22 @@ class _ChatMessageListState extends State<ChatMessageList> {
     final ChatController controller = context.watch<ChatController>();
     final List<ChatMessage> messages = controller.messages;
     final bool hasPinnedForm = controller.pinnedTextForm != null;
+    // #region agent log
+    _buildCount++;
+    debugLog(
+      'chat_message_list.dart:build',
+      'ChatMessageList build',
+      <String, dynamic>{
+        'buildCount': _buildCount,
+        'messageCount': messages.length,
+        'showThinking':
+            controller.isLoading &&
+            !(messages.isNotEmpty &&
+                messages.last.sender == ChatMessageSender.agent),
+      },
+      'H2',
+    );
+    // #endregion
 
     // Auto-scroll when the trigger changes. When the pinned form is shown we
     // jump to bottom so the new padding doesn't leave a gap.
@@ -88,7 +108,12 @@ class _ChatMessageListState extends State<ChatMessageList> {
     }
 
     final bool isLoading = controller.isLoading;
-    final int totalItems = messages.length + (isLoading ? 1 : 0);
+    // Hide the thinking bubble once agent content starts streaming in,
+    // so the user sees the growing text instead of a loading indicator.
+    final bool hasAgentResponse =
+        messages.isNotEmpty && messages.last.sender == ChatMessageSender.agent;
+    final bool showThinking = isLoading && !hasAgentResponse;
+    final int totalItems = messages.length + (showThinking ? 1 : 0);
     return Stack(
       children: [
         ListView.builder(
@@ -100,7 +125,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
           itemCount: totalItems,
           itemBuilder: (BuildContext context, int index) {
             // Last item is the thinking bubble when loading
-            if (isLoading && index == messages.length) {
+            if (showThinking && index == messages.length) {
               return const ThinkingBubble();
             }
             final ChatMessage message = messages[index];

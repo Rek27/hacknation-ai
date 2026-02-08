@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:flutter/widgets.dart';
 
+import 'package:frontend/debug_log.dart';
 import 'package:frontend/model/chat_message.dart';
 import 'package:frontend/model/chat_models.dart';
 import 'package:frontend/service/agent_api.dart';
@@ -163,10 +164,42 @@ class ChatController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // #region agent log
+      int chunkIndex = 0;
+      final streamStartMs = DateTime.now().millisecondsSinceEpoch;
+      // #endregion
       await for (final OutputItemBase chunk in _chatService.sendMessage(text)) {
+        // #region agent log
+        debugLog(
+          'chat_controller.dart:sendMessage_loop',
+          'chunk received',
+          <String, dynamic>{
+            'chunkIndex': chunkIndex,
+            'type': chunk.type.toString(),
+            'contentLen': chunk is TextChunk ? chunk.content.length : 0,
+            'msSinceStreamStart':
+                DateTime.now().millisecondsSinceEpoch - streamStartMs,
+          },
+          'H1',
+        );
+        // #endregion
         _handleStreamedChunk(chunk);
         _triggerScroll();
         notifyListeners();
+        // Yield to the event loop so the framework can render intermediate
+        // frames. Without this, multiple SSE events arriving in a single HTTP
+        // chunk would be processed as microtasks and the UI would only update
+        // once after all chunks are consumed.
+        await Future<void>.delayed(Duration.zero);
+        // #region agent log
+        debugLog(
+          'chat_controller.dart:after_delay',
+          'after notifyListeners and delay',
+          <String, dynamic>{'chunkIndex': chunkIndex},
+          'H5',
+        );
+        chunkIndex++;
+        // #endregion
       }
     } catch (e) {
       _errorMessage = 'Connection error: $e';
@@ -211,6 +244,7 @@ class ChatController extends ChangeNotifier {
     _pinnedTextFormMessageId = null;
     _disabledMessageIds.clear();
     _treeStates.clear();
+    _cartController?.clearCart();
     notifyListeners();
   }
 
@@ -372,15 +406,51 @@ class ChatController extends ChangeNotifier {
     // Clear pinned state
     _pinnedTextForm = null;
     _pinnedTextFormMessageId = null;
+    // Form response is a new stream; do not buffer chunks from the previous
+    // tree flow (otherwise text and cart would never be displayed).
+    _bufferedChunks.clear();
+    _isBufferingAfterTree = false;
     _triggerScroll();
     _isLoading = true;
+    _cartController?.setLoading(true); // Cart may be generated from response
     notifyListeners();
 
     try {
-      final List<OutputItemBase> chunks = await _chatService.submitForm(
+      // #region agent log
+      int formChunkIndex = 0;
+      final formStreamStartMs = DateTime.now().millisecondsSinceEpoch;
+      // #endregion
+      await for (final OutputItemBase chunk in _chatService.submitFormStream(
         submittedForm,
-      );
-      _handleAgentResponse(chunks);
+      )) {
+        // #region agent log
+        debugLog(
+          'chat_controller.dart:submitTextForm_loop',
+          'form response chunk received',
+          <String, dynamic>{
+            'chunkIndex': formChunkIndex,
+            'type': chunk.type.toString(),
+            'contentLen': chunk is TextChunk ? chunk.content.length : 0,
+            'msSinceStreamStart':
+                DateTime.now().millisecondsSinceEpoch - formStreamStartMs,
+          },
+          'H1',
+        );
+        // #endregion
+        _handleStreamedChunk(chunk);
+        _triggerScroll();
+        notifyListeners();
+        await Future<void>.delayed(Duration.zero);
+        // #region agent log
+        debugLog(
+          'chat_controller.dart:submitTextForm_after_delay',
+          'after notifyListeners and delay',
+          <String, dynamic>{'chunkIndex': formChunkIndex},
+          'H5',
+        );
+        formChunkIndex++;
+        // #endregion
+      }
     } catch (e) {
       _errorMessage = 'Connection error: $e';
       _messages.add(
@@ -390,6 +460,7 @@ class ChatController extends ChangeNotifier {
       );
     } finally {
       _isLoading = false;
+      _cartController?.setLoading(false);
       _triggerScroll();
       notifyListeners();
     }
@@ -464,21 +535,67 @@ class ChatController extends ChangeNotifier {
 
   /// Appends a TextChunk, merging with the last TextChunk in the current
   /// agent message if present for seamless streaming display.
+  /// Replaces the ChatMessage object so the widget tree detects the change.
   void _appendOrMergeTextChunk(TextChunk chunk) {
-    if (_messages.isEmpty || _messages.last.sender != ChatMessageSender.agent) {
+    // #region agent log
+    final bool wasEmpty =
+        _messages.isEmpty || _messages.last.sender != ChatMessageSender.agent;
+    // #endregion
+    if (wasEmpty) {
       _messages.add(ChatMessage.agent([chunk]));
+      // #region agent log
+      debugLog(
+        'chat_controller.dart:_appendOrMergeTextChunk',
+        'add new agent message',
+        <String, dynamic>{
+          'messagesLength': _messages.length,
+          'lastChunksLength': 1,
+        },
+        'H3',
+      );
+      // #endregion
       return;
     }
     final ChatMessage lastMsg = _messages.last;
-    final List<OutputItemBase> chunks = lastMsg.chunks;
-    if (chunks.isNotEmpty && chunks.last is TextChunk) {
-      final TextChunk lastText = chunks.last as TextChunk;
-      chunks[chunks.length - 1] = TextChunk(
+    final List<OutputItemBase> oldChunks = lastMsg.chunks;
+    if (oldChunks.isNotEmpty && oldChunks.last is TextChunk) {
+      final TextChunk lastText = oldChunks.last as TextChunk;
+      final List<OutputItemBase> newChunks = List<OutputItemBase>.from(
+        oldChunks,
+      );
+      newChunks[newChunks.length - 1] = TextChunk(
         type: OutputItemType.text,
         content: lastText.content + chunk.content,
       );
+      _messages[_messages.length - 1] = ChatMessage(
+        id: lastMsg.id,
+        sender: lastMsg.sender,
+        timestamp: lastMsg.timestamp,
+        chunks: newChunks,
+      );
+      // #region agent log
+      final TextChunk newLast = newChunks[newChunks.length - 1] as TextChunk;
+      debugLog(
+        'chat_controller.dart:_appendOrMergeTextChunk',
+        'merge text chunk',
+        <String, dynamic>{
+          'messagesLength': _messages.length,
+          'lastChunksLength': newChunks.length,
+          'lastTextContentLen': newLast.content.length,
+        },
+        'H3',
+      );
+      // #endregion
     } else {
-      chunks.add(chunk);
+      final List<OutputItemBase> newChunks = List<OutputItemBase>.from(
+        oldChunks,
+      )..add(chunk);
+      _messages[_messages.length - 1] = ChatMessage(
+        id: lastMsg.id,
+        sender: lastMsg.sender,
+        timestamp: lastMsg.timestamp,
+        chunks: newChunks,
+      );
     }
   }
 

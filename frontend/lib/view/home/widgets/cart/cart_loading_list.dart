@@ -1,155 +1,172 @@
+import 'dart:async';
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:frontend/config/app_constants.dart';
+import 'package:rive/rive.dart' as rive;
 
-/// List of cart skeletons with an optional loading message appended after items.
-class CartLoadingList extends StatelessWidget {
-  const CartLoadingList({
-    super.key,
-    this.count = 5,
-    this.loadingText = 'Searching retailers for the best deals...',
-  });
+const String _cartLoadingAssetPath = 'assets/11929-22748-simple-loading.riv';
 
-  final int count;
-  final String? loadingText;
+const List<String> _loadingSentences = [
+  'Searching retailers for the best deals...',
+  'Comparing prices across stores...',
+  'Finding the freshest products for you...',
+  'Putting together your perfect cart...',
+  'Checking availability in your area...',
+  'Hunting down the best offers...',
+  'Almost there, curating your selections...',
+  'Making sure you get the best value...',
+];
 
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final List<Widget> children =
-        List<Widget>.generate(count, (i) => const _SkeletonCartItem()).expand((
-          w,
-        ) sync* {
-          yield w;
-          yield const SizedBox(height: AppConstants.spacingMd);
-        }).toList();
-
-    if (loadingText != null) {
-      children.add(const SizedBox(height: AppConstants.spacingSm));
-      children.add(
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: AppConstants.iconSizeXs,
-              height: AppConstants.iconSizeXs,
-              child: CircularProgressIndicator(
-                strokeWidth: 2,
-                valueColor: AlwaysStoppedAnimation<Color>(
-                  theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ),
-            const SizedBox(width: AppConstants.spacingMd),
-            Text(
-              loadingText!,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
-      );
-      children.add(const SizedBox(height: AppConstants.spacingMd));
-    }
-
-    return ListView(
-      padding: const EdgeInsets.only(top: AppConstants.spacingMd),
-      children: children,
-    );
-  }
-}
-
-/// Reusable pulsing skeleton box. Fades in/out to suggest loading.
-class _AnimatedSkeletonBox extends StatefulWidget {
-  const _AnimatedSkeletonBox({required this.width, required this.height});
-
-  final double width;
-  final double height;
+/// Centered Rive loading animation with rotating reassurance sentences
+/// shown while the cart is being generated.
+class CartLoadingList extends StatefulWidget {
+  const CartLoadingList({super.key});
 
   @override
-  State<_AnimatedSkeletonBox> createState() => _AnimatedSkeletonBoxState();
+  State<CartLoadingList> createState() => _CartLoadingListState();
 }
 
-class _AnimatedSkeletonBoxState extends State<_AnimatedSkeletonBox>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
-  late final Animation<double> _opacity;
+class _CartLoadingListState extends State<CartLoadingList> {
+  rive.File? _riveFile;
+  rive.RiveWidgetController? _controller;
+  bool _isRiveInitialized = false;
+  int _currentSentenceIndex = 0;
+  late final Timer _sentenceTimer;
+  final Random _random = Random();
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1100),
-    )..repeat(reverse: true);
-    _opacity = Tween<double>(
-      begin: 0.10,
-      end: 0.22,
-    ).chain(CurveTween(curve: Curves.easeInOut)).animate(_controller);
+    _initRive();
+    _currentSentenceIndex = _random.nextInt(_loadingSentences.length);
+    _sentenceTimer = Timer.periodic(
+      AppConstants.cartLoadingSentenceRotationDuration,
+      (_) => _rotateSentence(),
+    );
+  }
+
+  Future<void> _initRive() async {
+    try {
+      _riveFile = await rive.File.asset(
+        _cartLoadingAssetPath,
+        riveFactory: rive.Factory.rive,
+      );
+      if (_riveFile == null) return;
+      _controller = rive.RiveWidgetController(
+        _riveFile!,
+        stateMachineSelector: const rive.StateMachineAtIndex(0),
+      );
+      if (mounted) {
+        setState(() => _isRiveInitialized = true);
+      }
+    } catch (e) {
+      print('CartLoadingList._initRive error: $e');
+    }
+  }
+
+  void _rotateSentence() {
+    if (!mounted) return;
+    int nextIndex;
+    do {
+      nextIndex = _random.nextInt(_loadingSentences.length);
+    } while (nextIndex == _currentSentenceIndex &&
+        _loadingSentences.length > 1);
+    setState(() => _currentSentenceIndex = nextIndex);
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _sentenceTimer.cancel();
+    _controller?.dispose();
+    _riveFile?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final Color base = Theme.of(context).colorScheme.surfaceContainerHigh;
-    return AnimatedBuilder(
-      animation: _opacity,
-      builder: (context, _) {
-        return Container(
-          width: widget.width,
-          height: widget.height,
-          decoration: BoxDecoration(
-            color: base.withValues(alpha: _opacity.value),
-            borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-          ),
-        );
-      },
+    final ThemeData theme = Theme.of(context);
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingXl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _CartLoadingRiveAnimation(
+              isInitialized: _isRiveInitialized,
+              controller: _controller,
+              theme: theme,
+            ),
+            const SizedBox(height: AppConstants.spacingLg),
+            _CartLoadingRotatingText(
+              sentence: _loadingSentences[_currentSentenceIndex],
+              sentenceIndex: _currentSentenceIndex,
+              theme: theme,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-/// Skeleton resembling a cart item tile.
-class _SkeletonCartItem extends StatelessWidget {
-  const _SkeletonCartItem();
+/// Displays the Rive animation or a fallback spinner while loading.
+class _CartLoadingRiveAnimation extends StatelessWidget {
+  const _CartLoadingRiveAnimation({
+    required this.isInitialized,
+    required this.controller,
+    required this.theme,
+  });
+
+  final bool isInitialized;
+  final rive.RiveWidgetController? controller;
+  final ThemeData theme;
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      decoration: BoxDecoration(
-        color: colorScheme.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-      ),
-      padding: const EdgeInsets.all(AppConstants.spacingMd),
-      child: Row(
-        children: [
-          const _AnimatedSkeletonBox(
-            width: AppConstants.skeletonImageSize,
-            height: AppConstants.skeletonImageSize,
+    if (!isInitialized || controller == null) {
+      return SizedBox(
+        width: AppConstants.cartLoadingAnimationSize,
+        height: AppConstants.cartLoadingAnimationSize,
+        child: Center(
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            color: theme.colorScheme.primary,
           ),
-          const SizedBox(width: AppConstants.spacingMd),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                _AnimatedSkeletonBox(
-                  width: AppConstants.skeletonTitleWidth,
-                  height: AppConstants.skeletonTitleHeight,
-                ),
-                SizedBox(height: AppConstants.spacingSm),
-                _AnimatedSkeletonBox(
-                  width: AppConstants.skeletonSubtitleWidth,
-                  height: AppConstants.skeletonSubtitleHeight,
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
+      );
+    }
+    return SizedBox(
+      width: AppConstants.cartLoadingAnimationSize,
+      height: AppConstants.cartLoadingAnimationSize,
+      child: rive.RiveWidget(controller: controller!, fit: rive.Fit.contain),
+    );
+  }
+}
+
+/// Cross-fades between rotating reassurance sentences.
+class _CartLoadingRotatingText extends StatelessWidget {
+  const _CartLoadingRotatingText({
+    required this.sentence,
+    required this.sentenceIndex,
+    required this.theme,
+  });
+
+  final String sentence;
+  final int sentenceIndex;
+  final ThemeData theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedSwitcher(
+      duration: AppConstants.durationSlow,
+      child: Text(
+        sentence,
+        key: ValueKey<int>(sentenceIndex),
+        style: theme.textTheme.bodyMedium?.copyWith(
+          color: theme.colorScheme.onSurfaceVariant,
+        ),
+        textAlign: TextAlign.center,
       ),
     );
   }

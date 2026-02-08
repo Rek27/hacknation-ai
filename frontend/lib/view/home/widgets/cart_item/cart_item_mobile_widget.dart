@@ -207,6 +207,11 @@ class _MobileHeaderRow extends StatelessWidget {
                   ),
                 ],
               ),
+              const SizedBox(height: AppConstants.spacingXs),
+              Align(
+                alignment: Alignment.centerRight,
+                child: CartItemTotalWithDiscount(item: item),
+              ),
             ],
           ),
         ),
