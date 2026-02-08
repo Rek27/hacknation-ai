@@ -4,6 +4,7 @@ import 'package:frontend/model/chat_models.dart';
 /// Manages cart state built from `CartChunk` and provides UI helpers.
 class CartController extends ChangeNotifier {
   bool isLoading = false;
+  String? errorMessage;
   CartChunk? _cart;
   final Set<String> _expandedIds = <String>{};
   final Map<String, CartChunk> _alternativesById = <String, CartChunk>{};
@@ -110,102 +111,110 @@ class CartController extends ChangeNotifier {
   /// Loads a dummy list of items and computes the total price.
   Future<void> loadDummyData() async {
     isLoading = true;
+    errorMessage = null;
     notifyListeners();
-    // Simulate network/search latency so the skeleton can be seen.
-    await Future.delayed(const Duration(milliseconds: 4000));
-    final items = <CartItem>[
-      CartItem(
-        id: '1',
-        name: 'Bulk Energy Drink Pack (48ct)',
-        price: 42.99,
-        amount: 2,
-        retailer: 'Amazon',
-        deliveryTime: const Duration(days: 3),
-      ),
-      CartItem(
-        id: '2',
-        name: 'Noise-Cancelling Headphones',
-        price: 199.00,
-        amount: 1,
-        retailer: 'BestBuy',
-        deliveryTime: const Duration(days: 5),
-      ),
-      CartItem(
-        id: '3',
-        name: 'Smart Watch',
-        price: 199.99,
-        amount: 1,
-        retailer: 'Amazon',
-        deliveryTime: const Duration(days: 7),
-      ),
-      CartItem(
-        id: '4',
-        name: 'Laptop',
-        price: 1999.99,
-        amount: 1,
-        retailer: 'Walmart',
-        deliveryTime: const Duration(days: 10),
-      ),
-      CartItem(
-        id: '5',
-        name: 'Phone',
-        price: 999.99,
-        amount: 1,
-        retailer: 'Costco',
-        deliveryTime: const Duration(days: 14),
-      ),
-    ];
-    final total = items.fold<double>(
-      0,
-      (sum, it) => sum + it.price * it.amount,
-    );
-    _cart = CartChunk(items: items, price: total);
-
-    // Seed some alternatives
-    _alternativesById.clear();
-    _alternativesById['1'] = CartChunk(
-      items: [
+    try {
+      // Simulate network/search latency so the skeleton can be seen.
+      await Future.delayed(const Duration(milliseconds: 1200));
+      final items = <CartItem>[
         CartItem(
-          id: '1a',
-          name: 'Monster Energy 24‑Pack',
-          price: 38.99,
-          amount: 1,
-          retailer: 'Walmart',
-          deliveryTime: const Duration(days: 4),
-        ),
-        CartItem(
-          id: '1b',
-          name: 'Red Bull 48‑Pack',
-          price: 56.99,
-          amount: 1,
-          retailer: 'Costco',
-          deliveryTime: const Duration(days: 2),
-        ),
-      ],
-      price: 0,
-    );
-    _alternativesById['2'] = CartChunk(
-      items: [
-        CartItem(
-          id: '2a',
-          name: 'Sony WH‑1000XM5',
-          price: 329.00,
-          amount: 1,
+          id: '1',
+          name: 'Bulk Energy Drink Pack (48ct)',
+          price: 42.99,
+          amount: 2,
           retailer: 'Amazon',
           deliveryTime: const Duration(days: 3),
         ),
         CartItem(
-          id: '2b',
-          name: 'Bose QC45',
-          price: 299.00,
+          id: '2',
+          name: 'Noise-Cancelling Headphones',
+          price: 199.00,
           amount: 1,
-          retailer: 'Bose',
-          deliveryTime: const Duration(days: 2),
+          retailer: 'BestBuy',
+          deliveryTime: const Duration(days: 5),
         ),
-      ],
-      price: 0,
-    );
-    isLoading = false;
-    notifyListeners();
+        CartItem(
+          id: '3',
+          name: 'Smart Watch',
+          price: 199.99,
+          amount: 1,
+          retailer: 'Amazon',
+          deliveryTime: const Duration(days: 7),
+        ),
+        CartItem(
+          id: '4',
+          name: 'Laptop',
+          price: 1999.99,
+          amount: 1,
+          retailer: 'Walmart',
+          deliveryTime: const Duration(days: 10),
+        ),
+        CartItem(
+          id: '5',
+          name: 'Phone',
+          price: 999.99,
+          amount: 1,
+          retailer: 'Costco',
+          deliveryTime: const Duration(days: 14),
+        ),
+      ];
+      final total = items.fold<double>(
+        0,
+        (sum, it) => sum + it.price * it.amount,
+      );
+      _cart = CartChunk(items: items, price: total);
+
+      // Seed some alternatives
+      _alternativesById.clear();
+      _alternativesById['1'] = CartChunk(
+        items: [
+          CartItem(
+            id: '1a',
+            name: 'Monster Energy 24‑Pack',
+            price: 38.99,
+            amount: 1,
+            retailer: 'Walmart',
+            deliveryTime: const Duration(days: 4),
+          ),
+          CartItem(
+            id: '1b',
+            name: 'Red Bull 48‑Pack',
+            price: 56.99,
+            amount: 1,
+            retailer: 'Costco',
+            deliveryTime: const Duration(days: 2),
+          ),
+        ],
+        price: 0,
+      );
+      _alternativesById['2'] = CartChunk(
+        items: [
+          CartItem(
+            id: '2a',
+            name: 'Sony WH‑1000XM5',
+            price: 329.00,
+            amount: 1,
+            retailer: 'Amazon',
+            deliveryTime: const Duration(days: 3),
+          ),
+          CartItem(
+            id: '2b',
+            name: 'Bose QC45',
+            price: 299.00,
+            amount: 1,
+            retailer: 'Bose',
+            deliveryTime: const Duration(days: 2),
+          ),
+        ],
+        price: 0,
+      );
+      errorMessage = null;
+    } catch (e) {
+      errorMessage =
+          "We couldn't fetch product data. This might be a network issue.";
+    } finally {
+      isLoading = false;
+      notifyListeners();
+    }
   }
 }

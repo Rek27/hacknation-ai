@@ -6,6 +6,7 @@ import 'package:frontend/view/home/widgets/cart_item/cart_item_controller.dart';
 import 'package:frontend/model/chat_models.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/view/home/widgets/cart/cart_loading_list.dart';
+import 'package:frontend/view/home/widgets/cart/cart_error_widget.dart';
 
 /// High-level cart panel with header, items list and fixed checkout bar.
 class CartPanel extends StatelessWidget {
@@ -95,6 +96,12 @@ class CartPanel extends StatelessWidget {
               Expanded(
                 child: controller.isLoading
                     ? const CartLoadingList()
+                    : (controller.errorMessage != null)
+                    ? CartErrorWidget(
+                        title: 'Something went wrong',
+                        subtitle: controller.errorMessage!,
+                        onRetry: () => controller.loadDummyData(),
+                      )
                     : controller.isEmpty
                     ? Center(
                         child: Column(
@@ -144,7 +151,7 @@ class CartPanel extends StatelessWidget {
           ),
         ),
         // Edge-to-edge fixed bottom confirm bar (outside page padding)
-        if (!controller.isLoading)
+        if (!controller.isLoading && controller.errorMessage == null)
           Positioned(
             left: 0,
             right: 0,
