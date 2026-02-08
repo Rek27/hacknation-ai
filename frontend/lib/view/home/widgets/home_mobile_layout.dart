@@ -344,11 +344,11 @@ class _CallCenterContent extends StatelessWidget {
   }
 
   String _getStatusText(VoiceController controller) {
-    if (controller.isRecording) return 'Listening...';
-    if (controller.isLoading) return 'Processing...';
+    if (controller.isRecording) return 'Listening... (speak now)';
+    if (controller.isLoading) return 'Processing your request...';
     if (controller.isPlaying) return 'Speaking...';
-    if (controller.error != null) return 'Error';
-    return 'Tap microphone to speak';
+    if (controller.error != null) return 'Error occurred';
+    return 'Ready to listen';
   }
 }
 
@@ -445,9 +445,7 @@ class _MicrophoneButton extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         GestureDetector(
-          onTapDown: isDisabled ? null : (_) => _onMicPress(context),
-          onTapUp: isDisabled ? null : (_) => _onMicRelease(context),
-          onTapCancel: isDisabled ? null : () => _onMicCancel(context),
+          onTap: isRecording && !isDisabled ? () => _onMicTap(context) : null,
           child: Container(
             width: AppConstants.callUiTouchTarget,
             height: AppConstants.callUiTouchTarget,
@@ -468,7 +466,7 @@ class _MicrophoneButton extends StatelessWidget {
         ),
         const SizedBox(height: AppConstants.spacingXs),
         Text(
-          isRecording ? 'Recording...' : 'Hold to talk',
+          isRecording ? 'Tap to cancel' : 'Auto listening',
           style: theme.textTheme.labelSmall?.copyWith(
             color: Colors.white.withValues(alpha: 0.8),
           ),
@@ -477,16 +475,8 @@ class _MicrophoneButton extends StatelessWidget {
     );
   }
 
-  void _onMicPress(BuildContext context) {
-    context.read<VoiceController>().startRecording();
-  }
-
-  void _onMicRelease(BuildContext context) {
-    context.read<VoiceController>().stopRecordingAndSend();
-  }
-
-  void _onMicCancel(BuildContext context) {
-    // If user drags finger off button, cancel the recording
+  void _onMicTap(BuildContext context) {
+    // Allow manual cancellation during recording
     context.read<VoiceController>().cancelRecording();
   }
 }
