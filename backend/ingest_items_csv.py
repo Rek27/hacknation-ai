@@ -31,7 +31,13 @@ def header_to_label(header: str) -> str:
 
 def row_to_text(row: dict, headers: list) -> str:
     """Format a CSV row as 'Label: value, ...' for each column."""
-    parts = [f"{header_to_label(h)}: {row.get(h, '')}" for h in headers]
+    parts = []
+    for h in headers:
+        value = row.get(h, '')
+        # Special case: delivery_estimate is numeric, append "days"
+        if h == "delivery_estimate" and value:
+            value = f"{value} days"
+        parts.append(f"{header_to_label(h)}: {value}")
     return ", ".join(parts)
 
 
