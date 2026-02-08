@@ -12,6 +12,7 @@ class AgentApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'AI Agent Chat',
       theme: AppTheme.theme,
       home: const HomePage(),

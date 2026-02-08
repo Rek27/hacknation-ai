@@ -1,47 +1,53 @@
 """
-Output models for streaming responses.
-
-All streaming objects inherit from OutputItem for type safety and easy extensibility.
+Output models for structured streaming responses.
 """
 
-from typing import Literal, Optional, Union, Any
+from __future__ import annotations
+
+from typing import Literal, Optional, Union
 from pydantic import BaseModel, Field, ConfigDict
 
 
 _model_config = ConfigDict(
     json_schema_extra={"additionalProperties": False},
-    populate_by_name=True
+    populate_by_name=True,
 )
 
 
-class ToolOutput(BaseModel):
-    """Signals that the agent decided to call a tool.
+class TreeNode(BaseModel):
+    """A single node in an event-planning tree."""
 
-    The actual tool call including arguments is delivered via separate
-    mechanisms. The frontend only needs to know which tool was invoked
-    to display loading indicators or special UI affordances.
-    """
-
-    type: Literal["tool"] = "tool"
-    name: str = Field(..., description="Name of the invoked tool")
-    reason: Optional[str] = Field(None, description="Reason for the tool call")
-    arguments: Optional[dict[str, Any]] = Field(None, description="Tool call arguments")
+    emoji: str = Field(..., description="Single emoji symbol rendered in UI")
+    label: str = Field(..., description="Display label for this node")
+    selected: bool = Field(
+        default=False,
+        description="Whether the user has confirmed this node",
+    )
+    children: list[TreeNode] = Field(
+        default_factory=list,
+        description="Child nodes (max 6 per level)",
+    )
 
     model_config = _model_config
 
-class ToolResultOutput(BaseModel):
-    """Result from a tool execution."""
 
-    type: Literal["tool_result"] = "tool_result"
-    name: str = Field(..., description="Name of the tool that was executed")
-    result: str = Field(..., description="Tool execution result")
-    success: bool = Field(default=True, description="Whether the tool execution succeeded")
+TreeNode.model_rebuild()
+
+
+class TextFieldChunk(BaseModel):
+    """A single form field with a label and optional prefilled content."""
+
+    label: str = Field(..., description="Field label")
+    content: str = Field(
+        default="",
+        description="Prefilled value (empty string if not yet provided)",
+    )
 
     model_config = _model_config
 
 
 class TextChunk(BaseModel):
-    """A chunk of streaming text from the model."""
+    """A short text message from the model."""
 
     type: Literal["text"] = "text"
     content: str = Field(..., description="Text content chunk")
@@ -49,26 +55,50 @@ class TextChunk(BaseModel):
     model_config = _model_config
 
 
-class ThinkingChunk(BaseModel):
-    """Model's internal reasoning (for models that support thinking)."""
+class PeopleTreeTrunk(BaseModel):
+    """Tree of people-related event needs."""
 
-    type: Literal["thinking"] = "thinking"
-    content: str = Field(..., description="Thinking content")
+    type: Literal["people_tree"] = "people_tree"
+    nodes: list[TreeNode] = Field(
+        ...,
+        description="Top-level nodes (Food, Drinks, Entertainment, Accommodation)",
+    )
 
     model_config = _model_config
 
 
-class ApiAnswerOutput(BaseModel):
-    """The agent's final complete response to the user.
+class PlaceTreeTrunk(BaseModel):
+    """Tree of place/venue-related event needs."""
 
-    Only generate after all necessary tool calls have been made.
-    """
+    type: Literal["place_tree"] = "place_tree"
+    nodes: list[TreeNode] = Field(..., description="Top-level nodes (dynamic)")
 
-    type: Literal["answer"] = "answer"
-    content: str = Field(..., description="Complete answer text")
-    metadata: Optional[dict[str, Any]] = Field(
-        default=None,
-        description="Additional metadata (citations, sources, etc.)"
+    model_config = _model_config
+
+
+class TextFormChunk(BaseModel):
+    """Structured form with required fields."""
+
+    type: Literal["text_form"] = "text_form"
+    address: TextFieldChunk
+    budget: TextFieldChunk
+    date: TextFieldChunk
+    duration: TextFieldChunk
+    number_of_attendees: TextFieldChunk = Field(
+        ...,
+        alias="numberOfAttendees",
+    )
+
+    model_config = _model_config
+
+
+class ItemsChunk(BaseModel):
+    """Final list of detailed item names to be purchased."""
+
+    type: Literal["items"] = "items"
+    items: list[str] = Field(
+        ...,
+        description="Detailed names of each item to purchase",
     )
 
     model_config = _model_config
@@ -84,24 +114,11 @@ class ErrorOutput(BaseModel):
     model_config = _model_config
 
 
-# Union type for all possible output items
 OutputItem = Union[
-    ToolOutput,
-    ToolResultOutput,
     TextChunk,
-    ThinkingChunk,
-    ApiAnswerOutput,
+    PeopleTreeTrunk,
+    PlaceTreeTrunk,
+    TextFormChunk,
+    ItemsChunk,
     ErrorOutput,
 ]
-
-
-class StreamResponse(BaseModel):
-    """Container for streaming response with multiple items."""
-
-    items: list[OutputItem] = Field(default_factory=list)
-
-    model_config = _model_config
-
-    def add_item(self, item: OutputItem) -> None:
-        """Add an item to the stream."""
-        self.items.append(item)

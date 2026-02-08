@@ -1,11 +1,11 @@
 /// Mirror of your structured outputs from the backend.
 
 enum OutputItemType {
-  tool('tool'),
-  toolResult('tool_result'),
+  // tool('tool'),
+  // toolResult('tool_result'),
   text('text'),
-  thinking('thinking'),
-  answer('answer'),
+  // thinking('thinking'),
+  // answer('answer'),
   error('error'),
   textForm('text_form'),
   tree('tree'),
@@ -27,51 +27,51 @@ abstract class OutputItemBase {
 }
 
 /// type: "tool"
-class ToolOutput implements OutputItemBase {
-  @override
-  final OutputItemType type;
-  final String name;
-  final String? reason;
-  final Map<String, dynamic>? arguments;
+// class ToolOutput implements OutputItemBase {
+//   @override
+//   final OutputItemType type;
+//   final String name;
+//   final String? reason;
+//   final Map<String, dynamic>? arguments;
 
-  ToolOutput({
-    required this.type,
-    required this.name,
-    this.reason,
-    this.arguments,
-  });
+//   ToolOutput({
+//     required this.type,
+//     required this.name,
+//     this.reason,
+//     this.arguments,
+//   });
 
-  factory ToolOutput.fromJson(Map<String, dynamic> json) => ToolOutput(
-    type: OutputItemType.tool,
-    name: json['name'] as String,
-    reason: json['reason'] as String?,
-    arguments: json['arguments'] as Map<String, dynamic>?,
-  );
-}
+//   factory ToolOutput.fromJson(Map<String, dynamic> json) => ToolOutput(
+//     type: OutputItemType.tool,
+//     name: json['name'] as String,
+//     reason: json['reason'] as String?,
+//     arguments: json['arguments'] as Map<String, dynamic>?,
+//   );
+// }
 
 /// type: "tool_result"
-class ToolResultOutput implements OutputItemBase {
-  @override
-  final OutputItemType type;
-  final String name;
-  final String result;
-  final bool success;
+// class ToolResultOutput implements OutputItemBase {
+//   @override
+//   final OutputItemType type;
+//   final String name;
+//   final String result;
+//   final bool success;
 
-  ToolResultOutput({
-    required this.type,
-    required this.name,
-    required this.result,
-    required this.success,
-  });
+//   ToolResultOutput({
+//     required this.type,
+//     required this.name,
+//     required this.result,
+//     required this.success,
+//   });
 
-  factory ToolResultOutput.fromJson(Map<String, dynamic> json) =>
-      ToolResultOutput(
-        type: OutputItemType.toolResult,
-        name: json['name'] as String,
-        result: json['result'] as String,
-        success: (json['success'] as bool?) ?? true,
-      );
-}
+//   factory ToolResultOutput.fromJson(Map<String, dynamic> json) =>
+//       ToolResultOutput(
+//         type: OutputItemType.toolResult,
+//         name: json['name'] as String,
+//         result: json['result'] as String,
+//         success: (json['success'] as bool?) ?? true,
+//       );
+// }
 
 /// type: "text"
 class TextChunk implements OutputItemBase {
@@ -86,35 +86,35 @@ class TextChunk implements OutputItemBase {
 }
 
 /// type: "thinking"
-class ThinkingChunk implements OutputItemBase {
-  @override
-  final OutputItemType type;
-  final String content;
+// class ThinkingChunk implements OutputItemBase {
+//   @override
+//   final OutputItemType type;
+//   final String content;
 
-  ThinkingChunk({required this.type, required this.content});
+//   ThinkingChunk({required this.type, required this.content});
 
-  factory ThinkingChunk.fromJson(Map<String, dynamic> json) => ThinkingChunk(
-    type: OutputItemType.thinking,
-    content: json['content'] as String,
-  );
-}
+//   factory ThinkingChunk.fromJson(Map<String, dynamic> json) => ThinkingChunk(
+//     type: OutputItemType.thinking,
+//     content: json['content'] as String,
+//   );
+// }
 
 /// type: "answer"
-class ApiAnswerOutput implements OutputItemBase {
-  @override
-  final OutputItemType type;
-  final String content;
-  final Map<String, dynamic>? metadata;
+// class ApiAnswerOutput implements OutputItemBase {
+//   @override
+//   final OutputItemType type;
+//   final String content;
+//   final Map<String, dynamic>? metadata;
 
-  ApiAnswerOutput({required this.type, required this.content, this.metadata});
+//   ApiAnswerOutput({required this.type, required this.content, this.metadata});
 
-  factory ApiAnswerOutput.fromJson(Map<String, dynamic> json) =>
-      ApiAnswerOutput(
-        type: OutputItemType.answer,
-        content: json['content'] as String,
-        metadata: json['metadata'] as Map<String, dynamic>?,
-      );
-}
+//   factory ApiAnswerOutput.fromJson(Map<String, dynamic> json) =>
+//       ApiAnswerOutput(
+//         type: OutputItemType.answer,
+//         content: json['content'] as String,
+//         metadata: json['metadata'] as Map<String, dynamic>?,
+//       );
+// }
 
 /// type: "error"
 class ErrorOutput implements OutputItemBase {
@@ -158,7 +158,7 @@ class TextFormChunk implements OutputItemBase {
   final TextFieldChunk address;
   final TextFieldChunk budget;
   final TextFieldChunk date;
-  final TextFieldChunk duration;
+  final TextFieldChunk durationOfEvent;
   final TextFieldChunk numberOfAttendees;
 
   TextFormChunk({
@@ -166,7 +166,7 @@ class TextFormChunk implements OutputItemBase {
     required this.address,
     required this.budget,
     required this.date,
-    required this.duration,
+    required this.durationOfEvent,
     required this.numberOfAttendees,
   }) : type = type ?? OutputItemType.textForm;
 
@@ -175,7 +175,7 @@ class TextFormChunk implements OutputItemBase {
     address: TextFieldChunk.fromJson(json['address'] as Map<String, dynamic>),
     budget: TextFieldChunk.fromJson(json['budget'] as Map<String, dynamic>),
     date: TextFieldChunk.fromJson(json['date'] as Map<String, dynamic>),
-    duration: TextFieldChunk.fromJson(json['duration'] as Map<String, dynamic>),
+    durationOfEvent: TextFieldChunk.fromJson(json['duration'] as Map<String, dynamic>),
     numberOfAttendees: TextFieldChunk.fromJson(
       json['numberOfAttendees'] as Map<String, dynamic>,
     ),
@@ -185,7 +185,7 @@ class TextFormChunk implements OutputItemBase {
     'address': address.toJson(),
     'budget': budget.toJson(),
     'date': date.toJson(),
-    'duration': duration.toJson(),
+    'duration': durationOfEvent.toJson(),
     'numberOfAttendees': numberOfAttendees.toJson(),
   };
 }
@@ -198,20 +198,20 @@ enum TreeType { people, equipment }
 class Category {
   final String emoji;
   final String label;
-  final bool selected;
+  final bool isSelected;
   final List<Category> subcategories;
 
   Category({
     required this.emoji,
     required this.label,
-    required this.selected,
+    required this.isSelected,
     required this.subcategories,
   });
 
   factory Category.fromJson(Map<String, dynamic> json) => Category(
     emoji: json['emoji'] as String,
     label: json['label'] as String,
-    selected: (json['selected'] as bool?) ?? false,
+    isSelected: (json['selected'] as bool?) ?? false,
     subcategories:
         (json['subcategories'] as List<dynamic>?)
             ?.map((e) => Category.fromJson(e as Map<String, dynamic>))
@@ -222,7 +222,7 @@ class Category {
   Map<String, dynamic> toJson() => {
     'emoji': emoji,
     'label': label,
-    'selected': selected,
+    'selected': isSelected,
     'subcategories': subcategories.map((e) => e.toJson()).toList(),
   };
 }
@@ -344,16 +344,16 @@ OutputItemBase parseOutputItem(Map<String, dynamic> json) {
   }
   final type = OutputItemType.fromJson(rawType);
   switch (type) {
-    case OutputItemType.tool:
-      return ToolOutput.fromJson(json);
-    case OutputItemType.toolResult:
-      return ToolResultOutput.fromJson(json);
+    // case OutputItemType.tool:
+    // return ToolOutput.fromJson(json);
+    // case OutputItemType.toolResult:
+    // return ToolResultOutput.fromJson(json);
     case OutputItemType.text:
       return TextChunk.fromJson(json);
-    case OutputItemType.thinking:
-      return ThinkingChunk.fromJson(json);
-    case OutputItemType.answer:
-      return ApiAnswerOutput.fromJson(json);
+    // case OutputItemType.thinking:
+    //   return ThinkingChunk.fromJson(json);
+    // case OutputItemType.answer:
+    //   return ApiAnswerOutput.fromJson(json);
     case OutputItemType.error:
       return ErrorOutput.fromJson(json);
     case OutputItemType.textForm:

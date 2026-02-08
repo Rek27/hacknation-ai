@@ -1,0 +1,63 @@
+article,price,delivery_estimate,retailer,producer,reviews_count,review_rating,image_id
+Banana Smoothie,1.49,1,PEWE,BananCo,245,4.6,1
+Banana Smoothie,1.59,2,BIDL,FruchtZentrale,178,4.4,1
+Banana Smoothie,1.39,0,KAUFTOR,JungleSmoothies,312,4.7,1
+Banana Smoothie,1.69,1,ALBO,ExotFrucht,89,4.3,1
+Mango Smoothie,1.79,2,PEWE,BananCo,156,4.5,13
+Mango Smoothie,1.89,1,BIDL,TropiFrucht,203,4.6,13
+Mango Smoothie,1.69,0,EDL Markt,JungleSmoothies,112,4.4,13
+Berry Smoothie,1.99,1,KAUFTOR,BeeryBlend,98,4.7,3
+Berry Smoothie,2.09,2,ALBO,BananCo,67,4.2,3
+Water 0.5L,0.59,0,PEWE,AquaQuelle,456,4.8,26
+Water 0.5L,0.69,1,BIDL,KristallBrunnen,389,4.7,26
+Water 0.5L,0.49,2,KAUFTOR,QuellSpring,521,4.9,26
+Water 0.5L,0.79,0,EDL Markt,AquaPure,234,4.5,26
+Water 1.5L,0.99,1,PEWE,AquaQuelle,301,4.6,28
+Water 1.5L,1.09,2,ALBO,KristallBrunnen,145,4.4,28
+Cooked Chicken Meal,3.49,0,PEWE,FreshCater,167,4.3,7
+Cooked Chicken Meal,3.79,1,BIDL,MealMaster,256,4.5,7
+Cooked Chicken Meal,3.29,2,SCHLEIBER,GourmetBox,89,4.2,7
+Cooked Veggie Meal,3.99,0,KAUFTOR,GreenCater,234,4.6,10
+Cooked Veggie Meal,4.19,1,ALBO,VeggieFresh,112,4.4,10
+Cooked Pasta Meal,3.89,2,EDL Markt,PastaPro,145,4.5,8
+Non-Alcoholic Beer 0.33L,1.19,0,PEWE,BierFrei,378,4.7,15
+Non-Alcoholic Beer 0.33L,1.29,1,BIDL,NullProzent,289,4.6,15
+Non-Alcoholic Beer 0.33L,1.09,2,KAUFTOR,FreiBier,412,4.8,15
+Non-Alcoholic Beer Wheat,1.39,0,ALBO,WeizenFrei,156,4.5,17
+Non-Alcoholic Beer Wheat,1.49,1,SCHLEIBER,BierFrei,98,4.3,17
+Coffee Ground 250g,2.99,1,PEWE,BohnenRöst,267,4.6,5
+Coffee Ground 250g,3.19,2,BIDL,KaffeeKönig,189,4.5,5
+Coffee Ground 250g,2.79,0,KAUFTOR,RöstMeister,345,4.7,5
+Coffee Capsules 10pk,3.49,0,EDL Markt,KapselPro,123,4.4,4
+Coffee Capsules 10pk,3.69,1,ALBO,BohnenRöst,78,4.2,4
+Fliers A5 500pk,4.99,2,PEWE,PrintZentrale,56,4.1,12
+Fliers A5 500pk,5.29,1,BIDL,WerbDienst,89,4.3,12
+Fliers A4 500pk,6.49,0,KAUFTOR,DruckProfi,112,4.4,11
+Paper Cups 100pk,2.49,1,PEWE,KartonCup,234,4.5,19
+Paper Cups 100pk,2.69,2,BIDL,BecherFabrik,167,4.4,19
+Paper Cups 100pk,2.29,0,SCHLEIBER,CupMeister,289,4.6,19
+Soft Drink Cola 0.33L,0.99,0,PEWE,LimoKing,456,4.7,20
+Soft Drink Cola 0.33L,1.09,1,EDL Markt,FizzCo,378,4.6,20
+Soft Drink Cola 0.33L,0.89,2,ALBO,BrauseWerk,521,4.8,20
+Soft Drink Lemon 0.33L,1.09,0,KAUFTOR,ZitroneFizz,201,4.5,22
+Soft Drink Lemon 0.33L,1.19,1,PEWE,LimoKing,145,4.4,22
+Apple Juice 1L,1.79,1,BIDL,ApfelPress,267,4.6,0
+Apple Juice 1L,1.99,2,SCHLEIBER,ObstSaft,189,4.5,0
+Apple Juice 1L,1.69,0,KAUFTOR,FruchtSaft,312,4.7,0
+Orange Juice 1L,1.99,0,EDL Markt,ZitrusPress,234,4.6,18
+Orange Juice 1L,2.19,1,ALBO,Sonnensaft,156,4.4,18
+Orange Juice 1L,1.89,2,PEWE,OrangeCo,278,4.5,18
+Milk 1L,0.99,0,BIDL,MilchWerke,489,4.8,14
+Milk 1L,1.09,1,KAUFTOR,KuhFrisch,367,4.7,14
+Milk 1L,0.89,2,SCHLEIBER,LaktoseLand,423,4.9,14
+Vegan Milk Oat 1L,1.89,1,PEWE,PflanzeMilch,189,4.5,24
+Vegan Milk Oat 1L,1.99,0,ALBO,HaferDrink,123,4.4,24
+Vegan Milk Almond 1L,2.29,2,EDL Markt,MandelMilch,98,4.3,23
+Banana Smoothie Protein,2.49,1,BIDL,SportSmoothie,67,4.6,2
+Water Sparkling 0.5L,0.79,0,SCHLEIBER,SprudelQuelle,234,4.5,27
+Cooked Salmon Meal,4.49,2,KAUFTOR,FischCater,145,4.4,9
+Non-Alcoholic Beer IPA,1.59,1,PEWE,HopfenFrei,201,4.7,16
+Coffee Instant 100g,2.49,0,ALBO,SofortKaffee,167,4.3,6
+Fliers Color A5 500pk,7.99,1,BIDL,FarbePrint,89,4.2,13
+Soft Drink Ginger 0.33L,1.29,2,EDL Markt,IngwerFizz,278,4.6,21
+Vegan Milk Soy 1L,1.79,0,KAUFTOR,SojaSaft,312,4.5,25
