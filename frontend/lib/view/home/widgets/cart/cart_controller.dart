@@ -164,12 +164,20 @@ class CartController extends ChangeNotifier {
     _reasonsByIndex.clear();
     _aiReasoning.clear();
     _aiReasoningLoading.clear();
+    _retailerOffers = const [];
     notifyListeners();
   }
 
-  /// Store retailer sponsorship offers from the stream.
+  /// Accumulate retailer sponsorship offers from the stream.
+  /// Upserts by retailer name so incremental chunks merge correctly.
   void setRetailerOffers(List<RetailerOffer> offers) {
-    _retailerOffers = offers;
+    final Map<String, RetailerOffer> merged = <String, RetailerOffer>{
+      for (final RetailerOffer o in _retailerOffers) o.retailer: o,
+    };
+    for (final RetailerOffer o in offers) {
+      merged[o.retailer] = o;
+    }
+    _retailerOffers = merged.values.toList();
     notifyListeners();
   }
 

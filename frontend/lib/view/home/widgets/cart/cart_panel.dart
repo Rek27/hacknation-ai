@@ -374,13 +374,7 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
                         const SizedBox(height: AppConstants.spacingXs),
                         Row(
                           children: [
-                            Text(
-                              formatPrice(item.price),
-                              style: theme.textTheme.titleMedium?.copyWith(
-                                color: cs.primary,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
+                            CartItemPriceWithDiscount(item: item),
                             const SizedBox(width: AppConstants.spacingSm),
                             CartRetailerChip(text: item.retailer),
                           ],
@@ -906,7 +900,7 @@ class _OrderCompleteSummary extends StatelessWidget {
             final retailerItems = entry.value;
             final retailerTotal = retailerItems.fold<double>(
               0.0,
-              (sum, it) => sum + it.price * it.amount,
+              (sum, it) => sum + controller.discountedLineTotal(it),
             );
             return [
               // Retailer header
@@ -958,7 +952,7 @@ class _OrderCompleteSummary extends StatelessWidget {
                         ),
                       ),
                       Text(
-                        formatPrice(item.price * item.amount),
+                        formatPrice(controller.discountedLineTotal(item)),
                         style: theme.textTheme.bodyMedium?.copyWith(
                           color: cs.onSurfaceVariant,
                         ),
@@ -984,12 +978,28 @@ class _OrderCompleteSummary extends StatelessWidget {
                   color: cs.onSurface,
                 ),
               ),
-              Text(
-                formatPrice(controller.totalPrice),
-                style: theme.textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: cs.primary,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (controller.hasAnyDiscount) ...[
+                    Text(
+                      formatPrice(controller.totalPrice),
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: cs.onSurfaceVariant,
+                        decoration: TextDecoration.lineThrough,
+                        decorationColor: cs.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(width: AppConstants.spacingSm),
+                  ],
+                  Text(
+                    formatPrice(controller.finalTotalPrice),
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: cs.primary,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

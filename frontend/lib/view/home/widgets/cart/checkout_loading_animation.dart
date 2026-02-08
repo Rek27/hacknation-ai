@@ -5,7 +5,8 @@ import 'package:rive/rive.dart' as rive;
 // Uncomment ONE line below to try each animation, then hot-restart:
 //
 // 1) Vehicle Loader by pedroalpera — delivery truck that drives away on completion
-const String _activeCheckoutAssetPath = 'assets/checkout_vehicle_loader.riv';
+const String _activeCheckoutAssetPath =
+    'assets/7552-15074-loading-indicator-remix copy.riv';
 //
 // 2) Loading to Success/Failure by khadsemayur — loading → checkmark transition
 // const String _activeCheckoutAssetPath = 'assets/checkout_loading_success.riv';

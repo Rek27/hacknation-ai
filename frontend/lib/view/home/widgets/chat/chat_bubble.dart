@@ -187,6 +187,16 @@ class _StaggeredChunkListState extends State<_StaggeredChunkList> {
     _scheduleNextIfNonText();
   }
 
+  @override
+  void didUpdateWidget(_StaggeredChunkList oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // When new blocks arrive during streaming, ensure they get revealed.
+    final List<List<OutputItemBase>> blocks = _buildBlocks(widget.chunks);
+    if (_revealedBlockCount < blocks.length) {
+      _scheduleNextIfNonText();
+    }
+  }
+
   void _scheduleNextIfNonText() {
     final List<List<OutputItemBase>> blocks = _buildBlocks(widget.chunks);
     if (_revealedBlockCount >= blocks.length) return;

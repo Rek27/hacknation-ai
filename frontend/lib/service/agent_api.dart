@@ -4,6 +4,8 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart' hide Category;
 import 'package:http/http.dart' as http;
+
+import 'package:frontend/debug_log.dart';
 import 'package:http_parser/http_parser.dart' as http_parser;
 
 import 'package:frontend/model/api_models.dart';
@@ -191,6 +193,9 @@ class AgentApi {
         if (data.isEmpty) continue;
         try {
           final json = jsonDecode(data) as Map<String, dynamic>;
+          // #region agent log
+          logBackendJson(tag, json);
+          // #endregion
           if (kDebugMode) {
             // ignore: avoid_print
             print(
@@ -221,7 +226,8 @@ abstract class ChatService {
     required List<Map<String, dynamic>> peopleTree,
     required List<Map<String, dynamic>> placeTree,
   });
-  Future<List<OutputItemBase>> submitForm(TextFormChunk form);
+  /// Streams chunks from POST /submit-form so the UI can display them as they arrive.
+  Stream<OutputItemBase> submitFormStream(TextFormChunk form);
 }
 
 /// Real implementation that delegates to [AgentApi] over HTTP.
@@ -255,7 +261,7 @@ class RealChatService implements ChatService {
   }
 
   @override
-  Future<List<OutputItemBase>> submitForm(TextFormChunk form) async {
+  Stream<OutputItemBase> submitFormStream(TextFormChunk form) {
     final SubmitFormRequestBody body = SubmitFormRequestBody(
       sessionId: _sessionId,
       address: form.address.toJson(),
@@ -264,7 +270,7 @@ class RealChatService implements ChatService {
       duration: form.durationOfEvent.toJson(),
       numberOfAttendees: form.numberOfAttendees.toJson(),
     );
-    return await _api.streamSubmitForm(body).toList();
+    return _api.streamSubmitForm(body);
   }
 }
 
@@ -311,14 +317,20 @@ class MockChatService implements ChatService {
   }
 
   @override
-  Future<List<OutputItemBase>> submitForm(TextFormChunk form) async {
+  Stream<OutputItemBase> submitFormStream(TextFormChunk form) async* {
     await Future.delayed(const Duration(milliseconds: 1200));
-    return [
+    final chunks = <OutputItemBase>[
       TextChunk(
         type: OutputItemType.text,
         content: 'Form submitted successfully. Building your cart...',
       ),
     ];
+    for (final OutputItemBase chunk in chunks) {
+      yield chunk;
+      if (chunk is TextChunk) {
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+      }
+    }
   }
 
   /// Returns both trees in a single response so the controller can

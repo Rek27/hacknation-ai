@@ -11,10 +11,10 @@ import 'package:rive/rive.dart' as rive;
 // const String _activeOrderDoneAssetPath = 'assets/order_done_success.riv';
 //
 // 3) Success-Done-Completed by Artvier — checkmark with expanding circle
-const String _activeOrderDoneAssetPath = 'assets/order_done_success_v2.riv';
+// const String _activeOrderDoneAssetPath = 'assets/order_done_success_v2.riv';
 //
 // 4) Donecheck by Codywhy — minimal done check state machine
-// const String _activeOrderDoneAssetPath = 'assets/order_done_donecheck.riv';
+const String _activeOrderDoneAssetPath = 'assets/1658-3268-flag-animation.riv';
 //
 // 5) Confetti Animation by sergeyz — festive confetti burst
 // const String _activeOrderDoneAssetPath = 'assets/order_done_confetti.riv';
