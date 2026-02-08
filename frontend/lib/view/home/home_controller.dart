@@ -26,7 +26,7 @@ class HomeController extends ChangeNotifier {
   final Map<String, bool> activeTools = {};
 
   Future<void> loadInitial() async {
-    await Future.wait([refreshHealth(), refreshDocuments()]);
+    await Future.wait([refreshHealth()]);
   }
 
   Future<void> refreshHealth() async {
@@ -43,46 +43,12 @@ class HomeController extends ChangeNotifier {
     }
   }
 
-  Future<void> refreshDocuments() async {
-    loadingDocs = true;
-    notifyListeners();
-    try {
-      documents = await api.listDocuments();
-      errorMessage = null;
-    } catch (e) {
-      errorMessage = e.toString();
-    } finally {
-      loadingDocs = false;
-      notifyListeners();
-    }
-  }
-
-  Future<void> upload(File file) async {
-    try {
-      await api.uploadDocument(file);
-      await Future.wait([refreshDocuments(), refreshHealth()]);
-    } catch (e) {
-      errorMessage = e.toString();
-      notifyListeners();
-    }
-  }
-
-  Future<void> deleteDoc(String filename) async {
-    try {
-      await api.deleteDocument(filename);
-      await Future.wait([refreshDocuments(), refreshHealth()]);
-    } catch (e) {
-      errorMessage = e.toString();
-      notifyListeners();
-    }
-  }
-
   void addUserMessage(String text) {
     chatItems.add(ChatItem.user(text));
     notifyListeners();
   }
 
-  Future<void> sendMessage(String message, String pageContext) async {
+  Future<void> sendMessage(String message) async {
     if (sending || message.trim().isEmpty) return;
 
     addUserMessage(message);
@@ -97,7 +63,6 @@ class HomeController extends ChangeNotifier {
       userName: 'User',
       message: message,
       sessionId: sessionId,
-      pageContext: pageContext,
     );
 
     try {
@@ -116,30 +81,9 @@ class HomeController extends ChangeNotifier {
   }
 
   void _handleOutputItem(OutputItemBase item) {
-    if (item is ToolOutput) {
-      activeTools[item.name] = true;
-      chatItems.add(
-        ChatItem.tool(
-          name: item.name,
-          status: 'executing',
-          reason: item.reason,
-        ),
-      );
-    } else if (item is ToolResultOutput) {
-      activeTools[item.name] = false;
-      chatItems.add(
-        ChatItem.tool(
-          name: item.name,
-          status: item.success ? 'completed' : 'failed',
-        ),
-      );
-    } else if (item is TextChunk) {
+    if (item is TextChunk) {
       currentAssistantText += item.content;
       _updateLastAssistant(currentAssistantText);
-    } else if (item is ThinkingChunk) {
-      chatItems.add(ChatItem.thinking(item.content));
-    } else if (item is ApiAnswerOutput) {
-      // final answer already in text stream
     } else if (item is ErrorOutput) {
       chatItems.add(
         ChatItem.error(

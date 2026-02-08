@@ -3,25 +3,18 @@ import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
 import 'package:provider/provider.dart';
 import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/view/home/home_controller.dart';
-import 'package:frontend/view/home/widgets/chat_area.dart';
-import 'package:frontend/view/home/widgets/cart/cart_view.dart';
+import 'package:frontend/view/home/widgets/chat/chat_panel.dart';
+import 'package:frontend/view/home/widgets/chat/chat_controller.dart';
+import 'package:frontend/view/home/widgets/cart/cart_panel.dart';
+import 'package:frontend/service/agent_api.dart';
 
 /// Desktop/web layout: chat area and cart view in a Row.
 class HomeDesktopLayout extends StatelessWidget {
-  const HomeDesktopLayout({
-    super.key,
-    required this.scrollController,
-    required this.inputController,
-  });
-
-  final ScrollController scrollController;
-  final TextEditingController inputController;
+  const HomeDesktopLayout({super.key});
 
   @override
   Widget build(BuildContext context) {
     final HomeController controller = context.watch<HomeController>();
-    final ThemeData theme = Theme.of(context);
-    final ColorScheme colorScheme = theme.colorScheme;
 
     return Column(
       children: [
@@ -30,21 +23,26 @@ class HomeDesktopLayout extends StatelessWidget {
         Expanded(
           child: Row(
             children: [
-              // Chat area takes 1/3 of the remaining width.
               Expanded(
-                flex: 1,
-                child: ChatArea(
-                  scrollController: scrollController,
-                  inputController: inputController,
+                flex: 3,
+                child: ChangeNotifierProvider<ChatController>(
+                  create: (_) {
+                    final HomeController homeController = controller;
+                    return ChatController(
+                      chatService: RealChatService(
+                        homeController.api,
+                        homeController.sessionId,
+                      ),
+                    );
+                  },
+                  child: const ChatPanel(),
                 ),
               ),
-              const SizedBox(width: AppConstants.spacingMd),
-              // Cart view takes 2/3 of the remaining width.
               Expanded(
-                flex: 2,
+                flex: 5,
                 child: ChangeNotifierProvider<CartController>(
                   create: (_) => CartController(),
-                  child: CartView(),
+                  child: CartPanel(),
                 ),
               ),
             ],

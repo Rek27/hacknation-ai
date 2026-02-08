@@ -74,6 +74,28 @@ class RAGPipeline:
         logger.debug(f"Text chunked into {len(chunks)} chunks")
         return chunks
     
+    def ingest_text(self, text: str, doc_id: str = None, metadata: Dict = None) -> int:
+        """Ingest a single text string into the vector store (one chunk, no file)."""
+        if not (text and text.strip()):
+            logger.warning("Skipping empty text")
+            return 0
+        logger.debug("Generating embedding for text...")
+        embeddings = self.embedding_model.encode([text]).tolist()
+        if metadata is None:
+            metadata = {}
+        if doc_id is None:
+            import time
+            doc_id = f"text_{int(time.time() * 1000)}"
+        self.collection.add(
+            embeddings=embeddings,
+            documents=[text],
+            metadatas=[metadata],
+            ids=[doc_id]
+        )
+        total = self.collection.count()
+        logger.debug(f"Added 1 chunk (id={doc_id}). Total in DB: {total}")
+        return 1
+
     def ingest_document(self, filepath: str, metadata: Dict = None):
         """Ingest a document into the vector store"""
         logger.info(f"Ingesting document: {filepath}")
@@ -163,9 +185,20 @@ class RAGPipeline:
         logger.info(f"Directory ingestion complete: {count} total chunks")
         return count
     
-    def search(self, query: str, n_results: int = 3) -> List[Dict]:
-        """Search for relevant chunks"""
-        logger.debug(f"Searching for: '{query}' (n_results={n_results})")
+    def search(self, query: str, n_results: int = 3, where: Dict = None) -> List[Dict]:
+        """
+        Search for relevant chunks with optional metadata filtering.
+        
+        Args:
+            query: Search query string
+            n_results: Number of results to return
+            where: Optional ChromaDB where clause for metadata filtering
+                   Example: {"delivery_estimate": {"$lte": 1}}
+        
+        Returns:
+            List of dicts with content, metadata, and score
+        """
+        logger.debug(f"Searching for: '{query}' (n_results={n_results}, where={where})")
         
         # Check if collection has documents
         doc_count = self.collection.count()
@@ -178,11 +211,17 @@ class RAGPipeline:
         # Generate query embedding
         query_embedding = self.embedding_model.encode([query]).tolist()
         
-        # Search in collection
-        results = self.collection.query(
-            query_embeddings=query_embedding,
-            n_results=min(n_results, doc_count)  # Don't request more than available
-        )
+        # Search in collection with optional filtering
+        query_params = {
+            "query_embeddings": query_embedding,
+            "n_results": min(n_results, doc_count)
+        }
+        
+        if where:
+            query_params["where"] = where
+            logger.debug(f"Applying filter: {where}")
+        
+        results = self.collection.query(**query_params)
         
         # Format results
         formatted_results = []

@@ -5,7 +5,6 @@ import 'package:frontend/model/api_models.dart';
 import 'package:frontend/service/agent_api.dart';
 import 'package:frontend/service/api_client.dart';
 import 'package:frontend/view/home/home_controller.dart';
-import 'package:frontend/view/home/widgets/documents_sidebar_content.dart';
 import 'package:frontend/view/home/widgets/home_desktop_layout.dart';
 import 'package:frontend/view/home/widgets/home_mobile_layout.dart';
 
@@ -21,7 +20,7 @@ class HomePage extends StatelessWidget {
     //   flutter run --dart-define=API_BASE_URL=http://localhost:8000  (desktop/web -> local)
     const envBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
     const hostedBaseUrl =
-        'https://0166-2001-4ca0-0-f237-1562-d89a-324c-8866.ngrok-free.app';
+        'https://ca97-2001-4ca0-0-f237-1562-d89a-324c-8866.ngrok-free.app';
 
     final baseUrl = envBaseUrl.isNotEmpty ? envBaseUrl : hostedBaseUrl;
 
@@ -45,16 +44,6 @@ class _HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<_HomeView> {
-  final TextEditingController _inputController = TextEditingController();
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void dispose() {
-    _inputController.dispose();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
   @override
   Widget build(BuildContext context) {
     final double width = MediaQuery.sizeOf(context).width;
@@ -87,22 +76,12 @@ class _HomeViewState extends State<_HomeView> {
                         ),
                       ),
                     ),
-                    const Divider(height: 1),
-                    const Expanded(child: DocumentsSidebarContent()),
                   ],
                 ),
               ),
             )
           : null,
-      body: isMobile
-          ? HomeMobileLayout(
-              scrollController: _scrollController,
-              inputController: _inputController,
-            )
-          : HomeDesktopLayout(
-              scrollController: _scrollController,
-              inputController: _inputController,
-            ),
+      body: isMobile ? const HomeMobileLayout() : const HomeDesktopLayout(),
     );
   }
 }
