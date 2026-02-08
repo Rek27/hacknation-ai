@@ -8,9 +8,8 @@ import 'package:frontend/view/home/widgets/cart/cart_sheet.dart';
 import 'package:frontend/view/home/widgets/talking_avatar.dart';
 import 'package:frontend/view/home/widgets/microphone_controller.dart';
 import 'package:frontend/view/home/widgets/voice_wave_animation.dart';
+import 'package:frontend/view/home/widgets/voice_controller.dart';
 import 'package:frontend/service/agent_api.dart';
-import 'package:frontend/model/chat_message.dart';
-import 'package:frontend/model/chat_models.dart';
 
 /// Mobile layout: pre-call screen with "Start call", then Apple-style call UI
 /// with assistant name, hang-up button, compact input/chips, and cart overlay.
@@ -40,6 +39,12 @@ class HomeMobileLayout extends StatelessWidget {
               ),
               ChangeNotifierProvider<MicrophoneController>(
                 create: (_) => MicrophoneController(),
+              ),
+              ChangeNotifierProvider<VoiceController>(
+                create: (_) => VoiceController(
+                  api: homeController.api,
+                  sessionId: homeController.sessionId,
+                ),
               ),
             ],
             child: const _MobileCallBody(),
@@ -83,14 +88,17 @@ class _MobileCallBodyState extends State<_MobileCallBody> {
         : _PreCallView(onStartCall: _onStartCall, onOpenCart: _openCart);
   }
 
-  void _onStartCall() {
+  void _onStartCall() async {
     context.read<MicrophoneController>().startListening();
     setState(() => _isInCall = true);
+    // Start the voice session with the hardcoded greeting
+    await context.read<VoiceController>().startVoiceSession();
   }
 
-  void _onEndCall() {
+  void _onEndCall() async {
     context.read<MicrophoneController>().stopListening();
     context.read<ChatController>().clearConversation();
+    await context.read<VoiceController>().endSession();
     setState(() => _isInCall = false);
   }
 }
@@ -290,9 +298,14 @@ class _CallCenterContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final ChatController chatController = context.watch<ChatController>();
-    final MicrophoneController micController = context
-        .watch<MicrophoneController>();
+    final VoiceController voiceController = context.watch<VoiceController>();
+    final MicrophoneController micController = context.watch<MicrophoneController>();
+    
+    // Show wave animation when user is speaking (recording)
+    // or when assistant is thinking (loading but not playing)
+    final bool showWave = voiceController.isRecording || 
+                          (voiceController.isLoading && !voiceController.isPlaying);
+    
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingXl),
@@ -300,7 +313,7 @@ class _CallCenterContent extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             TalkingAvatar(
-              isTalking: chatController.isLoading,
+              isTalking: voiceController.isTalking,
               size: AppConstants.callUiAvatarSize,
             ),
             const SizedBox(height: AppConstants.spacingLg),
@@ -313,32 +326,43 @@ class _CallCenterContent extends StatelessWidget {
             ),
             const SizedBox(height: AppConstants.spacingSm),
             Text(
-              chatController.isLoading ? 'Listening...' : 'Say something',
+              _getStatusText(voiceController),
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: Colors.white.withValues(alpha: 0.8),
               ),
             ),
             const SizedBox(height: AppConstants.spacingLg),
-            VoiceWaveAnimation(amplitude: micController.amplitude),
+            VoiceWaveAnimation(
+              amplitude: showWave ? micController.amplitude : 0.0,
+            ),
             const SizedBox(height: AppConstants.spacingLg),
-            _LiveTranscriptStrip(chatController: chatController),
+            _LiveTranscriptStrip(voiceController: voiceController),
           ],
         ),
       ),
     );
   }
+
+  String _getStatusText(VoiceController controller) {
+    if (controller.isRecording) return 'Listening...';
+    if (controller.isLoading) return 'Processing...';
+    if (controller.isPlaying) return 'Speaking...';
+    if (controller.error != null) return 'Error';
+    return 'Tap microphone to speak';
+  }
 }
 
 class _LiveTranscriptStrip extends StatelessWidget {
-  const _LiveTranscriptStrip({required this.chatController});
+  const _LiveTranscriptStrip({required this.voiceController});
 
-  final ChatController chatController;
+  final VoiceController voiceController;
 
   @override
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
-    final String? snippet = _lastAgentTextSnippet(chatController);
-    if (snippet == null || snippet.isEmpty) return const SizedBox.shrink();
+    final String snippet = voiceController.lastAssistantText.trim();
+    if (snippet.isEmpty) return const SizedBox.shrink();
+    
     return ConstrainedBox(
       constraints: const BoxConstraints(maxWidth: 320),
       child: Container(
@@ -351,7 +375,7 @@ class _LiveTranscriptStrip extends StatelessWidget {
           borderRadius: BorderRadius.circular(AppConstants.radiusMd),
         ),
         child: Text(
-          snippet,
+          snippet.length > 120 ? '${snippet.substring(0, 120)}...' : snippet,
           maxLines: 3,
           overflow: TextOverflow.ellipsis,
           style: theme.textTheme.bodySmall?.copyWith(
@@ -361,20 +385,6 @@ class _LiveTranscriptStrip extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String? _lastAgentTextSnippet(ChatController controller) {
-    for (int i = controller.messages.length - 1; i >= 0; i--) {
-      final msg = controller.messages[i];
-      if (msg.sender != ChatMessageSender.agent) continue;
-      for (final chunk in msg.chunks) {
-        if (chunk is TextChunk && chunk.content.trim().isNotEmpty) {
-          final text = chunk.content.trim();
-          return text.length > 120 ? '${text.substring(0, 120)}...' : text;
-        }
-      }
-    }
-    return null;
   }
 }
 
@@ -410,13 +420,74 @@ class _CallControlRow extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _PlaceholderCallButton(icon: Icons.mic_off_rounded, label: 'Mute'),
+        const _MicrophoneButton(),
         const SizedBox(width: AppConstants.spacingXl),
         _EndCallButton(onPressed: onEndCall),
         const SizedBox(width: AppConstants.spacingXl),
         _PlaceholderCallButton(icon: Icons.volume_up_rounded, label: 'Speaker'),
       ],
     );
+  }
+}
+
+class _MicrophoneButton extends StatelessWidget {
+  const _MicrophoneButton();
+
+  @override
+  Widget build(BuildContext context) {
+    final ThemeData theme = Theme.of(context);
+    final VoiceController voiceController = context.watch<VoiceController>();
+    
+    final bool isRecording = voiceController.isRecording;
+    final bool isDisabled = voiceController.isLoading || voiceController.isPlaying;
+    
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        GestureDetector(
+          onTapDown: isDisabled ? null : (_) => _onMicPress(context),
+          onTapUp: isDisabled ? null : (_) => _onMicRelease(context),
+          onTapCancel: isDisabled ? null : () => _onMicCancel(context),
+          child: Container(
+            width: AppConstants.callUiTouchTarget,
+            height: AppConstants.callUiTouchTarget,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isRecording 
+                  ? AppConstants.callReject.withValues(alpha: 0.2)
+                  : Colors.transparent,
+            ),
+            child: Icon(
+              isRecording ? Icons.mic_rounded : Icons.mic_none_rounded,
+              color: isDisabled 
+                  ? Colors.white.withValues(alpha: 0.3)
+                  : (isRecording ? AppConstants.callReject : Colors.white),
+              size: AppConstants.iconSizeSm,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppConstants.spacingXs),
+        Text(
+          isRecording ? 'Recording...' : 'Hold to talk',
+          style: theme.textTheme.labelSmall?.copyWith(
+            color: Colors.white.withValues(alpha: 0.8),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _onMicPress(BuildContext context) {
+    context.read<VoiceController>().startRecording();
+  }
+
+  void _onMicRelease(BuildContext context) {
+    context.read<VoiceController>().stopRecordingAndSend();
+  }
+
+  void _onMicCancel(BuildContext context) {
+    // If user drags finger off button, cancel the recording
+    context.read<VoiceController>().cancelRecording();
   }
 }
 
