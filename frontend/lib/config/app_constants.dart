@@ -214,4 +214,23 @@ abstract final class AppConstants {
   // ── Small metadata icon size ──────────────────────────────────────────
   static const double metaIconSize = 14.0;
   static const double metaIconGap = 6.0;
+
+  // ── Resizable divider ──────────────────────────────────────────────
+  /// Width of the invisible hit area for the resize divider.
+  static const double resizeDividerHitWidth = 8.0;
+
+  /// Width of the visible divider line when hovered or dragged.
+  static const double resizeDividerActiveWidth = 4.0;
+
+  /// Width of the grip indicator pill.
+  static const double resizeDividerIndicatorWidth = 14.0;
+
+  /// Height of the grip indicator pill.
+  static const double resizeDividerIndicatorHeight = 36.0;
+
+  /// Default fraction of total width allocated to the chat panel.
+  static const double defaultChatWidthFraction = 0.375;
+
+  /// Minimum fraction of total width for any panel.
+  static const double panelMinWidthFraction = 0.2;
 }
