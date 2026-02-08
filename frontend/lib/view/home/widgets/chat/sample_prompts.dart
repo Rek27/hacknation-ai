@@ -46,8 +46,7 @@ class SamplePrompts extends StatelessWidget {
               alignment: WrapAlignment.center,
               children: ChatController.samplePrompts
                   .map(
-                    (SamplePrompt prompt) =>
-                        _SamplePromptCard(prompt: prompt),
+                    (SamplePrompt prompt) => _SamplePromptCard(prompt: prompt),
                   )
                   .toList(),
             ),

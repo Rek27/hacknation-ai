@@ -26,9 +26,7 @@ class HomeDesktopLayout extends StatelessWidget {
               Expanded(
                 flex: 3,
                 child: ChangeNotifierProvider<ChatController>(
-                  create: (_) => ChatController(
-                    chatService: MockChatService(),
-                  ),
+                  create: (_) => ChatController(chatService: MockChatService()),
                   child: const ChatPanel(),
                 ),
               ),

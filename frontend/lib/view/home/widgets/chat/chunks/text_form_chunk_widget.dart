@@ -35,16 +35,21 @@ class _TextFormChunkWidgetState extends State<TextFormChunkWidget> {
   @override
   void initState() {
     super.initState();
-    _addressController =
-        TextEditingController(text: widget.chunk.address.content ?? '');
-    _budgetController =
-        TextEditingController(text: widget.chunk.budget.content ?? '');
-    _dateController =
-        TextEditingController(text: widget.chunk.date.content ?? '');
-    _durationController =
-        TextEditingController(text: widget.chunk.durationOfEvent.content ?? '');
-    _attendeesController =
-        TextEditingController(text: widget.chunk.numberOfAttendees.content ?? '');
+    _addressController = TextEditingController(
+      text: widget.chunk.address.content ?? '',
+    );
+    _budgetController = TextEditingController(
+      text: widget.chunk.budget.content ?? '',
+    );
+    _dateController = TextEditingController(
+      text: widget.chunk.date.content ?? '',
+    );
+    _durationController = TextEditingController(
+      text: widget.chunk.durationOfEvent.content ?? '',
+    );
+    _attendeesController = TextEditingController(
+      text: widget.chunk.numberOfAttendees.content ?? '',
+    );
   }
 
   @override
@@ -302,11 +307,7 @@ class _FormField extends StatelessWidget {
       children: [
         Row(
           children: [
-            Icon(
-              icon,
-              size: 14,
-              color: colorScheme.onSurfaceVariant,
-            ),
+            Icon(icon, size: 14, color: colorScheme.onSurfaceVariant),
             const SizedBox(width: AppConstants.spacingXs),
             Text(
               label,
@@ -346,10 +347,7 @@ class _FormField extends StatelessWidget {
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppConstants.radiusSm),
-              borderSide: BorderSide(
-                color: colorScheme.primary,
-                width: 1.5,
-              ),
+              borderSide: BorderSide(color: colorScheme.primary, width: 1.5),
             ),
           ),
         ),

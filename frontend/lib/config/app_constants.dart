@@ -35,14 +35,19 @@ abstract final class AppConstants {
   // Chat
   /// Maximum width of a chat bubble.
   static const double chatBubbleMaxWidth = 600.0;
+
   /// Size of the sender avatar circle.
   static const double chatAvatarSize = 32.0;
+
   /// Minimum width of a category tile in the tree selector.
   static const double categoryTileMinWidth = 110.0;
+
   /// Fixed height for category tiles to keep them equal.
   static const double categoryTileHeight = 90.0;
+
   /// Maximum width of the pinned text form.
   static const double textFormMaxWidth = 680.0;
+
   /// Width of sample prompt cards.
   static const double samplePromptWidth = 260.0;
 }

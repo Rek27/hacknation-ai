@@ -36,11 +36,9 @@ class TreeChunkWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCategoryLevel(
-            context,
-            chunk.category.subcategories,
-            <String>[chunk.category.label],
-          ),
+          _buildCategoryLevel(context, chunk.category.subcategories, <String>[
+            chunk.category.label,
+          ]),
           if (!isDisabled) ...[
             const SizedBox(height: AppConstants.spacingMd),
             _SubmitTreeButton(
@@ -68,8 +66,10 @@ class TreeChunkWidget extends StatelessWidget {
       crossAxisAlignment: WrapCrossAlignment.start,
       children: categories.map((Category cat) {
         final String path = controller.buildLabelPath(ancestors, cat.label);
-        final CategoryNodeState state =
-            controller.getNodeState(messageId, path);
+        final CategoryNodeState state = controller.getNodeState(
+          messageId,
+          path,
+        );
         final bool shouldExpand =
             state.isSelected && cat.subcategories.isNotEmpty;
         return _CategoryColumn(
@@ -89,11 +89,10 @@ class TreeChunkWidget extends StatelessWidget {
               top: AppConstants.spacingSm,
               bottom: AppConstants.spacingSm,
             ),
-            child: _buildCategoryLevel(
-              context,
-              cat.subcategories,
-              [...ancestors, cat.label],
-            ),
+            child: _buildCategoryLevel(context, cat.subcategories, [
+              ...ancestors,
+              cat.label,
+            ]),
           ),
         );
       }).toList(),

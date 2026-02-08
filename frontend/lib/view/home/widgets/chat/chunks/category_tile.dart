@@ -83,15 +83,21 @@ class _CategoryTileState extends State<CategoryTile>
     }
 
     return MouseRegion(
-      onEnter: widget.isDisabled ? null : (_) => setState(() => _isHovered = true),
-      onExit: widget.isDisabled ? null : (_) => setState(() => _isHovered = false),
+      onEnter: widget.isDisabled
+          ? null
+          : (_) => setState(() => _isHovered = true),
+      onExit: widget.isDisabled
+          ? null
+          : (_) => setState(() => _isHovered = false),
       cursor: widget.isDisabled
           ? SystemMouseCursors.basic
           : SystemMouseCursors.click,
       child: GestureDetector(
         onTapDown: widget.isDisabled ? null : (_) => _scaleController.forward(),
         onTapUp: widget.isDisabled ? null : (_) => _scaleController.reverse(),
-        onTapCancel: widget.isDisabled ? null : () => _scaleController.reverse(),
+        onTapCancel: widget.isDisabled
+            ? null
+            : () => _scaleController.reverse(),
         onTap: widget.isDisabled ? null : widget.onTap,
         child: ScaleTransition(
           scale: _scaleAnimation,
@@ -117,10 +123,7 @@ class _CategoryTileState extends State<CategoryTile>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  widget.emoji,
-                  style: const TextStyle(fontSize: 28),
-                ),
+                Text(widget.emoji, style: const TextStyle(fontSize: 28)),
                 const SizedBox(height: AppConstants.spacingXs),
                 Text(
                   widget.label,

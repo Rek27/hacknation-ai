@@ -68,9 +68,7 @@ class _ChatMessageListState extends State<ChatMessageList> {
       children: [
         ListView.builder(
           controller: _scrollController,
-          padding: const EdgeInsets.symmetric(
-            vertical: AppConstants.spacingSm,
-          ),
+          padding: const EdgeInsets.symmetric(vertical: AppConstants.spacingSm),
           itemCount: messages.length,
           itemBuilder: (BuildContext context, int index) {
             final ChatMessage message = messages[index];

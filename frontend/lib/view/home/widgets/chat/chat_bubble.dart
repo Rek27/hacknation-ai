@@ -29,8 +29,9 @@ class ChatBubble extends StatelessWidget {
         horizontal: AppConstants.spacingMd,
       ),
       child: Row(
-        mainAxisAlignment:
-            _isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment: _isUser
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!_isUser) _buildAvatarSlot(colorScheme),
@@ -52,9 +53,7 @@ class ChatBubble extends StatelessWidget {
       width: AppConstants.chatAvatarSize,
       height: AppConstants.chatAvatarSize,
       decoration: BoxDecoration(
-        color: _isUser
-            ? colorScheme.primary
-            : colorScheme.secondaryContainer,
+        color: _isUser ? colorScheme.primary : colorScheme.secondaryContainer,
         shape: BoxShape.circle,
       ),
       child: Center(
@@ -71,8 +70,9 @@ class ChatBubble extends StatelessWidget {
 
   Widget _buildContent(ThemeData theme, ColorScheme colorScheme) {
     return Column(
-      crossAxisAlignment:
-          _isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+      crossAxisAlignment: _isUser
+          ? CrossAxisAlignment.end
+          : CrossAxisAlignment.start,
       children: [
         ConstrainedBox(
           constraints: const BoxConstraints(
@@ -100,7 +100,9 @@ class ChatBubble extends StatelessWidget {
   Widget _buildBubbleBody(ThemeData theme, ColorScheme colorScheme) {
     // For user text-only messages, use a colored bubble
     final bool isSimpleTextUser =
-        _isUser && message.chunks.length == 1 && message.chunks.first.type.jsonValue == 'text';
+        _isUser &&
+        message.chunks.length == 1 &&
+        message.chunks.first.type.jsonValue == 'text';
     if (isSimpleTextUser) {
       return _UserTextBubble(message: message);
     }
@@ -136,8 +138,7 @@ class _UserTextBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     final ThemeData theme = Theme.of(context);
     final ColorScheme colorScheme = theme.colorScheme;
-    final String text =
-        (message.chunks.first as dynamic).content as String;
+    final String text = (message.chunks.first as dynamic).content as String;
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppConstants.spacingLg,

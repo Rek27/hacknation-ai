@@ -175,7 +175,9 @@ class TextFormChunk implements OutputItemBase {
     address: TextFieldChunk.fromJson(json['address'] as Map<String, dynamic>),
     budget: TextFieldChunk.fromJson(json['budget'] as Map<String, dynamic>),
     date: TextFieldChunk.fromJson(json['date'] as Map<String, dynamic>),
-    durationOfEvent: TextFieldChunk.fromJson(json['duration'] as Map<String, dynamic>),
+    durationOfEvent: TextFieldChunk.fromJson(
+      json['duration'] as Map<String, dynamic>,
+    ),
     numberOfAttendees: TextFieldChunk.fromJson(
       json['numberOfAttendees'] as Map<String, dynamic>,
     ),

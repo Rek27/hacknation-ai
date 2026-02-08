@@ -81,20 +81,19 @@ class _ChatInputBarState extends State<ChatInputBar> {
                     vertical: AppConstants.spacingMd,
                   ),
                   border: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppConstants.radiusLg),
+                    borderRadius: BorderRadius.circular(AppConstants.radiusLg),
                     borderSide: BorderSide.none,
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppConstants.radiusLg),
+                    borderRadius: BorderRadius.circular(AppConstants.radiusLg),
                     borderSide: BorderSide.none,
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppConstants.radiusLg),
-                    borderSide:
-                        BorderSide(color: colorScheme.primary, width: 1.5),
+                    borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+                    borderSide: BorderSide(
+                      color: colorScheme.primary,
+                      width: 1.5,
+                    ),
                   ),
                 ),
               ),

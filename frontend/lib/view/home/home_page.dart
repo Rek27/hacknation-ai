@@ -81,9 +81,7 @@ class _HomeViewState extends State<_HomeView> {
               ),
             )
           : null,
-      body: isMobile
-          ? const HomeMobileLayout()
-          : const HomeDesktopLayout(),
+      body: isMobile ? const HomeMobileLayout() : const HomeDesktopLayout(),
     );
   }
 }

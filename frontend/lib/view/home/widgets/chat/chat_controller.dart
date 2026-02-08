@@ -28,7 +28,7 @@ class ChatController extends ChangeNotifier {
   final ChatService _chatService;
 
   ChatController({required ChatService chatService})
-      : _chatService = chatService;
+    : _chatService = chatService;
 
   // ---------------------------------------------------------------------------
   // State
@@ -115,10 +115,7 @@ class ChatController extends ChangeNotifier {
   }
 
   /// Send a free-form user message.
-  Future<void> sendMessage(
-    String text, {
-    String? displayText,
-  }) async {
+  Future<void> sendMessage(String text, {String? displayText}) async {
     if (_isLoading || text.trim().isEmpty) return;
 
     _hasStarted = true;
@@ -138,10 +135,7 @@ class ChatController extends ChangeNotifier {
       _errorMessage = 'Connection error: $e';
       _messages.add(
         ChatMessage.agent([
-          ErrorOutput(
-            type: OutputItemType.error,
-            message: _errorMessage!,
-          ),
+          ErrorOutput(type: OutputItemType.error, message: _errorMessage!),
         ]),
       );
     } finally {
@@ -312,9 +306,7 @@ class ChatController extends ChangeNotifier {
 
   void _handleAgentResponse(List<OutputItemBase> chunks) {
     // Disable previous TreeChunks when a new one arrives
-    final bool hasNewTree = chunks.any(
-      (OutputItemBase c) => c is TreeChunk,
-    );
+    final bool hasNewTree = chunks.any((OutputItemBase c) => c is TreeChunk);
     if (hasNewTree) {
       for (final ChatMessage msg in _messages) {
         if (msg.sender == ChatMessageSender.agent &&
@@ -357,5 +349,4 @@ class ChatController extends ChangeNotifier {
   void _triggerScroll() {
     _scrollTrigger++;
   }
-
 }

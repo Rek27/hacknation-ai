@@ -19,9 +19,7 @@ class HomeMobileLayout extends StatelessWidget {
           _ErrorBanner(message: controller.errorMessage!),
         Expanded(
           child: ChangeNotifierProvider<ChatController>(
-            create: (_) => ChatController(
-              chatService: MockChatService(),
-            ),
+            create: (_) => ChatController(chatService: MockChatService()),
             child: const ChatPanel(),
           ),
         ),

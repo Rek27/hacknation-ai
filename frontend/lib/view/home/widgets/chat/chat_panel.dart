@@ -31,9 +31,7 @@ class ChatPanel extends StatelessWidget {
           ),
           // Pinned TextFormChunk (final step)
           if (controller.pinnedTextForm != null)
-            _PinnedFormSection(
-              chunk: controller.pinnedTextForm!,
-            ),
+            _PinnedFormSection(chunk: controller.pinnedTextForm!),
           // Loading indicator
           if (controller.isLoading)
             LinearProgressIndicator(
@@ -58,9 +56,7 @@ class _PinnedFormSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppConstants.spacingMd,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: AppConstants.spacingMd),
       child: TextFormChunkWidget(
         chunk: chunk,
         messageId: '',
