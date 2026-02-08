@@ -6,6 +6,7 @@ import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_utils.dart';
 import 'package:frontend/view/home/widgets/cart/cart_shared_widgets.dart';
 import 'package:frontend/view/home/widgets/cart/checkout_loading_animation.dart';
+import 'package:frontend/view/home/widgets/cart/checkout_success_animation.dart';
 import 'package:frontend/view/home/widgets/cart/order_done_animation.dart';
 import 'package:frontend/view/home/widgets/cart_item/cart_item_widget.dart';
 import 'package:frontend/view/home/widgets/cart_item/cart_item_controller.dart';
@@ -679,15 +680,13 @@ class _RetailerOrderingScreen extends StatelessWidget {
       padding: const EdgeInsets.only(top: AppConstants.spacingMd),
       child: Column(
         children: [
-          // Animated header: Rive loading → green checkmark on completion
+          // Animated header: Rive loading → Rive success on completion
           AnimatedSwitcher(
             duration: AppConstants.durationSlow,
             child: allDone
-                ? Icon(
-                    key: const ValueKey('ordering_done'),
-                    Icons.check_circle_rounded,
-                    size: AppConstants.iconSizeMd,
-                    color: const Color(0xFF34C759),
+                ? const CheckoutSuccessAnimation(
+                    key: ValueKey('ordering_done'),
+                    size: AppConstants.checkoutLoadingAnimationSize,
                   )
                 : const CheckoutLoadingAnimation(
                     key: ValueKey('ordering_loading'),

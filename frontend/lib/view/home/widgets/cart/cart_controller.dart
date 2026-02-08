@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:frontend/config/app_constants.dart';
 import 'package:frontend/model/chat_models.dart';
 import 'package:frontend/service/agent_api.dart';
 
@@ -334,8 +335,8 @@ class CartController extends ChangeNotifier {
         _confirmedRetailers.add(retailer);
         notifyListeners();
         if (_confirmedRetailers.length == retailers.length) {
-          // Small extra pause before showing the final summary.
-          Future.delayed(const Duration(milliseconds: 800), () {
+          // Show the success animation, then navigate to the confirmed page.
+          Future.delayed(AppConstants.checkoutSuccessDisplayDuration, () {
             _phase = CheckoutPhase.complete;
             notifyListeners();
           });

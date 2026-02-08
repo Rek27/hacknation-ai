@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:rive/rive.dart' as rive;
 
+import 'package:frontend/config/app_constants.dart';
+
 // ─── Switch the active animation here ──────────────────────────────────
 // Uncomment ONE line below to try each animation, then hot-restart:
 //
@@ -14,9 +16,12 @@ import 'package:rive/rive.dart' as rive;
 // const String _activeOrderDoneAssetPath = 'assets/order_done_success_v2.riv';
 //
 // 4) Donecheck by Codywhy — minimal done check state machine
-const String _activeOrderDoneAssetPath = 'assets/1658-3268-flag-animation.riv';
+// const String _activeOrderDoneAssetPath = 'assets/order_done_donecheck.riv';
 //
-// 5) Confetti Animation by sergeyz — festive confetti burst
+// 5) Talking avatar (wave_hear_talk) — same as mobile call UI, face that talks
+const String _activeOrderDoneAssetPath = 'assets/wave_hear_talk.riv';
+//
+// 6) Confetti Animation by sergeyz — festive confetti burst
 // const String _activeOrderDoneAssetPath = 'assets/order_done_confetti.riv';
 // ────────────────────────────────────────────────────────────────────────
 
@@ -51,10 +56,7 @@ class _OrderDoneAnimationState extends State<OrderDoneAnimation> {
         riveFactory: rive.Factory.rive,
       );
       if (_riveFile == null) return;
-      _controller = rive.RiveWidgetController(
-        _riveFile!,
-        stateMachineSelector: const rive.StateMachineAtIndex(0),
-      );
+      _controller = rive.RiveWidgetController(_riveFile!);
       if (mounted) {
         setState(() => _isInitialized = true);
       }
@@ -78,7 +80,10 @@ class _OrderDoneAnimationState extends State<OrderDoneAnimation> {
     return SizedBox(
       width: widget.size,
       height: widget.size,
-      child: rive.RiveWidget(controller: _controller!, fit: rive.Fit.contain),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppConstants.radiusLg),
+        child: rive.RiveWidget(controller: _controller!, fit: rive.Fit.contain),
+      ),
     );
   }
 
