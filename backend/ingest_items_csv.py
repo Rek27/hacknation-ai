@@ -84,10 +84,31 @@ def main():
     for i, row in enumerate(rows):
         text = row_to_text(row, headers)
         doc_id = f"item_{i}"
+        
+        # Build metadata with filterable fields
+        metadata = {
+            "source": source_name,
+            "row": i
+        }
+        
+        # Add delivery_estimate as filterable metadata (convert to int)
+        if "delivery_estimate" in row and row["delivery_estimate"]:
+            try:
+                metadata["delivery_estimate"] = int(row["delivery_estimate"])
+            except (ValueError, TypeError):
+                logger.warning(f"Row {i}: Invalid delivery_estimate value: {row['delivery_estimate']}")
+        
+        # Add price as filterable metadata (convert to float)
+        if "price" in row and row["price"]:
+            try:
+                metadata["price"] = float(row["price"])
+            except (ValueError, TypeError):
+                logger.warning(f"Row {i}: Invalid price value: {row['price']}")
+        
         rag.ingest_text(
             text,
             doc_id=doc_id,
-            metadata={"source": source_name, "row": i},
+            metadata=metadata,
         )
         ingested += 1
         if (i + 1) % 10 == 0:

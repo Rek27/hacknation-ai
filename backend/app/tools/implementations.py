@@ -7,6 +7,8 @@ Add new tools here and register them with the @tools.register decorator.
 import json
 import re
 from datetime import datetime
+from typing import Optional, Union
+from dataclasses import dataclass
 from app.tools.registry import ToolRegistry
 from app.logger import get_logger
 
@@ -14,6 +16,97 @@ logger = get_logger(__name__)
 
 # Global registry instance
 tools = ToolRegistry()
+
+
+@dataclass
+class FilterRange:
+    """Represents a range filter with optional min and max values."""
+    min: Optional[Union[int, float]] = None
+    max: Optional[Union[int, float]] = None
+    
+    def __post_init__(self):
+        """Validate that at least one of min or max is provided."""
+        if self.min is None and self.max is None:
+            raise ValueError("At least one of 'min' or 'max' must be provided")
+
+
+@dataclass
+class Filters:
+    """
+    Filters for search_database queries.
+    
+    Filters are applied to the vector database BEFORE querying, reducing search space.
+    Multiple filters are combined with AND logic - all conditions must be satisfied.
+    
+    Attributes:
+        delivery_time: Filter by delivery estimate in days
+            - int: Exact match (e.g., 0 for same-day)
+            - FilterRange: Range with min/max (e.g., FilterRange(max=1) for ≤1 day)
+        
+        price: Filter by item price
+            - float: Exact match (e.g., 1.50)
+            - FilterRange: Range with min/max (e.g., FilterRange(min=1.0, max=3.0))
+    
+    Examples:
+        # Same-day delivery only
+        Filters(delivery_time=0)
+        
+        # Max 1-day delivery
+        Filters(delivery_time=FilterRange(max=1))
+        
+        # Delivery range 1-2 days
+        Filters(delivery_time=FilterRange(min=1, max=2))
+        
+        # Price range with max delivery
+        Filters(
+            delivery_time=FilterRange(max=1),
+            price=FilterRange(max=2.0)
+        )
+    """
+    delivery_time: Optional[Union[int, FilterRange]] = None
+    price: Optional[Union[float, FilterRange]] = None
+    
+    def __post_init__(self):
+        """Validate that at least one filter is provided."""
+        if self.delivery_time is None and self.price is None:
+            raise ValueError("At least one filter must be provided")
+    
+    def to_dict(self) -> dict:
+        """
+        Convert Filters object to dict format for compatibility.
+        
+        Returns:
+            Dict representation with structure:
+            {
+                "delivery_time": int or {"min": int, "max": int},
+                "price": float or {"min": float, "max": float}
+            }
+        """
+        result = {}
+        
+        if self.delivery_time is not None:
+            if isinstance(self.delivery_time, FilterRange):
+                range_dict = {}
+                if self.delivery_time.min is not None:
+                    range_dict["min"] = self.delivery_time.min
+                if self.delivery_time.max is not None:
+                    range_dict["max"] = self.delivery_time.max
+                result["delivery_time"] = range_dict
+            else:
+                result["delivery_time"] = self.delivery_time
+        
+        if self.price is not None:
+            if isinstance(self.price, FilterRange):
+                range_dict = {}
+                if self.price.min is not None:
+                    range_dict["min"] = self.price.min
+                if self.price.max is not None:
+                    range_dict["max"] = self.price.max
+                result["price"] = range_dict
+            else:
+                result["price"] = self.price
+        
+        return result
 
 
 @tools.register
@@ -76,24 +169,107 @@ def calculate(expression: str) -> str:
         })
 
 
+def _build_where_clause(filters: Optional[Union[Filters, dict]]) -> Optional[dict]:
+    """
+    Build a ChromaDB where clause from Filters object or dict.
+    
+    Supports expandable filter types with AND relationship between filters.
+    
+    Args:
+        filters: Filters object or dict of filters
+    
+    Returns:
+        ChromaDB where clause dict using $and operator for multiple conditions
+    """
+    if not filters:
+        return None
+    
+    # Convert Filters object to dict for processing
+    if isinstance(filters, Filters):
+        filters_dict = filters.to_dict()
+    else:
+        filters_dict = filters
+    
+    conditions = []
+    
+    # Handle delivery_time filter
+    if "delivery_time" in filters_dict:
+        delivery_filter = filters_dict["delivery_time"]
+        
+        if isinstance(delivery_filter, (int, float)):
+            # Exact match: delivery_time=0
+            conditions.append({"delivery_estimate": {"$eq": int(delivery_filter)}})
+        elif isinstance(delivery_filter, dict):
+            # Range filter: {"max": 1} or {"min": 1, "max": 2}
+            if "max" in delivery_filter:
+                conditions.append({"delivery_estimate": {"$lte": int(delivery_filter["max"])}})
+            if "min" in delivery_filter:
+                conditions.append({"delivery_estimate": {"$gte": int(delivery_filter["min"])}})
+        else:
+            logger.warning(f"Invalid delivery_time filter format: {delivery_filter}")
+    
+    # Handle price filter
+    if "price" in filters_dict:
+        price_filter = filters_dict["price"]
+        
+        if isinstance(price_filter, (int, float)):
+            # Exact match: price=1.5
+            conditions.append({"price": {"$eq": float(price_filter)}})
+        elif isinstance(price_filter, dict):
+            # Range filter: {"max": 2.0} or {"min": 1.0, "max": 3.0}
+            if "max" in price_filter:
+                conditions.append({"price": {"$lte": float(price_filter["max"])}})
+            if "min" in price_filter:
+                conditions.append({"price": {"$gte": float(price_filter["min"])}})
+        else:
+            logger.warning(f"Invalid price filter format: {price_filter}")
+    
+    # Return None if no valid conditions
+    if not conditions:
+        return None
+    
+    # Single condition: return as-is
+    if len(conditions) == 1:
+        return conditions[0]
+    
+    # Multiple conditions: combine with $and
+    return {"$and": conditions}
+
+
 def search_database(
     query, 
     similarity_threshold: float = 0.5, 
     top_results: int = 5,
-    n_results: int = 20, 
+    n_results: int = 20,
+    filters: Optional[Union[Filters, dict]] = None,
     rag_pipeline = None
 ):
     """
-    Search the vector database for similar items using semantic similarity.
+    Search the vector database for similar items using semantic similarity with optional filtering.
     
     Supports both single and multiple query searches. When searching multiple items,
     top_results is applied per item (e.g., 2 items with top_results=5 returns up to 10 total).
+    
+    Filters are applied to the vector database BEFORE querying, reducing the search space.
+    Multiple filters are combined with AND logic.
     
     Args:
         query: Single item name (str), JSON array string, or list of item names
         similarity_threshold: Minimum similarity score to filter results (default: 0.5)
         top_results: Maximum number of top results per query item (default: 5)
         n_results: Number of results to retrieve from vector DB before filtering (default: 20)
+        filters: Optional Filters object or dict to apply before search.
+            Filters object (recommended):
+                Filters(delivery_time=0)  # Same-day delivery
+                Filters(delivery_time=FilterRange(max=1))  # Max 1 day
+                Filters(
+                    delivery_time=FilterRange(min=1, max=2),
+                    price=FilterRange(max=2.0)
+                )
+            Dict format (backward compatible):
+                {"delivery_time": 0}
+                {"delivery_time": {"max": 1}}
+                {"delivery_time": {"min": 1, "max": 2}, "price": {"max": 2.0}}
         rag_pipeline: RAG pipeline instance for searching
     
     Returns:
@@ -102,16 +278,33 @@ def search_database(
           Example: [{"query": "item1", "results": [...]}, {"query": "item2", "results": [...]}]
     
     Examples:
-        # Single query
+        # Single query with no filters
         results = search_database("Banana Smoothie", top_results=5, rag_pipeline=rag)
-        # Returns: [result1, result2, ...] (up to 5 results)
         
-        # Multiple queries
-        results = search_database(["Banana", "Coffee"], top_results=3, rag_pipeline=rag)
-        # Returns: [
-        #   {"query": "Banana", "results": [r1, r2, r3]},
-        #   {"query": "Coffee", "results": [r1, r2, r3]}
-        # ] (up to 3 results per item = 6 total)
+        # Single query with same-day delivery filter
+        results = search_database(
+            "Banana Smoothie", 
+            filters=Filters(delivery_time=0),
+            rag_pipeline=rag
+        )
+        
+        # Multiple queries with max 1-day delivery
+        results = search_database(
+            ["Banana", "Coffee"],
+            filters=Filters(delivery_time=FilterRange(max=1)),
+            top_results=3,
+            rag_pipeline=rag
+        )
+        
+        # Combined filters
+        results = search_database(
+            "Water",
+            filters=Filters(
+                delivery_time=0,
+                price=FilterRange(max=1.0)
+            ),
+            rag_pipeline=rag
+        )
     """
     if not rag_pipeline:
         logger.error("RAG pipeline not provided to search_database")
@@ -141,13 +334,18 @@ def search_database(
         logger.error(f"Invalid query type: {type(query)}")
         return []
     
+    # Build ChromaDB where clause from filters
+    where_clause = _build_where_clause(filters)
+    if where_clause:
+        logger.debug(f"Applying filters: {filters} -> where clause: {where_clause}")
+    
     logger.debug(f"Processing {len(queries)} queries")
     
     # Search for each query
     all_results = []
     for q in queries:
-        # Search for similar items in vector DB
-        results = rag_pipeline.search(q, n_results=n_results)
+        # Search for similar items in vector DB with optional filtering
+        results = rag_pipeline.search(q, n_results=n_results, where=where_clause)
         logger.debug(f"Found {len(results)} results from vector DB for '{q}'")
         
         # Filter by similarity threshold
