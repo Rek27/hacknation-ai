@@ -113,6 +113,14 @@ Color categoryAccentColor(BuildContext context, String key) {
   }
 }
 
+/// Returns the relative URL path for a retailer logo image.
+/// The backend stores logos as `/images/retailers/{sanitized_name}.png`
+/// where spaces become underscores and slashes become underscores.
+String retailerLogoUrl(String retailerName) {
+  final sanitized = retailerName.replaceAll(' ', '_').replaceAll('/', '_');
+  return '/images/retailers/$sanitized.png';
+}
+
 /// Returns a soft tinted background for a recommendation category tile.
 /// When [isSelected] is true the tint is stronger to reinforce the selection.
 Color categorySoftTint(

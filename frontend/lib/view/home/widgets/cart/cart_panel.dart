@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:frontend/config/app_constants.dart';
+import 'package:frontend/view/home/home_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_controller.dart';
 import 'package:frontend/view/home/widgets/cart/cart_utils.dart';
 import 'package:frontend/view/home/widgets/cart/cart_shared_widgets.dart';
@@ -578,6 +579,48 @@ class _CartSummaryPanelState extends State<_CartSummaryPanel> {
 // Retailer ordering animation screen
 // ---------------------------------------------------------------------------
 
+/// Displays a retailer logo fetched from the backend. Falls back to a coloured
+/// initials box when the image is unavailable.
+class _RetailerLogoImage extends StatelessWidget {
+  const _RetailerLogoImage({required this.name, required this.size});
+  final String name;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    final String baseUrl = context.read<HomeController>().api.baseUrl;
+    final String fullUrl = '$baseUrl${retailerLogoUrl(name)}';
+    final Color fallbackColor = _retailerColor(name);
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+      child: Image.network(
+        fullUrl,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: fallbackColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(AppConstants.radiusSm),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            _retailerInitials(name),
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: fallbackColor,
+              fontWeight: FontWeight.w800,
+              fontSize: size * 0.3,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Mock retailer logo colours (deterministic per retailer name).
 Color _retailerColor(String name) {
   final colors = [
@@ -686,7 +729,6 @@ class _RetailerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final cs = theme.colorScheme;
-    final color = _retailerColor(name);
 
     return AnimatedContainer(
       duration: AppConstants.durationSlow,
@@ -706,29 +748,7 @@ class _RetailerCard extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                if (imageUrl != null)
-                  CartImagePlaceholder(
-                    size: 64,
-                    color: color.withValues(alpha: 0.15),
-                    imageUrl: imageUrl,
-                  )
-                else
-                  Container(
-                    width: 64,
-                    height: 64,
-                    decoration: BoxDecoration(
-                      color: color.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(AppConstants.radiusMd),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _retailerInitials(name),
-                      style: theme.textTheme.headlineSmall?.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
+                _RetailerLogoImage(name: name, size: 64),
                 const SizedBox(height: AppConstants.spacingSm),
                 Text(
                   name,
@@ -875,24 +895,7 @@ class _OrderCompleteSummary extends StatelessWidget {
               // Retailer header
               Row(
                 children: [
-                  Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: _retailerColor(retailer).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(
-                        AppConstants.radiusSm,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      _retailerInitials(retailer),
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: _retailerColor(retailer),
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                  ),
+                  _RetailerLogoImage(name: retailer, size: 36),
                   const SizedBox(width: AppConstants.spacingSm),
                   Expanded(
                     child: Text(
