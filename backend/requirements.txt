@@ -9,3 +9,4 @@ chromadb==0.4.22
 pypdf2==3.0.1
 pydantic==2.6.0
 sse-starlette==2.0.0
+rapidfuzz>=3.0.0

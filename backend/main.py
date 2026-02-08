@@ -1,6 +1,7 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import StreamingResponse, HTMLResponse
+from fastapi import FastAPI, Request, UploadFile, File, Form as FastAPIForm
+from fastapi.responses import StreamingResponse, HTMLResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 import json
 import os
@@ -21,6 +22,7 @@ from app.tree_agent import TreeAgent
 from app.form_agent import FormAgent
 from app.shopping_list_agent import ShoppingListAgent
 from app.shopping_agent import ShoppingAgent
+from app.voice_agent import VoiceAgent
 from app.rag_pipeline import RAGPipeline
 from app.tools import tools
 from app.logger import setup_logging, get_logger
@@ -73,6 +75,18 @@ app = FastAPI(
     openapi_tags=_tags_metadata,
 )
 
+app.mount(
+    "/images",
+    StaticFiles(
+        directory=os.path.join(
+            os.path.dirname(__file__),
+            "mocking_data",
+            "images",
+        )
+    ),
+    name="images",
+)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -110,6 +124,13 @@ rag_pipeline = RAGPipeline()
 tools.set_rag_pipeline(rag_pipeline)
 shopping_list_agent = ShoppingListAgent(api_key=api_key)
 shopping_agent = ShoppingAgent(rag_pipeline=rag_pipeline)
+voice_agent = VoiceAgent(
+    api_key=api_key,
+    tree_agent=tree_agent,
+    form_agent=form_agent,
+    shopping_list_agent=shopping_list_agent,
+    shopping_agent=shopping_agent,
+)
 
 # In-memory session store (swap for DB in production)
 sessions: dict[str, Context] = {}
@@ -235,6 +256,22 @@ class RecommendationReasonResponse(BaseModel):
     reasoning: str
 
 
+class StartVoiceResponse(BaseModel):
+    session_id: str
+    text: str
+    audio_id: str
+    phase: str
+
+
+class VoiceInputResponse(BaseModel):
+    text: str
+    audio_id: str
+    phase: str
+    data: dict
+    transcribed_text: str = Field(default="", description="What the user said")
+    wait_for_input: bool = Field(default=True, description="Whether to wait for user input")
+
+
 # ── Endpoints ──────────────────────────────────────────────────────────────
 @app.get(
     "/",
@@ -247,7 +284,7 @@ async def root():
     return {
         "service": "Event Shopping Agent API",
         "version": "2.0.0",
-        "endpoints": ["/chat", "/submit-tree", "/submit-form", "/health", "/test"],
+        "endpoints": ["/chat", "/submit-tree", "/submit-form", "/start-voice", "/voice-input", "/tts-audio/{id}", "/health", "/test"],
     }
 
 
@@ -485,6 +522,109 @@ async def submit_form(request: SubmitFormRequest):
 )
 async def health():
     return {"status": "healthy", "active_sessions": len(sessions)}
+
+
+@app.post(
+    "/start-voice",
+    response_model=StartVoiceResponse,
+    tags=["Voice"],
+    summary="Start voice interaction",
+    description="Initialize a voice session and return greeting prompt with TTS audio.",
+)
+async def start_voice(request: ChatRequest):
+    logger.info(f"/start-voice from {request.user_name} (session={request.session_id})")
+    context = _get_or_create_session(request.session_id, request.user_name)
+    
+    try:
+        # Initialize voice state and get greeting
+        state = voice_agent.init_voice_state()
+        context.save_voice_state(state)
+        
+        response = await voice_agent.handle_greeting_phase(context, state)
+        
+        return {
+            "session_id": request.session_id,
+            "text": response["text"],
+            "audio_id": response["audio_id"],
+            "phase": response["phase"],
+        }
+    except Exception as e:
+        logger.error(f"/start-voice error: {e}", exc_info=True)
+        raise
+
+
+@app.post(
+    "/voice-input",
+    response_model=VoiceInputResponse,
+    tags=["Voice"],
+    summary="Process voice input",
+    description="Receives audio file, transcribes it, processes input, and returns next TTS prompt.",
+)
+async def voice_input(
+    session_id: str = FastAPIForm(...),
+    audio: UploadFile = File(...),
+):
+    logger.info(f"/voice-input session={session_id}, audio={audio.filename}")
+    context = _get_or_create_session(session_id)
+    
+    try:
+        # Read audio file
+        audio_bytes = await audio.read()
+        
+        # Transcribe audio
+        transcribed_text = await voice_agent.transcribe_audio(audio_bytes)
+        logger.info(f"Transcribed: {transcribed_text}")
+        
+        # Process voice input
+        response = await voice_agent.process_voice_input(context, transcribed_text)
+        
+        # Check if we should wait for input based on phase
+        wait_for_input = response["phase"] not in ["done", "error"]
+        
+        return {
+            "text": response["text"],
+            "audio_id": response["audio_id"],
+            "phase": response["phase"],
+            "data": response.get("data", {}),
+            "transcribed_text": transcribed_text,
+            "wait_for_input": wait_for_input,
+        }
+    except Exception as e:
+        logger.error(f"/voice-input error: {e}", exc_info=True)
+        # Return error response
+        error_response = await voice_agent.handle_error(str(e))
+        return {
+            "text": error_response["text"],
+            "audio_id": error_response["audio_id"],
+            "phase": "error",
+            "data": {"error": str(e)},
+            "transcribed_text": "",
+            "wait_for_input": False,
+        }
+
+
+@app.get(
+    "/tts-audio/{audio_id}",
+    tags=["Voice"],
+    summary="Get TTS audio file",
+    description="Returns cached TTS audio file by ID.",
+)
+async def get_tts_audio(audio_id: str):
+    logger.info(f"/tts-audio/{audio_id}")
+    
+    audio_bytes = voice_agent.get_cached_audio(audio_id)
+    if not audio_bytes:
+        logger.warning(f"Audio not found: {audio_id}")
+        return Response(status_code=404, content="Audio not found")
+    
+    return Response(
+        content=audio_bytes,
+        media_type="audio/mpeg",
+        headers={
+            "Cache-Control": "public, max-age=3600",
+            "Content-Disposition": f"inline; filename={audio_id}.mp3",
+        },
+    )
 
 
 @app.post(

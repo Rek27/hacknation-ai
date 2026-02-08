@@ -168,10 +168,25 @@ class CartItemDetail(BaseModel):
     price: float = Field(..., description="Price per item")
     amount: int = Field(..., description="Quantity for this item")
     retailer: str = Field(..., description="Retailer or store name")
+    review_rating: float = Field(
+        default=0.0,
+        alias="reviewRating",
+        description="Average review rating (0 if unavailable)",
+    )
+    reviews_count: int = Field(
+        default=0,
+        alias="reviewsCount",
+        description="Number of reviews (0 if unavailable)",
+    )
     delivery_time_ms: int = Field(
         ...,
         alias="deliveryTimeMs",
         description="Delivery time in milliseconds",
+    )
+    image_url: Optional[str] = Field(
+        default=None,
+        alias="imageUrl",
+        description="Public image URL for the item",
     )
 
     model_config = _model_config
@@ -227,6 +242,38 @@ class ErrorOutput(BaseModel):
     model_config = _model_config
 
 
+class VoicePromptChunk(BaseModel):
+    """TTS prompt to be spoken to user."""
+
+    type: Literal["voice_prompt"] = "voice_prompt"
+    text: str = Field(..., description="Text to speak to user")
+    audio_url: str = Field(..., description="URL to TTS audio file")
+    phase: str = Field(..., description="Current phase of interaction")
+
+    model_config = _model_config
+
+
+class VoiceConfirmationChunk(BaseModel):
+    """Request user confirmation via voice."""
+
+    type: Literal["voice_confirmation"] = "voice_confirmation"
+    question: str = Field(..., description="Confirmation question")
+    matched_item: str = Field(..., description="What was matched")
+    audio_url: str = Field(..., description="URL to TTS audio")
+
+    model_config = _model_config
+
+
+class VoiceStatusChunk(BaseModel):
+    """Voice interaction status update."""
+
+    type: Literal["voice_status"] = "voice_status"
+    status: str = Field(..., description="listening, speaking, processing, done")
+    message: Optional[str] = Field(None, description="Optional status message")
+
+    model_config = _model_config
+
+
 OutputItem = Union[
     TextChunk,
     PeopleTreeTrunk,
@@ -236,4 +283,7 @@ OutputItem = Union[
     RetailerOffersChunk,
     ChunkShoppingCart,
     ErrorOutput,
+    VoicePromptChunk,
+    VoiceConfirmationChunk,
+    VoiceStatusChunk,
 ]

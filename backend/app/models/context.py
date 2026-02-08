@@ -32,6 +32,9 @@ class Context:
         # Persisted form data (label -> content)
         self.form_data: dict[str, str] = {}
 
+        # Voice interaction state
+        self.voice_state: Optional[dict] = None
+
     # ── Conversation helpers ────────────────────────────────────────────
 
     def add_message(self, role: str, content: str) -> None:
@@ -66,3 +69,13 @@ class Context:
             if label:
                 data[label.lower()] = (field.content or "").strip()
         self.form_data = data
+
+    # ── Voice state persistence ─────────────────────────────────────────
+
+    def save_voice_state(self, state: dict) -> None:
+        """Persist voice interaction state."""
+        self.voice_state = state
+
+    def get_voice_state(self) -> dict:
+        """Get current voice state or empty dict."""
+        return self.voice_state or {}
