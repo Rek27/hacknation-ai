@@ -11,7 +11,6 @@
 - [System Workflow](#-system-workflow)
 - [Results & Impact](#-results--impact)
 - [Future Improvements](#-future-improvements)
-- [Vision](#-vision)
 
 ## 🚩 The Problem
 
