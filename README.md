@@ -47,7 +47,7 @@ Users express high-level intent:
 SmartCart then:
 
 1. Calculates quantities
-2 Discovers products across multiple retailers
+2. Discovers products across multiple retailers
 3. Ranks options transparently
 4. Builds a unified cart
 5. Simulates checkout orchestration
